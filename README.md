@@ -13,8 +13,12 @@ requirements:
 * timestamp : Date and Time
 
 2.) Create a Teamspeak Query Admin 
-Insert your IP and login into bot.py
+Insert your IP and login into bot.py and cycle.py
 
 3.) Adjust your Servergroup and Channel
 
-4.) Done
+4.) 
+* Start bot.py within a screen or tmux
+* start cycle.py via cronjob whenever you like.
+
+5.) done
