@@ -21,10 +21,17 @@ if __name__ == '__main__':
     for row in c:
         r = requests.get('https://api.guildswars2.com/v2/account?access_token={}'.format(row[1]))
         r_json = r.json()
-        if not (r_json['world'] and r_json['world'] == 2201):
-            cldbid = ts3conn.clientgetdbidfromuid(cluid=row[2])
-            ts3conn.servergroupdelclient(sgid=127, cldbid=cldbid)
+        if not ('world' in r_json and r_json['world'] == 2201):
+            try:
+                cldbid = ts3conn.clientgetdbidfromuid(cluid=row[2]).parsed[0]['cldbid']
+                ts3conn.servergroupdelclient(sgid=127, cldbid=cldbid)
+            except ts3.query.TS3QueryError as e:
+                print('Failed to remove group from cluid={}, id={}'.format(row[2], row[0]))
+                print(e)
 
             user_delete.append(row[0])
 
-    c.execute('DELETE FROM users WHERE id IN ({})'.format(''.join(user_delete)))
+    c.execute('DELETE FROM users WHERE id IN ({})'.format(', '.join(['?'] * len(user_delete))), user_delete)
+    c.close()
+    conn.commit()
+    conn.close()
