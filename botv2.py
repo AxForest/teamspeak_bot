@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 # id: 127 kodash
+import sqlite3
+
 import requests
 import ts3
-import sqlite3
+
 
 def my_event_handler(sender, event):
     print(event.event)
@@ -19,17 +21,17 @@ def my_event_handler(sender, event):
     elif event.event == "notifytextmessage":
         if 'invokeruid' in event.parsed[0].keys():
             if event.parsed[0]["invokeruid"] != "sMA75rC+zosl7S/eG9pKik1bt34=":
-               apikey = event.parsed[0]["msg"].strip()
-               invokeruid = event.parsed[0]["invokeruid"].strip()
-               invokerid = event.parsed[0]["invokerid"].strip()
-               r = requests.get('https://api.guildwars2.com/v2/account?access_token=' + apikey)
-#               conn = sqlite3.connect('test')
-#		name = r.json().get("name")
-#               c = conn.cursor();
-#		c.execute("SELECT id, name, world FROM tbl WHERE name =?",name)
-#		row = c.fetchone()
-#		world = row[2]
-               if r.json().get("world"):
+                apikey = event.parsed[0]["msg"].strip()
+                invokeruid = event.parsed[0]["invokeruid"].strip()
+                invokerid = event.parsed[0]["invokerid"].strip()
+                r = requests.get('https://api.guildwars2.com/v2/account?access_token=' + apikey)
+                # conn = sqlite3.connect('test')
+                # name = r.json().get("name")
+                # c = conn.cursor();
+                # c.execute("SELECT id, name, world FROM tbl WHERE name =?",name)
+                # row = c.fetchone()
+                # world = row[2]
+                if r.json().get("world"):
                     if r.json()["world"] == 2201:
                         ts3conn.sendtextmessage(targetmode=1, target=invokerid,
                                                 msg="Sie haben die Welt 'Kodash' gewählt. Genießen Sie ihren Besuch "
@@ -38,7 +40,9 @@ def my_event_handler(sender, event):
                                                     "Akutelle Builds gibt es [Url=www.kdshbuilds.de]hier[/url]")
                         conn = sqlite3.connect('ts.db')
                         c = conn.cursor()
-                        c.execute("INSERT INTO users (name, world, apikey, tsid, timestamp) values (?,?,?,?,datetime('now'))",(r.json().get("name"),r.json().get("world"),apikey,invokeruid))
+                        c.execute(
+                            "INSERT INTO users (name, world, apikey, tsid, timestamp) VALUES (?,?,?,?,datetime('now'))",
+                            (r.json().get("name"), r.json().get("world"), apikey, invokeruid))
                         conn.commit()
                         c.close()
                         conn.close()
@@ -53,7 +57,7 @@ def my_event_handler(sender, event):
                                                 msg="Sie haben eine andere Welt gewählt. Falls sie vor kurzer Zeit "
                                                     "ihre Heimatwelt gewechselt haben versuchen Sie es in 24Stunden "
                                                     "erneut. Spion!")
-               else:
+                else:
                     ts3conn.sendtextmessage(targetmode=1, target=event.parsed[0]["invokerid"],
                                             msg="Sie haben eine fehlerhafte Eingabe getätigt. Bitte versuchen Sie es "
                                                 "erneut.")
