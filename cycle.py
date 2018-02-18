@@ -17,6 +17,7 @@ if __name__ == '__main__':
     c.execute('SELECT id, apikey, tsid FROM users ORDER BY timestamp ASC')
 
     user_delete = []
+    user_update = []
 
     for row in c:
         r = requests.get('https://api.guildswars2.com/v2/account?access_token={}'.format(row[1]))
@@ -30,8 +31,12 @@ if __name__ == '__main__':
                 print(e)
 
             user_delete.append(row[0])
+        else:
+            user_update.append(row[0])
 
     c.execute('DELETE FROM users WHERE id IN ({})'.format(', '.join(['?'] * len(user_delete))), user_delete)
+    c.execute('UPDATE users SET timestamp = CURRENT_TIMESTAMP WHERE id IN ({})'
+              .format(', '.join(['?'] * len(user_update))), user_update)
     c.close()
     conn.commit()
     conn.close()
