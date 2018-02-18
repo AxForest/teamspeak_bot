@@ -20,7 +20,7 @@ if __name__ == '__main__':
     user_update = []
 
     for row in c:
-        r = requests.get('https://api.guildswars2.com/v2/account?access_token={}'.format(row[1]))
+        r = requests.get('https://api.guildwars2.com/v2/account?access_token={}'.format(row[1]))
         r_json = r.json()
         if not ('world' in r_json and r_json['world'] == 2201):
             try:
