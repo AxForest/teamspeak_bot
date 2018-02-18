@@ -1,6 +1,10 @@
 # teamspeak_bot
 Guild Wars 2 - Teamspeak Bot
 
+requirements: 
+* python3
+* ts3 < 1.0
+
 1.) Create a sqlite3 Database with 5 collums (name, world, apikey, tsid, timestamp)
 * Name      : Account name
 * World     : e.g Kodash
