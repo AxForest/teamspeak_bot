@@ -90,7 +90,7 @@ def handle_event():
                     'User {} ({}) is currently on world {} and tried to register.'.format(event[0]['invokername'],
                                                                                           event[0]['invokeruid'],
                                                                                           world))
-                ts3c.exec_('sendtextmesage', targetmode=1, target=event.parsed[0]['invokerid'],
+                ts3c.exec_('sendtextmessage', targetmode=1, target=event.parsed[0]['invokerid'],
                            msg='Sie haben eine andere Welt gewählt. Falls sie vor kurzer Zeit '
                                'ihre Heimatwelt gewechselt haben, versuchen Sie es in 24 Stunden '
                                'erneut. Spion!')
