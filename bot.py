@@ -35,6 +35,7 @@ def handle_event():
             if response.status_code == 403:  # Invalid API key
                 ts3c.exec_('sendtextmessage', targetmode=1, target=event[0]['invokerid'],
                            msg='Sie haben eine ungültige Eingabe getätigt. Bitte versuchen Sie es erneut.')
+                return
 
             json = response.json()
             world = json.get('world')
@@ -84,7 +85,6 @@ def handle_event():
                 except ts3.TS3Error and sqlite3.Error:
                     logging.error('Failed to assign server group to user uid:{}'.format(event[0]['invokeruid']))
                     logging.error(traceback.format_exc())
-                return
             else:  # Invalid world on API
                 logging.warning(
                     'User {} ({}) is currently on world {} and tried to register.'.format(event[0]['invokername'],
