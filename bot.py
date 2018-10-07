@@ -55,7 +55,7 @@ def handle_event():
 
                     # Check if API key/account was user previously by another uid
                     cur.execute('SELECT count(id), name FROM users WHERE tsid != ? AND (apikey = ? OR name = ?)',
-                                (message, event[0]['invokeruid'], json.get('name')))
+                                (event[0]['invokeruid'], message, json.get('name')))
                     result = cur.fetchone()
                     if result[0] > 0:
                         logging.warning(
