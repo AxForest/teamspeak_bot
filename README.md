@@ -10,7 +10,7 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 # Installation/Usage
 - Create a table in a MySQL/MariaDB database  
 ```mysql
-CREATE TABLE `ts`  (
+CREATE TABLE `users`  (
   `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(40) NOT NULL,
   `world` int(4) NOT NULL,
