@@ -1,24 +1,28 @@
 # teamspeak_bot
-Guild Wars 2 - Teamspeak Bot
+A TeamSpeak bot for assigning server groups based on the user's world in Guild Wars 2
 
-requirements: 
+# Requirements 
 * python3
-* ts3 < 1.0
+* mysql-connector==2.1.6
+* requests==2.18.4
+* ts3==2.0.0b2
 
-1.) Create a sqlite3 Database with 5 collums (name, world, apikey, tsid, timestamp)
-* Name      : Account name
-* World     : e.g Kodash
-* apikey    : The API - Key
-* tsid      : The Teamspeak Id
-* timestamp : Date and Time
-
-2.) Create a Teamspeak Query Admin 
-Insert your IP and login into bot.py and cycle.py
-
-3.) Adjust your Servergroup and Channel
-
-4.) 
-* Start bot.py within a screen or tmux
-* start cycle.py via cronjob whenever you like.
-
-5.) done
+# Installation/Usage
+- Create a table in a MySQL/MariaDB database  
+```mysql
+CREATE TABLE `ts`  (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(40) NOT NULL,
+  `world` int(4) NOT NULL,
+  `apikey` varchar(80) NOT NULL,
+  `tsuid` varchar(30) NOT NULL,
+  `timestamp` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP(0),
+  `ignored` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  INDEX `tsuid`(`tsuid`)
+);
+```
+- Create a TeamSpeak Query Admin account
+- Copy `config.example.py` to `config.py` and set the required values
+- Start `bot.py` within `screen` or `tmux`
+- Run `cycle.py` via cron in regular intervals
