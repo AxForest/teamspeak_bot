@@ -69,7 +69,7 @@ def handle_event():
                         cldbid = ts3c.query('clientgetdbidfromuid', cluid=result[0]).fetch()[0]['cldbid']
                         for server_group in server_groups:
                             try:
-                                ts3c.query('servergroupdelclient', sgid=server_group, cldbid=cldbid)
+                                ts3c.exec_('servergroupdelclient', sgid=server_group, cldbid=cldbid)
                                 logging.info(
                                     'Removed user dbid:{} ({}) from group {}'.format(cldbid, result[0], server_group))
                             except ts3.TS3Error:
