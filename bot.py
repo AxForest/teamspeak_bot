@@ -10,18 +10,7 @@ import requests
 import ts3
 
 from config import *
-
-
-def fetch_account(key: str):
-    try:
-        response = requests.get('https://api.guildwars2.com/v2/account?access_token=' + key)
-        if response.status_code != 200:  # Invalid API key
-            return None
-        return response.json()
-    except requests.RequestException as e:
-        logging.error(traceback.format_exc())
-        logging.warning('Failed to fetch API')
-        raise e
+from common import fetch_account
 
 
 def send_message(recipient: str, msg: str):
@@ -66,7 +55,7 @@ def handle_event():
                 server_groups = [x['group_id'] for x in SERVERS]
                 for result in results:
                     try:
-                        cldbid = ts3c.query('clientgetdbidfromuid', cluid=result[0]).fetch()[0]['cldbid']
+                        cldbid = ts3c.exec_('clientgetdbidfromuid', cluid=result[0])[0]['cldbid']
                         for server_group in server_groups:
                             try:
                                 ts3c.exec_('servergroupdelclient', sgid=server_group, cldbid=cldbid)
@@ -125,7 +114,7 @@ def handle_event():
                     cur = msqlc.cursor()
 
                     # Check if API key/account was user previously by another uid
-                    cur.execute('SELECT count(`id`), `name` FROM `users` WHERE `tsuid` != %s AND '
+                    cur.execute('SELECT COUNT(`id`), `name` FROM `users` WHERE `tsuid` != %s AND '
                                 ' (`apikey` = %s OR `name` = %s) AND `ignored` is FALSE',
                                 (event[0]['invokeruid'], message, json.get('name')))
                     result = cur.fetchone()
@@ -145,7 +134,7 @@ def handle_event():
                     msqlc.commit()
 
                     # Assign configured role
-                    cldbid = ts3c.query('clientgetdbidfromuid', cluid=event[0]['invokeruid']).fetch()[0]['cldbid']
+                    cldbid = ts3c.exec_('clientgetdbidfromuid', cluid=event[0]['invokeruid'])[0]['cldbid']
                     ts3c.exec_('servergroupaddclient', sgid=server['group_id'], cldbid=cldbid)
                     logging.info('Assigned world {} to {} ({})'.format(server['name'], event[0]['invokername'],
                                                                        event[0]['invokeruid']))
@@ -194,7 +183,7 @@ if __name__ == '__main__':
         ts3c.exec_('servernotifyregister', event='textprivate')
 
         # Move to target channel
-        own_id = ts3c.query('clientfind', pattern=CLIENT_NICK).fetch()[0]['clid']
+        own_id = ts3c.exec_('clientfind', pattern=CLIENT_NICK)[0]['clid']
         ts3c.exec_('clientmove', clid=own_id, cid=CHANNEL_ID)
 
         while True:
