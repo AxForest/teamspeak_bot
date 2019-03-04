@@ -6,6 +6,7 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 * mysql-connector==2.1.6
 * requests==2.18.4
 * ts3==2.0.0b2
+* ratelimit==2.2.1
 
 # Installation/Usage
 - Create a table in a MySQL/MariaDB database  
