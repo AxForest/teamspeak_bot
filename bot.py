@@ -10,7 +10,7 @@ import mysql.connector as msql
 import requests
 import ts3
 
-from common import fetch_account
+from common import fetch_account, RateLimitException
 from config import *
 
 
@@ -21,6 +21,89 @@ def send_message(recipient: str, msg: str):
         logger.exception(
             "Seems like the user I tried to message vanished into thin air"
         )
+
+
+def handle_ignore(match):
+    msqlc = None
+    cur = None
+    try:
+        json = fetch_account(match.group(1))
+        if not json:
+            send_message(event[0]["invokerid"], "Ungültiger API-Key.")
+            return
+        msqlc = msql.connect(
+            user=SQL_USER,
+            password=SQL_PASS,
+            host=SQL_HOST,
+            port=SQL_PORT,
+            database=SQL_DB,
+        )
+        cur = msqlc.cursor()
+
+        # Grab distinct TS unique IDs
+        cur.execute(
+            "SELECT DISTINCT `tsuid` FROM `users` "
+            "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
+            (match.group(1), json.get("name")),
+        )
+        results = cur.fetchall()
+        for result in results:
+            try:
+                cldbid = ts3c.exec_("clientgetdbidfromuid", cluid=result[0])[0][
+                    "cldbid"
+                ]
+                server_groups = ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+                for server_group in server_groups:
+                    try:
+                        ts3c.exec_(
+                            "servergroupdelclient",
+                            sgid=server_group["sgid"],
+                            cldbid=cldbid,
+                        )
+                        logger.info(
+                            "Removed user dbid:{} ({}) from group {}".format(
+                                cldbid, result[0], server_group["name"]
+                            )
+                        )
+                    except ts3.TS3Error:
+                        # User most likely doesn't have the group
+                        logging.exception(
+                            "Failed to remove user's ({}) group.".format(result[0])
+                        )
+            except ts3.TS3Error:
+                # User might not exist in the db, whatever
+                pass
+
+        cur.execute(
+            "UPDATE `users` SET `ignored` = TRUE "
+            "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
+            (match.group(1), json.get("name")),
+        )
+        msqlc.commit()
+
+        logger.info(
+            "{} ({}) marked previous instances of {} as ignored".format(
+                event[0]["invokername"], event[0]["invokeruid"], match.group(1)
+            )
+        )
+        send_message(
+            event[0]["invokerid"],
+            "Done! Rechte von {} vorherigen Nutzern entzogen.".format(len(results)),
+        )
+    except msql.Error as err:
+        logger.exception("Failed to mark api key {} as ignored".format(match.group(1)))
+        raise err
+    except (requests.RequestException, RateLimitException):
+        send_message(
+            event[0]["invokerid"],
+            "Fehler beim Abrufen der API. Bitte versuche es später erneut.",
+        )
+    finally:
+        if cur:
+            cur.close()
+        if msqlc:
+            msqlc.close()
+    return
 
 
 def handle_event():
@@ -45,86 +128,7 @@ def handle_event():
 
         match = re.match("!ignore +([A-Z0-9\\-]+)", message)
         if match and event[0]["invokeruid"] in COMMAND_WHITELIST:
-            msqlc = None
-            cur = None
-            try:
-                json = fetch_account(match.group(1))
-                if not json:
-                    send_message(event[0]["invokerid"], "Ungültiger API-Key.")
-                    return
-                msqlc = msql.connect(
-                    user=SQL_USER,
-                    password=SQL_PASS,
-                    host=SQL_HOST,
-                    port=SQL_PORT,
-                    database=SQL_DB,
-                )
-                cur = msqlc.cursor()
-
-                # Grab distinct TS unique IDs
-                cur.execute(
-                    "SELECT DISTINCT `tsuid` FROM `users` "
-                    "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
-                    (match.group(1), json.get("name")),
-                )
-                results = cur.fetchall()
-                for result in results:
-                    try:
-                        cldbid = ts3c.exec_("clientgetdbidfromuid", cluid=result[0])[0][
-                            "cldbid"
-                        ]
-                        server_groups = ts3c.exec_(
-                            "servergroupsbyclientid", cldbid=cldbid
-                        )
-                        for server_group in server_groups:
-                            try:
-                                ts3c.exec_(
-                                    "servergroupdelclient",
-                                    sgid=server_group["sgid"],
-                                    cldbid=cldbid,
-                                )
-                                logger.info(
-                                    "Removed user dbid:{} ({}) from group {}".format(
-                                        cldbid, result[0], server_group["name"]
-                                    )
-                                )
-                            except ts3.TS3Error:
-                                # User most likely doesn't have the group
-                                logging.exception(
-                                    "Failed to remove user's ({}) group.", result[0]
-                                )
-                    except ts3.TS3Error:
-                        # User might not exist in the db, whatever
-                        pass
-
-                cur.execute(
-                    "UPDATE `users` SET `ignored` = TRUE "
-                    "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
-                    (match.group(1), json.get("name")),
-                )
-                msqlc.commit()
-
-                logger.info(
-                    "{} ({}) marked previous instances of {} as ignored".format(
-                        event[0]["invokername"], event[0]["invokeruid"], match.group(1)
-                    )
-                )
-                send_message(
-                    event[0]["invokerid"],
-                    "Done! Rechte von {} vorherigen Nutzern entzogen.".format(
-                        len(results)
-                    ),
-                )
-            except msql.Error as err:
-                logger.exception(
-                    "Failed to mark api key {} as ignored".format(match.group(1))
-                )
-                raise err
-            finally:
-                if cur:
-                    cur.close()
-                if msqlc:
-                    msqlc.close()
+            handle_ignore(match)
             return
 
         # Check with ArenaNet's API
@@ -210,8 +214,8 @@ def handle_event():
 
                 except (ts3.TS3Error, msql.Error) as err:
                     if (
-                        isinstance(err, ts3.query.TS3QueryError)
-                        and err.args[0].error["id"] == "2561"
+                            isinstance(err, ts3.query.TS3QueryError)
+                            and err.args[0].error["id"] == "2561"
                     ):
                         logger.info(
                             "User {} ({}) registered a second time for whatever reason".format(
@@ -249,11 +253,11 @@ def handle_event():
                     "ihre Heimatwelt gewechselt haben, versuchen Sie es in 24 Stunden "
                     "erneut. Spion!",
                 )
-        except requests.RequestException:  # API seems to be down
+        except (requests.RequestException, RateLimitException):  # API seems to be down
             send_message(
                 event[0]["invokerid"],
-                "Die API von Guild Wars 2 scheint derzeit offline zu sein. Bitte versuchen Sie es später "
-                "erneut oder wenden Sie sich an einen Admin",
+                "Fehler beim Abfragen der API. Bitte versuchen Sie es später erneut oder wenden Sie sich an "
+                "einen Admin",
             )
 
 
@@ -277,7 +281,7 @@ if __name__ == "__main__":
     logger.addHandler(stream)
 
     with ts3.query.TS3ServerConnection(
-        "{}://{}:{}@{}".format(TS3_PROTOCOL, CLIENT_USER, CLIENT_PASS, QUERY_HOST)
+            "{}://{}:{}@{}".format(TS3_PROTOCOL, CLIENT_USER, CLIENT_PASS, QUERY_HOST)
     ) as ts3c:
         ts3c.exec_("use", sid=SERVER_ID)
         ts3c.exec_("clientupdate", client_nickname=CLIENT_NICK)
@@ -300,10 +304,10 @@ if __name__ == "__main__":
             else:
                 # Ignore own events
                 if (
-                    "invokername" in event[0]
-                    and event[0]["invokername"] == CLIENT_NICK
-                    or "clid" in event[0]
-                    and event[0]["clid"] == own_id
+                        "invokername" in event[0]
+                        and event[0]["invokername"] == CLIENT_NICK
+                        or "clid" in event[0]
+                        and event[0]["clid"] == own_id
                 ):
                     continue
 

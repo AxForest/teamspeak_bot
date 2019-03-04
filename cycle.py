@@ -2,16 +2,31 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import time
 import traceback
 
 import mysql.connector as msql
+import ratelimit
 import requests
 import ts3
 
-from common import fetch_account
+from common import fetch_account, RateLimitException
 from config import *
 
 ENABLE_DESTRUCTIVE_ACTIONS = True
+
+
+def limit_fetch_account(api_key):
+    while True:
+        try:
+            return fetch_account(api_key)
+        except ratelimit.RateLimitException as exception:
+            logging.info("Ran into the soft API limit, waiting a bit.")
+            time.sleep(exception.period_remaining)
+        except RateLimitException:
+            logging.warning("Got rate-limited, waiting 10 minutes.")
+            time.sleep(60 * 10)
+
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -21,7 +36,7 @@ if __name__ == "__main__":
     logger = logging.getLogger()
 
     with ts3.query.TS3ServerConnection(
-        "{}://{}:{}@{}".format(TS3_PROTOCOL, CLIENT_USER, CLIENT_PASS, QUERY_HOST)
+            "{}://{}:{}@{}".format(TS3_PROTOCOL, CLIENT_USER, CLIENT_PASS, QUERY_HOST)
     ) as ts3c:
         ts3c.exec_("use", sid=SERVER_ID)
         ts3c.exec_("clientupdate", client_nickname=CLIENT_NICK + "_cycle")
@@ -73,9 +88,10 @@ if __name__ == "__main__":
                             counter, full_len, counter / full_len * 100, row[1], row[0]
                         )
                     )
-                    json = fetch_account(row[0])
+
+                    json = limit_fetch_account(row[0])
                     if (
-                        not json or json.get("world") not in server_ids
+                            not json or json.get("world") not in server_ids
                     ):  # Invalid API key or wrong world
                         tsuids = row[2].split("$$")
                         for tsuid in tsuids:
@@ -112,8 +128,8 @@ if __name__ == "__main__":
                                 )
                             except (ts3.TS3Error, msql.Error) as err:
                                 if (
-                                    isinstance(err, ts3.query.TS3QueryError)
-                                    and err.args[0].error["id"] == "512"
+                                        isinstance(err, ts3.query.TS3QueryError)
+                                        and err.args[0].error["id"] == "512"
                                 ):
                                     # Client ID doesn't exist on server, whatever
                                     pass
