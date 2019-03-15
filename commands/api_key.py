@@ -59,7 +59,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                 if result[0] > 0:  # Key is already registered
                     logging.warning(
                         "{} ({}) tried to use an already registered API key/account. ({})".format(
-                            event[0]["invokername"], event[0]["invokeruid"], result[1]
+                            event[0]["invokername"], event[0]["invokeruid"], json.get("name")
                         )
                     )
                     bot.send_message(
@@ -88,7 +88,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                         server["name"],
                         event[0]["invokername"],
                         event[0]["invokeruid"],
-                        result[1],
+                        json.get("name", "Unknown account"),
                     )
                 )
                 bot.send_message(
