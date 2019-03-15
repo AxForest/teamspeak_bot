@@ -105,7 +105,7 @@ class Bot:
 
     def send_message(self, recipient: str, msg: str):
         try:
-            logging.info("Response: {}".format(recipient, msg))
+            logging.info("Response: {}".format(msg))
             self.ts3c.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
         except ts3.query.TS3Error:
             logging.exception(
