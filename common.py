@@ -1,4 +1,6 @@
-import logging
+import logging.handlers
+import sys
+from pathlib import Path
 
 import requests
 from ratelimit import limits
@@ -24,3 +26,23 @@ def fetch_account(key: str):
     except requests.RequestException:
         logging.exception("Failed to fetch API")
         raise
+
+
+def init_logger(name: str):
+    if not Path("logs").exists():
+        Path("logs").mkdir()
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    hldr = logging.handlers.TimedRotatingFileHandler(
+        "logs/{}.log".format(name), when="W0", encoding="utf-8", backupCount=16
+    )
+    fmt = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
+    hldr.setFormatter(fmt)
+    logger.addHandler(hldr)
+    stream = logging.StreamHandler(sys.stdout)
+    stream.setFormatter(fmt)
+    stream.setLevel(logging.DEBUG)
+    logger.addHandler(stream)

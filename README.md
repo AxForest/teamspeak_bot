@@ -23,7 +23,7 @@ CREATE TABLE `users`  (
   INDEX `tsuid`(`tsuid`)
 );
 ```
-- Create a TeamSpeak Query Admin account
+- Create two TeamSpeak Query Admin accounts
 - Copy `config.example.py` to `config.py` and set the required values
 - Start `bot.py` within `screen` or `tmux`
 - Run `cycle.py` via cron in regular intervals

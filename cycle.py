@@ -10,8 +10,8 @@ import ratelimit
 import requests
 import ts3
 
-from common import fetch_account, RateLimitException
-from config import *
+import common
+import config
 
 ENABLE_DESTRUCTIVE_ACTIONS = True
 
@@ -19,37 +19,33 @@ ENABLE_DESTRUCTIVE_ACTIONS = True
 def limit_fetch_account(api_key):
     while True:
         try:
-            return fetch_account(api_key)
+            return common.fetch_account(api_key)
         except ratelimit.RateLimitException as exception:
             logging.info("Ran into the soft API limit, waiting a bit.")
             time.sleep(exception.period_remaining)
-        except RateLimitException:
+        except common.RateLimitException:
             logging.warning("Got rate-limited, waiting 10 minutes.")
             time.sleep(60 * 10)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-    logger = logging.getLogger()
+    logger = common.init_logger("cycle")
 
     with ts3.query.TS3ServerConnection(
-            "{}://{}:{}@{}".format(TS3_PROTOCOL, CLIENT_USER, CLIENT_PASS, QUERY_HOST)
+            "{}://{}:{}@{}".format(config.TS3_PROTOCOL, config.CYCLE_USER, config.CYCLE_PASS, config.QUERY_HOST)
     ) as ts3c:
-        ts3c.exec_("use", sid=SERVER_ID)
-        ts3c.exec_("clientupdate", client_nickname=CLIENT_NICK + "_cycle")
+        ts3c.exec_("use", sid=config.SERVER_ID)
+        ts3c.exec_("clientupdate", client_nickname="Bicycle")
 
         msqlc = None
         cur = None
         try:
             msqlc = msql.connect(
-                user=SQL_USER,
-                password=SQL_PASS,
-                host=SQL_HOST,
-                port=SQL_PORT,
-                database=SQL_DB,
+                user=config.SQL_USER,
+                password=config.SQL_PASS,
+                host=config.SQL_HOST,
+                port=config.SQL_PORT,
+                database=config.SQL_DB,
             )
             cur = msqlc.cursor()
 
@@ -76,7 +72,7 @@ if __name__ == "__main__":
             user_delete = []
             user_update = []
 
-            server_ids = [x["id"] for x in SERVERS]
+            server_ids = [x["id"] for x in config.SERVERS]
 
             full_len = len(results)
             progress_string = "{0}/{0}".format("{:0" + str(len(str(full_len))) + "d}")
@@ -107,7 +103,7 @@ if __name__ == "__main__":
 
                                     # Remove user from all non-whitelisted groups
                                     for server_group in server_groups:
-                                        if server_group["name"] in GROUP_WHITELIST:
+                                        if server_group["name"] in config.WHITELIST["CYCLE"]:
                                             continue
                                         try:
                                             ts3c.exec_(
@@ -164,7 +160,7 @@ if __name__ == "__main__":
                     )
                 msqlc.commit()
         except msql.Error as err:
-            logging.error(traceback.print_exc())
+            logging.exception("MySQL error.")
         finally:
             if cur:
                 cur.close()

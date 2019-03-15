@@ -11,6 +11,9 @@ CLIENT_USER = "API-Bot"
 CLIENT_PASS = "abc"
 SERVER_ID = 2
 
+CYCLE_USER = "Bicycle"
+CYCLE_PASS = "abc"
+
 QUERY_HOST = "localhost:10011"
 TS3_PROTOCOL = "telnet"
 
