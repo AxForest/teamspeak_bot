@@ -10,7 +10,19 @@ USAGE = "!list <TS-Gruppe>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    if event[0]["invokeruid"] not in config.WHITELIST["GROUP_LIST"]:
+    cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=event[0]["invokeruid"])[0][
+        "cldbid"
+    ]
+    user_groups = bot.ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+    allowed = False
+
+    for group in user_groups:
+        if group["name"] in config.WHITELIST["GROUP_LIST"]:
+            allowed = True
+            break
+
+    # User doesn't have any whitelisted groups
+    if not allowed:
         return
 
     groups = bot.ts3c.exec_("servergrouplist")
@@ -31,6 +43,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
     members = bot.ts3c.exec_("servergroupclientlist", "names", sgid=group["sgid"])
 
+    members = sorted(members, key=lambda _: _['client_nickname'])
+
     text_groups = ["\nEs sind {} Member in {}:".format(len(members), group["name"])]
     index = 0
     for member in members:
@@ -39,11 +53,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         )
         if len(text_groups[index]) + len(member_text) >= 1024:
             index += 1
-            text_groups[index] = ""
+            text_groups.append("")
 
         text_groups[index] += member_text
 
     for _ in text_groups:
         bot.send_message(event[0]["invokerid"], _)
-
-    bot.send_message(event[0]["invokerid"], "Und das wär'n dann alle.")
