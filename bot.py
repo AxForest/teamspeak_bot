@@ -19,6 +19,7 @@ class Bot:
         for _ in commands.__all__:
             mod = import_module("commands.{}".format(_))
             mod.REGEX = re.compile(mod.MESSAGE_REGEX)
+            logging.info("Registered command.{}".format(_))
             self.commands.append(mod)
 
         # Connect to TS3
@@ -90,7 +91,10 @@ class Bot:
                 match = command.REGEX.match(message)
                 if match:
                     valid_command = True
-                    command.handle(self, event, match)
+                    try:
+                        command.handle(self, event, match)
+                    except ts3.query.TS3QueryError:
+                        logging.exception("Unexpected TS3QueryError in command handler.")
                     break
 
             if not valid_command:
@@ -101,6 +105,7 @@ class Bot:
 
     def send_message(self, recipient: str, msg: str):
         try:
+            logging.info("Response: {}".format(recipient, msg))
             self.ts3c.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
         except ts3.query.TS3Error:
             logging.exception(

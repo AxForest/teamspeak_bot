@@ -3,7 +3,6 @@
 
 import logging
 import time
-import traceback
 
 import mysql.connector as msql
 import ratelimit
@@ -169,7 +168,7 @@ if __name__ == "__main__":
                         user_update,
                     )
                 msqlc.commit()
-        except msql.Error as err:
+        except msql.Error:
             logging.exception("MySQL error.")
         finally:
             if cur:

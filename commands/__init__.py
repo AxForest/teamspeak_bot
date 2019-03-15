@@ -1,1 +1,1 @@
-__all__ = ["api_key", "ignore", "list_group_members", "help"]
+__all__ = ["api_key", "help", "ignore", "list_group_members", "verify"]
