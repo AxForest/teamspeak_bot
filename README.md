@@ -17,7 +17,8 @@ CREATE TABLE `users`  (
   `world` int(4) NOT NULL,
   `apikey` varchar(80) NOT NULL,
   `tsuid` varchar(30) NOT NULL,
-  `timestamp` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP(0),
+  `timestamp` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_check` datetime NULL DEFAULT NULL,
   `ignored` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `tsuid`(`tsuid`)

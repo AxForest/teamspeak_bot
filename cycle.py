@@ -60,11 +60,12 @@ if __name__ == "__main__":
                     `users` 
                 WHERE
                     `ignored` = FALSE 
-                AND TIMESTAMPDIFF( DAY , now( ) , `timestamp` ) <= -7
+                AND (TIMESTAMPDIFF( DAY , now( ) , `last_check` ) <= -7 OR `last_check` IS NULL)
                 GROUP BY
                     `name` 
                 ORDER BY
-                    `timestamp` ASC
+                    `last_check` ASC
+                LIMIT 500
                 """
             )
             results = cur.fetchall()
@@ -80,8 +81,8 @@ if __name__ == "__main__":
             for counter, row in enumerate(results):
                 try:
                     logging.info(
-                        (progress_string + " ({:.02f}%) - Checking {} ({})").format(
-                            counter, full_len, counter / full_len * 100, row[1], row[0]
+                        (progress_string + " ({:3.0f}%) - Checking {} ({})").format(
+                            counter + 1, full_len, (counter + 1) / full_len * 100, row[1], row[0]
                         )
                     )
 
@@ -116,10 +117,19 @@ if __name__ == "__main__":
                                             logging.exception(
                                                 "Failed to remove user's group for some reason."
                                             )
+                                else:
+                                    server_groups = []
+
+                                if not json:
+                                    reason = "Invalid API key."
+                                elif json.get("world") not in server_ids:
+                                    reason = "Invalid world: {}".format(json.get("world"))
+                                else:
+                                    reason = "No fucking clue."
 
                                 logging.info(
-                                    "Removed {}'s ({}) permissions".format(
-                                        row[1], tsuid
+                                    "Removed {}'s ({}) permissions. Groups: {}. Reason: {}".format(
+                                        row[1], tsuid, [_['name'] for _ in server_groups], reason
                                     )
                                 )
                             except (ts3.TS3Error, msql.Error) as err:
@@ -145,7 +155,7 @@ if __name__ == "__main__":
                 if len(user_delete) > 0:
                     delete_string = ",".join(["%s"] * len(user_delete))
                     cur.execute(
-                        "DELETE FROM `users` WHERE `name` IN ({})".format(
+                        "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP WHERE `name` IN ({})".format(
                             delete_string
                         ),
                         user_delete,
@@ -166,3 +176,6 @@ if __name__ == "__main__":
                 cur.close()
             if msqlc:
                 msqlc.close()
+
+        # Disconnect gracefully
+        ts3c.close()
