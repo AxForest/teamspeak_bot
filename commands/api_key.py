@@ -59,7 +59,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                 if result[0] > 0:  # Key is already registered
                     logging.warning(
                         "{} ({}) tried to use an already registered API key/account. ({})".format(
-                            event[0]["invokername"], event[0]["invokeruid"], json.get("name")
+                            event[0]["invokername"],
+                            event[0]["invokeruid"],
+                            json.get("name"),
                         )
                     )
                     bot.send_message(
@@ -150,5 +152,5 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
         bot.send_message(
             event[0]["invokerid"],
             "Fehler beim Abfragen der API. Bitte versuchen Sie es später erneut oder wenden Sie sich an "
-            "einen Admin",
+            "einen Admin.",
         )

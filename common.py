@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging.handlers
 import sys
 from pathlib import Path
@@ -16,7 +18,9 @@ def fetch_account(key: str):
         response = requests.get(
             "https://api.guildwars2.com/v2/account?access_token=" + key
         )
-        if response.status_code in [400, 403]:  # Invalid API key
+        if (
+            response.status_code in [400, 403] and "invalid key" in response.text
+        ):  # Invalid API key
             return None
         elif response.status_code == 200:
             return response.json()

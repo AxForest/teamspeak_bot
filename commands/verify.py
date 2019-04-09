@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import typing
 
 import mysql.connector as msql
+import requests
 import ts3
 
 import common
@@ -83,6 +86,12 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             )
     except msql.Error:
         logging.exception("MySQL error in !verify.")
+    except (requests.RequestException, common.RateLimitException):
+        logging.exception("Error during API call")
+        bot.send_message(
+            event[0]["invokerid"],
+            "Fehler beim Abrufen der API. Bitte versuche es später erneut.",
+        )
     finally:
         if cur:
             cur.close()
