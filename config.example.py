@@ -44,3 +44,6 @@ GUILDS = {
     # "Guild GUID": ["tag": ts_id]
     "A09E65A6-F378-E511-AEFB-AC162DC05865": ["Kdsh", 11]
 }
+
+# URL for sentry's error reports
+SENTRY_DSN = None

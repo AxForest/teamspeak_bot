@@ -97,3 +97,8 @@ def init_logger(name: str):
     stream.setFormatter(fmt)
     stream.setLevel(logging.DEBUG)
     logger.addHandler(stream)
+
+    if config.SENTRY_DSN:
+        import sentry_sdk
+
+        sentry_sdk.init(dsn=config.SENTRY_DSN, send_default_pii=True)

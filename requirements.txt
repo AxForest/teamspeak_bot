@@ -2,3 +2,4 @@ mysql-connector-python==8.0.15
 requests==2.21.0
 ts3==2.0.0b2
 ratelimit==2.2.1
+sentry-sdk

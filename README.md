@@ -7,6 +7,7 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 * requests==2.21.0
 * ts3==2.0.0b2
 * ratelimit==2.2.1
+* sentry-sdk (optional)
 
 # Installation/Usage
 - Create a table in a MySQL/MariaDB database  
