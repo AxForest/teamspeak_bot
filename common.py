@@ -59,7 +59,11 @@ def remove_roles(ts3c, cldbid: str, use_whitelist=True):
 
     # Remove user from all non-whitelisted groups
     for server_group in server_groups:
-        if use_whitelist and server_group["name"] in config.WHITELIST["CYCLE"] or server_group["name"] == "Guest":
+        if (
+            use_whitelist
+            and server_group["name"] in config.WHITELIST["CYCLE"]
+            or server_group["name"] == "Guest"
+        ):
             continue
         try:
             ts3c.exec_("servergroupdelclient", sgid=server_group["sgid"], cldbid=cldbid)
@@ -101,4 +105,13 @@ def init_logger(name: str):
     if config.SENTRY_DSN:
         import sentry_sdk
 
-        sentry_sdk.init(dsn=config.SENTRY_DSN, send_default_pii=True)
+        def before_send(event, hint):
+            if "exc_info" in hint:
+                _, exc_value, _ = hint["exc_info"]
+                if isinstance(exc_value, KeyboardInterrupt):
+                    return None
+            return event
+
+        sentry_sdk.init(
+            dsn=config.SENTRY_DSN, before_send=before_send, send_default_pii=True
+        )
