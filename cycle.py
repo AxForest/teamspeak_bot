@@ -48,6 +48,71 @@ if __name__ == "__main__":
             )
             cur = msqlc.cursor()
 
+            # region Migrate legacy users
+
+            users = ts3c.exec_("clientdblist")
+            start = 0
+            while len(users) > 0:
+                for user in users:
+                    uid = user["client_unique_identifier"]
+                    dbid = user["cldbid"]
+
+                    # Skip SQ account
+                    if "ServerQuery" in uid:
+                        continue
+
+                    # Look up latest key
+                    cur.execute(
+                        """
+                        SELECT `apikey`
+                        FROM `users`
+                        WHERE `ignored` = FALSE
+                        AND `tsuid` = %s
+                        ORDER BY `timestamp` ASC
+                        LIMIT 1
+                        """,
+                        (uid,),
+                    )
+
+                    row = cur.fetchone()
+
+                    # User isn't registered
+                    if not row:
+                        server_groups = ts3c.exec_(
+                            "servergroupsbyclientid", cldbid=dbid
+                        )
+
+                        skip = False
+                        for group in server_groups:
+                            if group["sgid"] == config.LEGACY_ANNOYANCE_GROUP:
+                                skip = True
+                                break
+
+                        if skip:
+                            continue
+
+                        # Apply legacy group
+                        ts3c.exec_(
+                            "servergroupaddclient",
+                            sgid=config.LEGACY_ANNOYANCE_GROUP,
+                            cldbid=dbid,
+                        )
+                        logging.info(
+                            "Migrating unregistered user. Nick:{}, id:{}, uid:{}".format(
+                                user["client_nickname"], dbid, uid
+                            )
+                        )
+
+                # Skip to next group of users
+                start += len(users)
+                try:
+                    users = ts3c.exec_("clientdblist", start=start)
+                except ts3.query.TS3QueryError:
+                    # Fetching users failed, most likely error 1281 (empty result set)
+                    users = []
+
+            # endregion
+
             # This isn't perfect at all but it works nicely
             cur.execute(
                 """

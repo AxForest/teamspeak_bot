@@ -72,6 +72,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                     )
                     return
 
+                # Mark previous encounters using the same tsuid and account as ignored
+                cur.execute(
+                    "UPDATE `users` SET `ignored` = TRUE WHERE `tsuid` = %s AND `apikey` = %s",
+                    (event[0]["invokeruid"], message),
+                )
                 # Save API key and user info in database
                 cur.execute(
                     "INSERT INTO `users` (`name`, `world`, `apikey`, `tsuid`, `last_check`, `guilds`)"
@@ -84,15 +89,39 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                         json.dumps(account.get("guilds", [])),
                     ),
                 )
+
                 msqlc.commit()
 
-                # Assign configured role
                 cldbid = bot.ts3c.exec_(
                     "clientgetdbidfromuid", cluid=event[0]["invokeruid"]
                 )[0]["cldbid"]
-                bot.ts3c.exec_(
-                    "servergroupaddclient", sgid=server["group_id"], cldbid=cldbid
-                )
+
+                # Check if user has the legacy role
+                server_groups = bot.ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+                is_legacy = False
+                for group in server_groups:
+                    if group["sgid"] == config.LEGACY_ANNOYANCE_GROUP:
+                        is_legacy = True
+                        break
+
+                # Remove legacy group
+                if is_legacy:
+                    logging.info(
+                        "Removed legacy group from user_db:{} ({})".format(
+                            cldbid, event[0]["invokeruid"]
+                        )
+                    )
+                    bot.ts3c.exec_(
+                        "servergroupdelclient",
+                        sgid=config.LEGACY_ANNOYANCE_GROUP,
+                        cldbid=cldbid,
+                    )
+
+                # Assign configured role if user is not a legacy user
+                if not is_legacy:
+                    bot.ts3c.exec_(
+                        "servergroupaddclient", sgid=server["group_id"], cldbid=cldbid
+                    )
                 logging.info(
                     "Assigned world {} to {} ({}) using {}".format(
                         server["name"],

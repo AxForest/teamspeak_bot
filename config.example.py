@@ -45,5 +45,7 @@ GUILDS = {
     "A09E65A6-F378-E511-AEFB-AC162DC05865": ["Kdsh", 11]
 }
 
+LEGACY_ANNOYANCE_GROUP = "13"
+
 # URL for sentry's error reports
 SENTRY_DSN = None

@@ -94,7 +94,9 @@ class Bot:
                     try:
                         command.handle(self, event, match)
                     except ts3.query.TS3QueryError:
-                        logging.exception("Unexpected TS3QueryError in command handler.")
+                        logging.exception(
+                            "Unexpected TS3QueryError in command handler."
+                        )
                     break
 
             if not valid_command:
