@@ -38,3 +38,9 @@ WHITELIST = {
     # TS3 groups that won't be removed by cycle
     "CYCLE": ["Server-Admin"],
 }
+
+# List of registered guilds
+GUILDS = {
+    # "Guild GUID": ["tag": ts_id]
+    "A09E65A6-F378-E511-AEFB-AC162DC05865": ["Kdsh", 11]
+}

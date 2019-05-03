@@ -5,7 +5,10 @@ import sys
 from pathlib import Path
 
 import requests
+import ts3
 from ratelimit import limits
+
+import config
 
 
 class RateLimitException(Exception):
@@ -30,6 +33,50 @@ def fetch_account(key: str):
     except requests.RequestException:
         logging.exception("Failed to fetch API")
         raise
+
+
+def assign_server_role(bot, server_id: int, invokerid: str, cldbid: str):
+    # Grab server info from config
+    server = None
+    for s in config.SERVERS:
+        if s["id"] == server_id:
+            server = s
+            break
+
+    if not server:
+        bot.send_message(
+            invokerid,
+            "Der aktuell hinterlegte Server konnt nicht zugeordnet werden. "
+            "Bitte wenden Sie sich an einen Admin.",
+        )
+        return
+
+    bot.ts3c.exec_("servergroupaddclient", sgid=server["group_id"], cldbid=cldbid)
+
+
+def remove_roles(ts3c, cldbid: str, use_whitelist=True):
+    server_groups = ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+
+    # Remove user from all non-whitelisted groups
+    for server_group in server_groups:
+        if use_whitelist and server_group["name"] in config.WHITELIST["CYCLE"] or server_group["name"] == "Guest":
+            continue
+        try:
+            ts3c.exec_("servergroupdelclient", sgid=server_group["sgid"], cldbid=cldbid)
+            logging.info(
+                "Removed user dbid:{} from group {}".format(
+                    cldbid, server_group["name"]
+                )
+            )
+        except ts3.TS3Error:
+            # User most likely doesn't have the group
+            logging.exception(
+                "Failed to remove user_db:{} from group {} for some reason.".format(
+                    cldbid, server_group["name"]
+                )
+            )
+
+    return server_groups
 
 
 def init_logger(name: str):

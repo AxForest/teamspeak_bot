@@ -43,34 +43,14 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
             (match.group(1), json.get("name")),
         )
-        groups = []
+        server_groups = []
         results = cur.fetchall()
         for result in results:
             try:
                 cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=result[0])[0][
                     "cldbid"
                 ]
-                server_groups = bot.ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
-                for server_group in server_groups:
-                    if server_group["name"] not in groups:
-                        groups.append(server_group["name"])
-
-                    try:
-                        bot.ts3c.exec_(
-                            "servergroupdelclient",
-                            sgid=server_group["sgid"],
-                            cldbid=cldbid,
-                        )
-                        logging.info(
-                            "Removed user dbid:{} ({}) from group {}".format(
-                                cldbid, result[0], server_group["name"]
-                            )
-                        )
-                    except ts3.TS3Error:
-                        # User most likely doesn't have the group
-                        logging.exception(
-                            "Failed to remove user's ({}) group.".format(result[0])
-                        )
+                server_groups = common.remove_roles(bot.ts3c, cldbid, use_whitelist=False)
             except ts3.TS3Error:
                 # User might not exist in the db, whatever
                 pass
@@ -90,7 +70,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         bot.send_message(
             event[0]["invokerid"],
             "Done! Rechte von {} vorherigen Nutzern entzogen. Gruppen: {}".format(
-                len(results), groups
+                len(results), [_["name"] for _ in server_groups]
             ),
         )
     except msql.Error as err:

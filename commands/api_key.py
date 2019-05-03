@@ -1,3 +1,4 @@
+import json
 import logging
 import typing
 
@@ -18,15 +19,15 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
 
     # Check with ArenaNet's API
     try:
-        json = common.fetch_account(message)
-        if not json:
+        account = common.fetch_account(message)
+        if not account:
             logging.info("This seems to be an invalid API key.")
             bot.send_message(
                 event[0]["invokerid"],
                 msg="Der API-Key scheint ungültig zu sein. Bitte versuchen Sie es erneut.",
             )
             return
-        world = json.get("world")
+        world = account.get("world")
 
         # Grab server info from config
         server = None
@@ -53,7 +54,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                 cur.execute(
                     "SELECT COUNT(`id`), `name` FROM `users` WHERE `tsuid` != %s AND "
                     " (`apikey` = %s OR `name` = %s) AND `ignored` is FALSE",
-                    (event[0]["invokeruid"], message, json.get("name")),
+                    (event[0]["invokeruid"], message, account.get("name")),
                 )
                 result = cur.fetchone()
                 if result[0] > 0:  # Key is already registered
@@ -61,7 +62,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                         "{} ({}) tried to use an already registered API key/account. ({})".format(
                             event[0]["invokername"],
                             event[0]["invokeruid"],
-                            json.get("name"),
+                            account.get("name"),
                         )
                     )
                     bot.send_message(
@@ -73,8 +74,15 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
 
                 # Save API key and user info in database
                 cur.execute(
-                    "INSERT INTO `users` (`name`, `world`, `apikey`, `tsuid`) VALUES (%s, %s, %s, %s)",
-                    (json.get("name"), world, message, event[0]["invokeruid"]),
+                    "INSERT INTO `users` (`name`, `world`, `apikey`, `tsuid`, `last_check`, `guilds`)"
+                    "VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP(), %s)",
+                    (
+                        account.get("name"),
+                        world,
+                        message,
+                        event[0]["invokeruid"],
+                        json.dumps(account.get("guilds", [])),
+                    ),
                 )
                 msqlc.commit()
 
@@ -90,13 +98,18 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                         server["name"],
                         event[0]["invokername"],
                         event[0]["invokeruid"],
-                        json.get("name", "Unknown account"),
+                        account.get("name", "Unknown account"),
                     )
                 )
                 bot.send_message(
                     event[0]["invokerid"],
                     "Willkommen auf dem Kodash-TS! Um alle Channels sehen zu können, verbinden Sie erneut, oder "
                     "klicken sie auf die Sprechblase mit dem Auge über der Channel-Liste.",
+                )
+                bot.send_message(
+                    event[0]["invokerid"],
+                    "Falls Sie zu einer Gilde gehören, die hier eine Servergruppe hat, kann diese per [b]!guild[/b] "
+                    "gewählt werden.",
                 )
 
             except (ts3.TS3Error, msql.Error) as err:
@@ -108,7 +121,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                         "User {} ({}) registered a second time for whatever reason using {}".format(
                             event[0]["invokername"],
                             event[0]["invokeruid"],
-                            json.get("name", "Unknown account"),
+                            account.get("name", "Unknown account"),
                         )
                     )
                     bot.send_message(
@@ -136,7 +149,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                     event[0]["invokername"],
                     event[0]["invokeruid"],
                     world,
-                    json.get("name", "Unknown account"),
+                    account.get("name", "Unknown account"),
                 )
             )
             bot.send_message(

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import json
 import logging
 import typing
 
@@ -54,13 +55,13 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             return
 
         # Grab account
-        json = common.fetch_account(row[0])
-        if not json:
+        account = common.fetch_account(row[0])
+        if not account:
             bot.send_message(
                 event[0]["invokerid"], msg="Der API-Key scheint ungültig zu sein."
             )
             return
-        world = json.get("world")
+        world = account.get("world")
 
         # Grab server info from config
         server = None
@@ -71,17 +72,23 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         # Server wasn't found in config
         if not server:
+            server_groups = common.remove_roles(bot.ts3c, match.group(1))
             bot.send_message(
                 event[0]["invokerid"],
-                msg="Der Nutzer ist derzeit auf einem unbekannten Server: {}.".format(
-                    world
+                msg="Der Nutzer ist derzeit auf einem unbekannten Server: {}. Folgende Gruppen wurden entfernt: {}".format(
+                    world,
+                    [_["name"] for _ in server_groups]
                 ),
             )
         else:
+            cur.execute(
+                "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP, `guilds` = %s WHERE `apikey` = %s AND `ignored` = FALSE",
+                (json.dumps(account.get("guilds", [])), row[0]),
+            )
             bot.send_message(
                 event[0]["invokerid"],
                 msg="Der Nutzer sieht sauber aus, hinterlegter Account ({}) ist auf {}.".format(
-                    json.get("name"), server["name"]
+                    account.get("name"), server["name"]
                 ),
             )
     except msql.Error:

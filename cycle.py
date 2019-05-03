@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+import json
 import logging
 import time
 
@@ -11,8 +11,6 @@ import ts3
 
 import common
 import config
-
-ENABLE_DESTRUCTIVE_ACTIONS = True
 
 
 def limit_fetch_account(api_key):
@@ -31,7 +29,9 @@ if __name__ == "__main__":
     logger = common.init_logger("cycle")
 
     with ts3.query.TS3ServerConnection(
-            "{}://{}:{}@{}".format(config.TS3_PROTOCOL, config.CYCLE_USER, config.CYCLE_PASS, config.QUERY_HOST)
+        "{}://{}:{}@{}".format(
+            config.TS3_PROTOCOL, config.CYCLE_USER, config.CYCLE_PASS, config.QUERY_HOST
+        )
     ) as ts3c:
         ts3c.exec_("use", sid=config.SERVER_ID)
         ts3c.exec_("clientupdate", client_nickname="Bicycle")
@@ -56,12 +56,12 @@ if __name__ == "__main__":
                     `name`,
                     GROUP_CONCAT( DISTINCT `tsuid` SEPARATOR '$$' )
                 FROM
-                    `users` 
+                    `users`
                 WHERE
                     `ignored` = FALSE 
                 AND (TIMESTAMPDIFF( DAY , now( ) , `last_check` ) <= -7 OR `last_check` IS NULL)
                 GROUP BY
-                    `name` 
+                    `name`
                 ORDER BY
                     `last_check` ASC
                 LIMIT 500
@@ -70,7 +70,6 @@ if __name__ == "__main__":
             results = cur.fetchall()
 
             user_delete = []
-            user_update = []
 
             server_ids = [x["id"] for x in config.SERVERS]
 
@@ -81,13 +80,17 @@ if __name__ == "__main__":
                 try:
                     logging.info(
                         (progress_string + " ({:3.0f}%) - Checking {} ({})").format(
-                            counter + 1, full_len, (counter + 1) / full_len * 100, row[1], row[0]
+                            counter + 1,
+                            full_len,
+                            (counter + 1) / full_len * 100,
+                            row[1],
+                            row[0],
                         )
                     )
 
-                    json = limit_fetch_account(row[0])
+                    account = limit_fetch_account(row[0])
                     if (
-                            not json or json.get("world") not in server_ids
+                        not account or account.get("world") not in server_ids
                     ):  # Invalid API key or wrong world
                         tsuids = row[2].split("$$")
                         for tsuid in tsuids:
@@ -96,45 +99,29 @@ if __name__ == "__main__":
                                     "clientgetdbidfromuid", cluid=tsuid
                                 )[0]["cldbid"]
 
-                                if ENABLE_DESTRUCTIVE_ACTIONS:
-                                    server_groups = ts3c.exec_(
-                                        "servergroupsbyclientid", cldbid=cldbid
-                                    )
+                                server_groups = common.remove_roles(ts3c, cldbid)
 
-                                    # Remove user from all non-whitelisted groups
-                                    for server_group in server_groups:
-                                        if server_group["name"] in config.WHITELIST["CYCLE"]:
-                                            continue
-                                        try:
-                                            ts3c.exec_(
-                                                "servergroupdelclient",
-                                                sgid=server_group["sgid"],
-                                                cldbid=cldbid,
-                                            )
-                                        except ts3.TS3Error:
-                                            # User most likely doesn't have the group
-                                            logging.exception(
-                                                "Failed to remove user's group for some reason."
-                                            )
-                                else:
-                                    server_groups = []
-
-                                if not json:
+                                if not account:
                                     reason = "Invalid API key."
-                                elif json.get("world") not in server_ids:
-                                    reason = "Invalid world: {}".format(json.get("world"))
+                                elif account.get("world") not in server_ids:
+                                    reason = "Invalid world: {}".format(
+                                        account.get("world")
+                                    )
                                 else:
                                     reason = "No fucking clue."
 
                                 logging.info(
                                     "Removed {}'s ({}) permissions. Groups: {}. Reason: {}".format(
-                                        row[1], tsuid, [_['name'] for _ in server_groups], reason
+                                        row[1],
+                                        tsuid,
+                                        [_["name"] for _ in server_groups],
+                                        reason,
                                     )
                                 )
                             except (ts3.TS3Error, msql.Error) as err:
                                 if (
-                                        isinstance(err, ts3.query.TS3QueryError)
-                                        and err.args[0].error["id"] == "512"
+                                    isinstance(err, ts3.query.TS3QueryError)
+                                    and err.args[0].error["id"] == "512"
                                 ):
                                     # Client ID doesn't exist on server, whatever
                                     pass
@@ -143,30 +130,21 @@ if __name__ == "__main__":
                                         "Failed to remove user's row or permissions"
                                     )
                         user_delete.append(row[1])
+                        cur.execute(
+                            "DELETE FROM `users` WHERE `name` IN ({})".format(row[1])
+                        )
                     else:
-                        user_update.append(row[1])
+                        # TODO: Remove user from guild on update
+                        cur.execute(
+                            "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP(), `guilds` = %s "
+                            "WHERE `apikey` = %s AND `ignored` = FALSE",
+                            (json.dumps(account.get("guilds", [])), row[0]),
+                        )
                 except requests.RequestException:
                     logging.exception("API seems to be down, skipping execution")
+                    msqlc.commit()
                     exit(1)
 
-            if ENABLE_DESTRUCTIVE_ACTIONS:
-                # Delete users
-                if len(user_delete) > 0:
-                    delete_string = ",".join(["%s"] * len(user_delete))
-                    cur.execute(
-                        "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP WHERE `name` IN ({})".format(
-                            delete_string
-                        ),
-                        user_delete,
-                    )
-                if len(user_update) > 0:
-                    update_string = ",".join(["%s"] * len(user_update))
-                    cur.execute(
-                        "UPDATE `users` SET `timestamp` = CURRENT_TIMESTAMP WHERE `name` IN ({})".format(
-                            update_string
-                        ),
-                        user_update,
-                    )
                 msqlc.commit()
         except msql.Error:
             logging.exception("MySQL error.")
