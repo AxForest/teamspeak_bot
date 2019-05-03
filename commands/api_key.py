@@ -10,7 +10,7 @@ import common
 import config
 from bot import Bot
 
-MESSAGE_REGEX = "\\s*([A-Z0-9\\-]+)\\s*"
+MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API-KEY>"
 
 
