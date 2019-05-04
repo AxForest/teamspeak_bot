@@ -84,7 +84,11 @@ if __name__ == "__main__":
 
                         skip = False
                         for group in server_groups:
-                            if group["sgid"] == config.LEGACY_ANNOYANCE_GROUP:
+                            if (
+                                group["sgid"] == config.LEGACY_ANNOYANCE_GROUP
+                                or group["name"] == "Musikbot"
+                                or group["name"] == "Guest"
+                            ):
                                 skip = True
                                 break
 
