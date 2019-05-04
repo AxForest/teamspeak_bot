@@ -75,7 +75,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 logging.info("Revoked user's permissions.")
                 bot.send_message(
                     event[0]["invokerid"],
-                    msg="Der API-Key scheint ungültig zu sein. Bitte wenden Sie sich an einen Admin.",
+                    "Der API-Key scheint ungültig zu sein. Bitte wenden Sie sich an einen Admin.",
                 )
                 return
 
@@ -112,10 +112,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                     "Scheinbar sind Sie in keiner mir bekannten Gilde.",
                 )
         else:
-            guild = match.group(1)
+            guild = match.group(1).lower()
 
             # User requested guild removal
-            if guild.lower() == "remove":
+            if guild == "remove":
                 common.remove_roles(bot.ts3c, cldbid)
                 common.assign_server_role(bot, row[3], event[0]["invokerid"], cldbid)
 
@@ -126,7 +126,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
             guild_info = None
             for c_guild in config.GUILDS:
-                if config.GUILDS[c_guild][0] == guild:
+                if config.GUILDS[c_guild][0].lower() == guild:
                     guild_info = {
                         "guid": c_guild,
                         "name": config.GUILDS[c_guild][0],

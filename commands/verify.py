@@ -58,7 +58,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         account = common.fetch_account(row[0])
         if not account:
             bot.send_message(
-                event[0]["invokerid"], msg="Der API-Key scheint ungültig zu sein."
+                event[0]["invokerid"], "Der API-Key scheint ungültig zu sein."
             )
             return
         world = account.get("world")
@@ -75,7 +75,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             server_groups = common.remove_roles(bot.ts3c, match.group(1))
             bot.send_message(
                 event[0]["invokerid"],
-                msg="Der Nutzer ist derzeit auf einem unbekannten Server: {}. Folgende Gruppen wurden entfernt: {}".format(
+                "Der Nutzer ist derzeit auf einem unbekannten Server: {}. Folgende Gruppen wurden entfernt: {}".format(
                     world,
                     [_["name"] for _ in server_groups]
                 ),
@@ -87,7 +87,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             )
             bot.send_message(
                 event[0]["invokerid"],
-                msg="Der Nutzer sieht sauber aus, hinterlegter Account ({}) ist auf {}.".format(
+                "Der Nutzer sieht sauber aus, hinterlegter Account ({}) ist auf {}.".format(
                     account.get("name"), server["name"]
                 ),
             )
