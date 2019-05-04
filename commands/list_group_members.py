@@ -51,7 +51,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         member_text = "\n- [URL=client://0/{}]{}[/URL]".format(
             member["client_unique_identifier"], member["client_nickname"]
         )
-        if len(text_groups[index]) + len(member_text) >= 1024:
+        if len(text_groups[index]) + len(bytes(member_text, "utf-8")) >= 1024:
             index += 1
             text_groups.append("")
 
