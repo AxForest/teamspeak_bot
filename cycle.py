@@ -134,8 +134,6 @@ if __name__ == "__main__":
             )
             results = cur.fetchall()
 
-            user_delete = []
-
             server_ids = [x["id"] for x in config.SERVERS]
 
             full_len = len(results)
@@ -194,10 +192,7 @@ if __name__ == "__main__":
                                     logging.exception(
                                         "Failed to remove user's row or permissions"
                                     )
-                        user_delete.append(row[1])
-                        cur.execute(
-                            "DELETE FROM `users` WHERE `name` IN ({})".format(row[1])
-                        )
+                        cur.execute("DELETE FROM `users` WHERE `name` = %s", (row[1],))
                     else:
                         # TODO: Remove user from guild on update
                         cur.execute(
