@@ -43,7 +43,15 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
     members = bot.ts3c.exec_("servergroupclientlist", "names", sgid=group["sgid"])
 
-    members = sorted(members, key=lambda _: _['client_nickname'])
+    members = sorted(members, key=lambda _: _["client_nickname"])
+
+    if len(members) >= 50:
+        bot.send_message(
+            event[0]["invokerid"],
+            "Die Gruppe hat mehr als 50 Nutzer, Auflisten ist für "
+            "Gruppen solcher Größe deaktiviert.",
+        )
+        return
 
     text_groups = ["\nEs sind {} Member in {}:".format(len(members), group["name"])]
     index = 0
