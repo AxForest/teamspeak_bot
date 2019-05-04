@@ -14,17 +14,17 @@ MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API-KEY>"
 
 
-def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
-    message = event[0]["msg"].strip()
+def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
+    key = match.group(1)
 
     # Check with ArenaNet's API
     try:
-        account = common.fetch_account(message)
+        account = common.fetch_account(key)
         if not account:
             logging.info("This seems to be an invalid API key.")
             bot.send_message(
                 event[0]["invokerid"],
-                msg="Der API-Key scheint ungültig zu sein. Bitte versuchen Sie es erneut.",
+                "Der API-Key scheint ungültig zu sein. Bitte versuchen Sie es erneut.",
             )
             return
         world = account.get("world")
@@ -54,7 +54,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                 cur.execute(
                     "SELECT COUNT(`id`), `name` FROM `users` WHERE `tsuid` != %s AND "
                     " (`apikey` = %s OR `name` = %s) AND `ignored` is FALSE",
-                    (event[0]["invokeruid"], message, account.get("name")),
+                    (event[0]["invokeruid"], key, account.get("name")),
                 )
                 result = cur.fetchone()
                 if result[0] > 0:  # Key is already registered
@@ -75,7 +75,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                 # Mark previous encounters using the same tsuid and account as ignored
                 cur.execute(
                     "UPDATE `users` SET `ignored` = TRUE WHERE `tsuid` = %s AND `apikey` = %s",
-                    (event[0]["invokeruid"], message),
+                    (event[0]["invokeruid"], key),
                 )
                 # Save API key and user info in database
                 cur.execute(
@@ -84,7 +84,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, _match: typing.Match):
                     (
                         account.get("name"),
                         world,
-                        message,
+                        key,
                         event[0]["invokeruid"],
                         json.dumps(account.get("guilds", [])),
                     ),
