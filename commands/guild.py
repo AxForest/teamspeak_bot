@@ -41,7 +41,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             FROM `users`
             WHERE `ignored` = FALSE
             AND `tsuid` = %s
-            ORDER BY `timestamp`
+            ORDER BY `timestamp` DESC
             LIMIT 1
             """,
             (cluid,),

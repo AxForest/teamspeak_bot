@@ -68,7 +68,7 @@ if __name__ == "__main__":
                         FROM `users`
                         WHERE `ignored` = FALSE
                         AND `tsuid` = %s
-                        ORDER BY `timestamp` ASC
+                        ORDER BY `timestamp` DESC
                         LIMIT 1
                         """,
                         (uid,),

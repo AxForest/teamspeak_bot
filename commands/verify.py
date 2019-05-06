@@ -43,7 +43,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         # Grab user's latest API key
         cur.execute(
-            "SELECT `apikey` FROM `users` WHERE `ignored` = FALSE AND `tsuid` = %s ORDER BY `timestamp` LIMIT 1",
+            "SELECT `apikey` FROM `users` WHERE `ignored` = FALSE AND `tsuid` = %s ORDER BY `timestamp` DESC LIMIT 1",
             (cluid,),
         )
         row = cur.fetchone()
@@ -82,7 +82,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             )
         else:
             cur.execute(
-                "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP, `guilds` = %s WHERE `apikey` = %s AND `ignored` = FALSE",
+                "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP, `guilds` = %s "
+                "WHERE `apikey` = %s AND `ignored` = FALSE",
                 (json.dumps(account.get("guilds", [])), row[0]),
             )
             bot.send_message(
