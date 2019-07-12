@@ -74,7 +74,7 @@ class Bot:
         if event.event == "notifyclientmoved":
             if event[0]["ctid"] == str(config.CHANNEL_ID):
                 logging.info("User id:{} joined channel".format(event[0]["clid"]))
-                self.send_message(event[0]["clid"], STRINGS["WELCOME"])
+                self.send_message(event[0]["clid"], STRINGS["welcome"])
             else:
                 logging.info("User id:{} left channel".format(event[0]["clid"]))
         elif event.event == "notifytextmessage":
