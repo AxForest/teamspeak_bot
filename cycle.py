@@ -34,7 +34,9 @@ if __name__ == "__main__":
         )
     ) as ts3c:
         ts3c.exec_("use", sid=config.SERVER_ID)
-        ts3c.exec_("clientupdate", client_nickname="Bicycle")
+        current_nick = ts3c.exec_("whoami")
+        if current_nick[0]["client_nickname"] != "Bicycle":
+            ts3c.exec_("clientupdate", client_nickname="Bicycle")
 
         msqlc = None
         cur = None

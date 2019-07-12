@@ -35,6 +35,10 @@ class Bot:
 
         # Select server and change nick
         self.ts3c.exec_("use", sid=config.SERVER_ID)
+
+        current_nick = self.ts3c.exec_("whoami")
+        if current_nick[0]["client_nickname"] != config.CLIENT_NICK:
+            self.ts3c.exec_("clientupdate", client_nickname=config.CLIENT_NICK)
         self.ts3c.exec_("clientupdate", client_nickname=config.CLIENT_NICK)
 
         # Subscribe to events
