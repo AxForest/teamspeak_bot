@@ -9,6 +9,7 @@ import ts3
 import common
 import config
 from bot import Bot
+from constants import STRINGS
 
 MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API-KEY>"
@@ -22,10 +23,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         account = common.fetch_account(key)
         if not account:
             logging.info("This seems to be an invalid API key.")
-            bot.send_message(
-                event[0]["invokerid"],
-                "Der API-Key scheint ungültig zu sein. Bitte versuchen Sie es erneut.",
-            )
+            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token_retry"])
             return
         world = account.get("world")
 
@@ -65,11 +63,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                             account.get("name"),
                         )
                     )
-                    bot.send_message(
-                        event[0]["invokerid"],
-                        "Dieser API-Key/Account ist bereits auf einen anderen Nutzer registiert. "
-                        "Bitte kontaktieren Sie einen Admin.",
-                    )
+                    bot.send_message(event[0]["invokerid"], STRINGS["token_in_use"])
                     return
 
                 # Mark previous encounters using the same tsuid and account as ignored
@@ -130,16 +124,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                         account.get("name", "Unknown account"),
                     )
                 )
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "Willkommen auf dem Kodash-TS! Um alle Channels sehen zu können, verbinden Sie erneut, oder "
-                    "klicken sie auf die Sprechblase mit dem Auge über der Channel-Liste.",
-                )
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "Falls Sie zu einer Gilde gehören, die hier eine Servergruppe hat, kann diese per [b]!guild[/b] "
-                    "gewählt werden.",
-                )
+                bot.send_message(event[0]["invokerid"], STRINGS["welcome_registered"])
+                bot.send_message(event[0]["invokerid"], STRINGS["welcome_registered_2"])
 
             except (ts3.TS3Error, msql.Error) as err:
                 if (
@@ -154,8 +140,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                         )
                     )
                     bot.send_message(
-                        event[0]["invokerid"],
-                        "Sie haben bereits die passende Servergruppe!",
+                        event[0]["invokerid"], STRINGS["already_registerd"]
                     )
                 else:
                     logging.exception(
@@ -163,10 +148,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                             event[0]["invokeruid"]
                         )
                     )
-                    bot.send_message(
-                        event[0]["invokerid"],
-                        "Fehler beim Speichern des API-Keys. Bitte kontaktieren Sie einen Admin.",
-                    )
+                    bot.send_message(event[0]["invokerid"], STRINGS["error_saving"])
             finally:
                 if cur:
                     cur.close()
@@ -181,18 +163,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                     account.get("name", "Unknown account"),
                 )
             )
-            bot.send_message(
-                event[0]["invokerid"],
-                "Sie haben eine andere Welt gewählt. Falls sie vor kurzer Zeit "
-                "ihre Heimatwelt gewechselt haben, versuchen Sie es in 24 Stunden "
-                "erneut. Spion!",
-            )
+            bot.send_message(event[0]["invokerid"], STRINGS["invalid_world"])
     except (
         requests.RequestException,
         common.RateLimitException,
     ):  # API seems to be down
-        bot.send_message(
-            event[0]["invokerid"],
-            "Fehler beim Abfragen der API. Bitte versuchen Sie es später erneut oder wenden Sie sich an "
-            "einen Admin.",
-        )
+        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])

@@ -10,6 +10,7 @@ import ts3
 import commands
 import common
 import config
+from constants import STRINGS
 
 
 class Bot:
@@ -70,12 +71,7 @@ class Bot:
         if event.event == "notifyclientmoved":
             if event[0]["ctid"] == str(config.CHANNEL_ID):
                 logging.info("User id:{} joined channel".format(event[0]["clid"]))
-                self.send_message(
-                    event[0]["clid"],
-                    "Willkommen bei der automatischen Registrierung auf dem Kodash-TS. Bitte "
-                    "schicken Sie mir Ihren API-Key, welchen Sie hier generieren können: < ["
-                    "url=https://account.arena.net/applications]ArenaNet[/url] >",
-                )
+                self.send_message(event[0]["clid"], STRINGS["WELCOME"])
             else:
                 logging.info("User id:{} left channel".format(event[0]["clid"]))
         elif event.event == "notifytextmessage":
@@ -100,10 +96,7 @@ class Bot:
                     break
 
             if not valid_command:
-                self.send_message(
-                    event[0]["invokerid"],
-                    msg="Sie haben eine ungültige Eingabe getätigt. Bitte versuchen Sie es erneut.",
-                )
+                self.send_message(event[0]["invokerid"], STRINGS["invalid_input"])
 
     def send_message(self, recipient: str, msg: str):
         try:

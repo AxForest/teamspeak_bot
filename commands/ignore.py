@@ -10,6 +10,7 @@ import ts3
 import common
 import config
 from bot import Bot
+from constants import STRINGS
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API-KEY>"
@@ -25,7 +26,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         json = common.fetch_account(match.group(1))
         if not json:
             logging.info("This seems to be an invalid API key.")
-            bot.send_message(event[0]["invokerid"], "Ungültiger API-Key.")
+            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token"])
             return
 
         msqlc = msql.connect(
@@ -50,7 +51,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=result[0])[0][
                     "cldbid"
                 ]
-                server_groups = common.remove_roles(bot.ts3c, cldbid, use_whitelist=False)
+                server_groups = common.remove_roles(
+                    bot.ts3c, cldbid, use_whitelist=False
+                )
             except ts3.TS3Error:
                 # User might not exist in the db, whatever
                 pass
@@ -69,7 +72,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         )
         bot.send_message(
             event[0]["invokerid"],
-            "Done! Rechte von {} vorherigen Nutzern entzogen. Gruppen: {}".format(
+            STRINGS["groups_revoked"].format(
                 len(results), [_["name"] for _ in server_groups]
             ),
         )
@@ -78,10 +81,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         raise err
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(
-            event[0]["invokerid"],
-            "Fehler beim Abrufen der API. Bitte versuche es später erneut.",
-        )
+        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
     finally:
         if cur:
             cur.close()

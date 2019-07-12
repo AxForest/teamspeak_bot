@@ -9,6 +9,7 @@ import ts3
 from ratelimit import limits
 
 import config
+from constants import STRINGS
 
 
 class RateLimitException(Exception):
@@ -44,11 +45,7 @@ def assign_server_role(bot, server_id: int, invokerid: str, cldbid: str):
             break
 
     if not server:
-        bot.send_message(
-            invokerid,
-            "Der aktuell hinterlegte Server konnt nicht zugeordnet werden. "
-            "Bitte wenden Sie sich an einen Admin.",
-        )
+        bot.send_message(invokerid, STRINGS["unknown_server"])
         return
 
     bot.ts3c.exec_("servergroupaddclient", sgid=server["group_id"], cldbid=cldbid)

@@ -11,6 +11,7 @@ import ts3
 import common
 import config
 from bot import Bot
+from constants import STRINGS
 
 MESSAGE_REGEX = "!verify +(\\d+)"
 USAGE = "!verify <TS-Datenbank-ID>"
@@ -28,7 +29,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             user = bot.ts3c.exec_("clientgetnamefromdbid", cldbid=match.group(1))
             cluid = user[0]["cluid"]
         except ts3.query.TS3QueryError:
-            bot.send_message(event[0]["invokerid"], "User nicht gefunden!")
+            bot.send_message(event[0]["invokerid"], STRINGS["verify_not_found"])
             return
 
         # Connect to MySQL
@@ -49,17 +50,13 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         row = cur.fetchone()
 
         if not row:
-            bot.send_message(
-                event[0]["invokerid"], "User hat scheinbar keinen API-Key hinterlegt!"
-            )
+            bot.send_message(event[0]["invokerid"], STRINGS["verify_no_token"])
             return
 
         # Grab account
         account = common.fetch_account(row[0])
         if not account:
-            bot.send_message(
-                event[0]["invokerid"], "Der API-Key scheint ungültig zu sein."
-            )
+            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token"])
             return
         world = account.get("world")
 
@@ -75,9 +72,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             server_groups = common.remove_roles(bot.ts3c, match.group(1))
             bot.send_message(
                 event[0]["invokerid"],
-                "Der Nutzer ist derzeit auf einem unbekannten Server: {}. Folgende Gruppen wurden entfernt: {}".format(
-                    world,
-                    [_["name"] for _ in server_groups]
+                STRINGS["verify_invalid_world"].format(
+                    world, [_["name"] for _ in server_groups]
                 ),
             )
         else:
@@ -88,7 +84,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             )
             bot.send_message(
                 event[0]["invokerid"],
-                "Der Nutzer sieht sauber aus, hinterlegter Account ({}) ist auf {}.".format(
+                STRINGS["verify_valid_world"].format(
                     account.get("name"), server["name"]
                 ),
             )
@@ -96,10 +92,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         logging.exception("MySQL error in !verify.")
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(
-            event[0]["invokerid"],
-            "Fehler beim Abrufen der API. Bitte versuche es später erneut.",
-        )
+        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
     finally:
         if cur:
             cur.close()

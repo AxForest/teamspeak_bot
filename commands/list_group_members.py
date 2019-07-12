@@ -4,6 +4,7 @@ import ts3
 
 import config
 from bot import Bot
+from constants import STRINGS
 
 MESSAGE_REGEX = "!list +([\\w ]+)"
 USAGE = "!list <TS-Gruppe>"
@@ -38,7 +39,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
     # Group not found
     if group is None:
-        bot.send_message(event[0]["invokerid"], "Gruppe nicht gefunden!")
+        bot.send_message(event[0]["invokerid"], STRINGS["list_not_found"])
         return
 
     members = bot.ts3c.exec_("servergroupclientlist", "names", sgid=group["sgid"])
@@ -46,14 +47,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
     members = sorted(members, key=lambda _: _["client_nickname"])
 
     if len(members) >= 50:
-        bot.send_message(
-            event[0]["invokerid"],
-            "Die Gruppe hat mehr als 50 Nutzer, Auflisten ist für "
-            "Gruppen solcher Größe deaktiviert.",
-        )
+        bot.send_message(event[0]["invokerid"], STRINGS["list_50_users"])
         return
 
-    text_groups = ["\nEs sind {} Member in {}:".format(len(members), group["name"])]
+    text_groups = [STRINGS["list_users"].format(len(members), group["name"])]
     index = 0
     for member in members:
         member_text = "\n- [URL=client://0/{}]{}[/URL]".format(

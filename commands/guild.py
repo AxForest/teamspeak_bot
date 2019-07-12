@@ -10,6 +10,7 @@ import ts3
 import common
 import config
 from bot import Bot
+from constants import STRINGS
 
 MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Gildenname]"
@@ -49,9 +50,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         row = cur.fetchone()
 
         if not row:
-            bot.send_message(
-                event[0]["invokerid"], "Es ist scheinbar kein API-Key hinterlegt!"
-            )
+            bot.send_message(event[0]["invokerid"], STRINGS["missing_token"])
             return
 
         if row[2]:
@@ -73,10 +72,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             if not account:
                 common.remove_roles(bot.ts3c, cldbid)
                 logging.info("Revoked user's permissions.")
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "Der API-Key scheint ungültig zu sein. Bitte wenden Sie sich an einen Admin.",
-                )
+                bot.send_message(event[0]["invokerid"], STRINGS["invalid_token_admin"])
                 return
 
             guilds = account.get("guilds", [])
@@ -100,17 +96,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             if len(available_guilds) > 0:
                 bot.send_message(
                     event[0]["invokerid"],
-                    "Die Auswahl geschieht per [b]!guild Gilden-Tag[/b]. "
-                    "Folgende Gilden stehen zur Auswahl:\n- {}\nFalls die "
-                    "Gilde entfernt werden soll, nutzen Sie [b]!guild remove[/b].".format(
-                        "\n- ".join(available_guilds)
-                    ),
+                    STRINGS["choose_guilds"].format("\n- ".join(available_guilds)),
                 )
             else:
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "Scheinbar sind Sie in keiner mir bekannten Gilde.",
-                )
+                bot.send_message(event[0]["invokerid"], STRINGS["guild_unknown"])
         else:
             guild = match.group(1).lower()
 
@@ -119,9 +108,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 common.remove_roles(bot.ts3c, cldbid)
                 common.assign_server_role(bot, row[3], event[0]["invokerid"], cldbid)
 
-                bot.send_message(
-                    event[0]["invokerid"], "Gilden-Gruppe wurde erfolgreich entfernt."
-                )
+                bot.send_message(event[0]["invokerid"], STRINGS["guild_removed"])
                 return
 
             guild_info = None
@@ -136,18 +123,12 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             # Guild not found
             if not guild_info:
                 bot.send_message(
-                    event[0]["invokerid"],
-                    "Diese Gilde kenne ich leider nicht. Eine Auflistung Ihrer mir "
-                    "bekannten Gilden erhalten Sie via [b]!guild[/b]",
+                    event[0]["invokerid"], STRINGS["guild_invalid_selection"]
                 )
                 return
 
             if guild_info["guid"] not in guilds:
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "Sie sind nicht in dieser Gilde! Falls dies nicht stimmen sollte, wenden Sie sich an einen "
-                    "Admin oder warten sie ca. 24 Stunden, bis die API-Infos aktualisiert wurden.",
-                )
+                bot.send_message(event[0]["invokerid"], STRINGS["guild_not_in_guild"])
                 return
 
             # Remove other roles
@@ -155,28 +136,22 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
             # Assign guild
             try:
-                bot.ts3c.exec_("servergroupaddclient", sgid=guild_info["id"], cldbid=cldbid)
+                bot.ts3c.exec_(
+                    "servergroupaddclient", sgid=guild_info["id"], cldbid=cldbid
+                )
             except ts3.query.TS3QueryError as err:
                 logging.critical("Failed to assign guild group to user.")
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "Beim Setzen der Gruppe ist ein Fehler aufgetreten. "
-                    "Bitte versuchen Sie es erneut.",
-                )
+                bot.send_message(event[0]["invokerid"], STRINGS["guild_error"])
                 return
 
             bot.send_message(
-                event[0]["invokerid"],
-                "{} wurde erfolgreich gesetzt.".format(guild_info["name"]),
+                event[0]["invokerid"], STRINGS["guild_set"].format(guild_info["name"])
             )
     except msql.Error:
         logging.exception("MySQL error in !guild.")
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(
-            event[0]["invokerid"],
-            "Fehler beim Abrufen der API. Bitte versuchen Sie später erneut.",
-        )
+        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
     finally:
         if cur:
             cur.close()
