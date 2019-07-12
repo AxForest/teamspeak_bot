@@ -140,7 +140,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                     "servergroupaddclient", sgid=guild_info["id"], cldbid=cldbid
                 )
             except ts3.query.TS3QueryError as err:
-                logging.critical("Failed to assign guild group to user.")
+                logging.exception("Failed to assign guild group to user.")
                 bot.send_message(event[0]["invokerid"], STRINGS["guild_error"])
                 return
 
