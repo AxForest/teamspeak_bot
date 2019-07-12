@@ -96,7 +96,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             if len(available_guilds) > 0:
                 bot.send_message(
                     event[0]["invokerid"],
-                    STRINGS["choose_guilds"].format("\n- ".join(available_guilds)),
+                    STRINGS["guild_selection"].format("\n- ".join(available_guilds)),
                 )
             else:
                 bot.send_message(event[0]["invokerid"], STRINGS["guild_unknown"])
