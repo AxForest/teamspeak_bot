@@ -110,9 +110,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                         sgid=config.LEGACY_ANNOYANCE_GROUP,
                         cldbid=cldbid,
                     )
+                    bot.send_message(event[0]["invokerid"], STRINGS["legacy_removed"])
+                    return
+                else:
+                    # Assign configured role if user is not a legacy user
 
-                # Assign configured role if user is not a legacy user
-                if not is_legacy:
                     bot.ts3c.exec_(
                         "servergroupaddclient", sgid=server["group_id"], cldbid=cldbid
                     )

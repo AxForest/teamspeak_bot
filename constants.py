@@ -37,6 +37,7 @@ STRINGS = {
         "ihre Heimatwelt gewechselt haben, versuchen Sie es in 24 Stunden "
         "erneut. Spion!"
     ),
+    "legacy_removed": "Legacy-Gruppe erfolgreich entfernt.",
     "list_users": "\nEs sind {} Member in {}:",
     "list_50_users": (
         "Die Gruppe hat mehr als 50 Nutzer, Auflisten ist für "
