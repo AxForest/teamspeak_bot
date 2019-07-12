@@ -18,7 +18,11 @@ def limit_fetch_account(api_key):
         try:
             return common.fetch_account(api_key)
         except ratelimit.RateLimitException as exception:
-            logging.info("Ran into the soft API limit, waiting a bit.")
+            logging.info(
+                "Ran into the soft API limit, waiting {} seconds.".format(
+                    exception.period_remaining
+                )
+            )
             time.sleep(exception.period_remaining)
         except common.RateLimitException:
             logging.warning("Got rate-limited, waiting 10 minutes.")
@@ -51,71 +55,74 @@ if __name__ == "__main__":
             cur = msqlc.cursor()
 
             # region Migrate legacy users
+            if config.ASSIGN_LEGACY:
+                users = ts3c.exec_("clientdblist")
+                start = 0
+                while len(users) > 0:
+                    for counter, user in enumerate(users):
+                        uid = user["client_unique_identifier"]
+                        dbid = user["cldbid"]
 
-            users = ts3c.exec_("clientdblist")
-            start = 0
-            while len(users) > 0:
-                for user in users:
-                    uid = user["client_unique_identifier"]
-                    dbid = user["cldbid"]
-
-                    # Skip SQ account
-                    if "ServerQuery" in uid:
-                        continue
-
-                    # Look up latest key
-                    cur.execute(
-                        """
-                        SELECT `apikey`
-                        FROM `users`
-                        WHERE `ignored` = FALSE
-                        AND `tsuid` = %s
-                        ORDER BY `timestamp` DESC
-                        LIMIT 1
-                        """,
-                        (uid,),
-                    )
-
-                    row = cur.fetchone()
-
-                    # User isn't registered
-                    if not row:
-                        server_groups = ts3c.exec_(
-                            "servergroupsbyclientid", cldbid=dbid
-                        )
-
-                        skip = False
-                        for group in server_groups:
-                            if (
-                                group["sgid"] == config.LEGACY_ANNOYANCE_GROUP
-                                or group["name"] == "Musikbot"
-                                or group["name"] == "Guest"
-                            ):
-                                skip = True
-                                break
-
-                        if skip:
+                        # Skip SQ account
+                        if "ServerQuery" in uid:
                             continue
 
-                        # Apply legacy group
-                        ts3c.exec_(
-                            "servergroupaddclient",
-                            sgid=config.LEGACY_ANNOYANCE_GROUP,
-                            cldbid=dbid,
-                        )
-                        logging.info(
-                            "Migrating unregistered user. Nick:{}, id:{}, uid:{}".format(
-                                user["client_nickname"], dbid, uid
-                            )
+                        # Send keepalive
+                        if counter % 200 == 0:
+                            ts3c.send_keepalive()
+
+                        # Look up latest key
+                        cur.execute(
+                            """
+                            SELECT `apikey`
+                            FROM `users`
+                            WHERE `ignored` = FALSE
+                            AND `tsuid` = %s
+                            ORDER BY `timestamp` DESC
+                            LIMIT 1
+                            """,
+                            (uid,),
                         )
 
-                # Skip to next group of users
-                start += len(users)
-                try:
-                    users = ts3c.exec_("clientdblist", start=start)
-                except ts3.query.TS3QueryError:
-                    # Fetching users failed, most likely error 1281 (empty result set)
-                    users = []
+                        row = cur.fetchone()
+
+                        # User isn't registered
+                        if not row:
+                            server_groups = ts3c.exec_(
+                                "servergroupsbyclientid", cldbid=dbid
+                            )
+
+                            skip = False
+                            for group in server_groups:
+                                if (
+                                    group["sgid"] == config.LEGACY_ANNOYANCE_GROUP
+                                    or group["name"] in config.WHITELIST["CYCLE"]
+                                ):
+                                    skip = True
+                                    break
+
+                            if skip:
+                                continue
+
+                            # Apply legacy group
+                            ts3c.exec_(
+                                "servergroupaddclient",
+                                sgid=config.LEGACY_ANNOYANCE_GROUP,
+                                cldbid=dbid,
+                            )
+                            logging.info(
+                                "Migrating unregistered user. Nick:{}, id:{}, uid:{}".format(
+                                    user["client_nickname"], dbid, uid
+                                )
+                            )
+
+                    # Skip to next group of users
+                    start += len(users)
+                    try:
+                        users = ts3c.exec_("clientdblist", start=start)
+                    except ts3.query.TS3QueryError:
+                        # Fetching users failed, most likely error 1281 (empty result set)
+                        users = []
 
             # endregion
 
@@ -146,6 +153,10 @@ if __name__ == "__main__":
             progress_string = "{0}/{0}".format("{:0" + str(len(str(full_len))) + "d}")
 
             for counter, row in enumerate(results):
+                # Send keepalive every 200 rows
+                if counter % 200 == 0:
+                    ts3c.send_keepalive()
+
                 try:
                     logging.info(
                         (progress_string + " ({:3.0f}%) - Checking {} ({})").format(

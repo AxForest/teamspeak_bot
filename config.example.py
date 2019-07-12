@@ -45,7 +45,9 @@ GUILDS = {
     "A09E65A6-F378-E511-AEFB-AC162DC05865": ["Kdsh", 11]
 }
 
+# Legacy group for users without a registered key
 LEGACY_ANNOYANCE_GROUP = "13"
+ASSIGN_LEGACY = False
 
 # URL for sentry's error reports
 SENTRY_DSN = None
