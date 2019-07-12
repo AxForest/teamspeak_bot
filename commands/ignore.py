@@ -13,7 +13,7 @@ from bot import Bot
 from constants import STRINGS
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
-USAGE = "!ignore <API-KEY>"
+USAGE = "!ignore <API KEY>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):

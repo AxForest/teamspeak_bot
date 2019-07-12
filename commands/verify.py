@@ -13,8 +13,8 @@ import config
 from bot import Bot
 from constants import STRINGS
 
-MESSAGE_REGEX = "!verify +(\\d+)"
-USAGE = "!verify <TS-Datenbank-ID>"
+MESSAGE_REGEX = "!verify +([A-Za-z0-9+/=]+)"
+USAGE = "!verify <TS Database ID|TS Unique ID>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
@@ -26,8 +26,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
     try:
         # Grab cluid
         try:
-            user = bot.ts3c.exec_("clientgetnamefromdbid", cldbid=match.group(1))
-            cluid = user[0]["cluid"]
+            if all(_.isdigit() for _ in match.group(1)):  # DB id
+                user = bot.ts3c.exec_("clientgetnamefromdbid", cldbid=match.group(1))
+                cluid = user[0]["cluid"]
+            else:
+                cluid = match.group(1)
         except ts3.query.TS3QueryError:
             bot.send_message(event[0]["invokerid"], STRINGS["verify_not_found"])
             return

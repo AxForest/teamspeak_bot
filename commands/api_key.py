@@ -12,7 +12,7 @@ from bot import Bot
 from constants import STRINGS
 
 MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
-USAGE = "<API-KEY>"
+USAGE = "<API KEY>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):

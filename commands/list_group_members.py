@@ -7,7 +7,7 @@ from bot import Bot
 from constants import STRINGS
 
 MESSAGE_REGEX = "!list +([\\w ]+)"
-USAGE = "!list <TS-Gruppe>"
+USAGE = "!list <TS Group>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):

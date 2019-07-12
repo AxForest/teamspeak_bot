@@ -13,7 +13,7 @@ from bot import Bot
 from constants import STRINGS
 
 MESSAGE_REGEX = "!guild *([\\w ]+)?"
-USAGE = "!guild [Gildenname]"
+USAGE = "!guild [Guild Tag]"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
