@@ -142,7 +142,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                         )
                     )
                     bot.send_message(
-                        event[0]["invokerid"], STRINGS["already_registerd"]
+                        event[0]["invokerid"], STRINGS["already_registered"]
                     )
                 else:
                     logging.exception(

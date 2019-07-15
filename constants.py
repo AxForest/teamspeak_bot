@@ -11,13 +11,13 @@ STRINGS = {
         "Beim Setzen der Gruppe ist ein Fehler aufgetreten. "
         "Bitte versuchen Sie es erneut."
     ),
-    "guild_not_in_guild": (
-        "Sie sind nicht in dieser Gilde! Falls dies nicht stimmen sollte, wenden Sie sich an einen "
-        "Admin oder warten sie ca. 24 Stunden, bis die API-Infos aktualisiert wurden."
-    ),
     "guild_invalid_selection": (
         "Diese Gilde kenne ich leider nicht. Eine Auflistung Ihrer mir "
         "bekannten Gilden erhalten Sie via [b]!guild[/b]"
+    ),
+    "guild_not_in_guild": (
+        "Sie sind nicht in dieser Gilde! Falls dies nicht stimmen sollte, wenden Sie sich an einen "
+        "Admin oder warten sie ca. 24 Stunden, bis die API-Infos aktualisiert wurden."
     ),
     "guild_removed": "Gilden-Gruppe wurde erfolgreich entfernt.",
     "guild_selection": (
