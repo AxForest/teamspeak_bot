@@ -23,13 +23,15 @@ def fetch_account(key: str):
             "https://api.guildwars2.com/v2/account?access_token=" + key
         )
         if (
-            response.status_code in [400, 403] and "invalid key" in response.text
+            response.status_code in [400, 403] and "Invalid" in response.text
         ):  # Invalid API key
             return None
         elif response.status_code == 200:
             return response.json()
         elif response.status_code == 429:  # Rate limit
             raise RateLimitException()
+
+        logging.exception(response.text)
         raise requests.RequestException()  # API down
     except requests.RequestException:
         logging.exception("Failed to fetch API")
