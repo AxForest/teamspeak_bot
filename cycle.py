@@ -209,6 +209,8 @@ if __name__ == "__main__":
                                     logging.exception(
                                         "Failed to remove user's row or permissions"
                                     )
+                                    continue  # Don't delete user
+
                         cur.execute("DELETE FROM `users` WHERE `name` = %s", (row[1],))
                     else:
                         # TODO: Remove user from guild on update
