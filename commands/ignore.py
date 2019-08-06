@@ -44,14 +44,14 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
             (match.group(1), json.get("name")),
         )
-        server_groups = []
+        removed_groups = []
         results = cur.fetchall()
         for result in results:
             try:
                 cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=result[0])[0][
                     "cldbid"
                 ]
-                server_groups = common.remove_roles(
+                removed_groups = common.remove_roles(
                     bot.ts3c, cldbid, use_whitelist=False
                 )
             except ts3.TS3Error:
@@ -72,9 +72,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         )
         bot.send_message(
             event[0]["invokerid"],
-            STRINGS["groups_revoked"].format(
-                len(results), [_["name"] for _ in server_groups]
-            ),
+            STRINGS["groups_revoked"].format(len(results), removed_groups),
         )
     except msql.Error as err:
         logging.exception("Failed to mark api key {} as ignored".format(match.group(1)))

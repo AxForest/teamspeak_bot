@@ -75,11 +75,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         # Server wasn't found in config
         if not server:
-            server_groups = common.remove_roles(bot.ts3c, match.group(1))
+            removed_groups = common.remove_roles(bot.ts3c, cldbid)
             bot.send_message(
                 event[0]["invokerid"],
                 STRINGS["verify_invalid_world"].format(
-                    world, [_["name"] for _ in server_groups]
+                    world, removed_groups
                 ),
             )
         else:

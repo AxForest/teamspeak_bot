@@ -55,6 +55,7 @@ def assign_server_role(bot, server_id: int, invokerid: str, cldbid: str):
 
 def remove_roles(ts3c, cldbid: str, use_whitelist=True):
     server_groups = ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+    removed_groups = []
 
     # Remove user from all non-whitelisted groups
     for server_group in server_groups:
@@ -71,6 +72,7 @@ def remove_roles(ts3c, cldbid: str, use_whitelist=True):
                     cldbid, server_group["name"]
                 )
             )
+            removed_groups.append(server_group["name"])
         except ts3.TS3Error:
             # User most likely doesn't have the group
             logging.exception(
@@ -79,7 +81,7 @@ def remove_roles(ts3c, cldbid: str, use_whitelist=True):
                 )
             )
 
-    return server_groups
+    return removed_groups
 
 
 def init_logger(name: str):

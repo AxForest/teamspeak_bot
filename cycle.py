@@ -179,7 +179,7 @@ if __name__ == "__main__":
                                     "clientgetdbidfromuid", cluid=tsuid
                                 )[0]["cldbid"]
 
-                                server_groups = common.remove_roles(ts3c, cldbid)
+                                removed_groups = common.remove_roles(ts3c, cldbid)
 
                                 if not account:
                                     reason = "Invalid API key."
@@ -192,10 +192,7 @@ if __name__ == "__main__":
 
                                 logging.info(
                                     "Removed {}'s ({}) permissions. Groups: {}. Reason: {}".format(
-                                        row[1],
-                                        tsuid,
-                                        [_["name"] for _ in server_groups],
-                                        reason,
+                                        row[1], tsuid, removed_groups, reason
                                     )
                                 )
                             except (ts3.TS3Error, msql.Error) as err:
