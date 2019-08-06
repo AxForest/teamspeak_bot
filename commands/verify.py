@@ -26,10 +26,13 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
     try:
         # Grab cluid
         try:
-            if all(_.isdigit() for _ in match.group(1)):  # DB id
+            if match.group(1).isdigit():  # DB id
                 user = bot.ts3c.exec_("clientgetnamefromdbid", cldbid=match.group(1))
+                cldbid = match.group(1)
                 cluid = user[0]["cluid"]
             else:
+                user = bot.ts3c.exec_("clientgetnamefromuid", cluid=match.group(1))
+                cldbid = user[0]["cldbid"]
                 cluid = match.group(1)
         except ts3.query.TS3QueryError:
             bot.send_message(event[0]["invokerid"], STRINGS["verify_not_found"])
