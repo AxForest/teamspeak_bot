@@ -92,10 +92,19 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
                 # Check if user has the legacy role
                 server_groups = bot.ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+                registered_ids = [str(_[1]) for _ in config.GUILDS.values()] + [
+                    str(_["group_id"]) for _ in config.SERVERS
+                ]
                 is_legacy = False
+                is_registered = False
                 for group in server_groups:
                     if group["sgid"] == config.LEGACY_ANNOYANCE_GROUP:
                         is_legacy = True
+                    elif group["sgid"] in registered_ids:
+                        is_registered = True
+
+                    # Break if user is in legacy group
+                    if is_legacy:
                         break
 
                 # Remove legacy group
@@ -112,22 +121,36 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                     )
                     bot.send_message(event[0]["invokerid"], STRINGS["legacy_removed"])
                     return
+                elif is_registered:
+                    logging.info(
+                        "User {} ({}) registered a second time for whatever reason using {}".format(
+                            event[0]["invokername"],
+                            event[0]["invokeruid"],
+                            account.get("name", "Unknown account"),
+                        )
+                    )
+                    bot.send_message(
+                        event[0]["invokerid"], STRINGS["already_registered"]
+                    )
                 else:
                     # Assign configured role if user is not a legacy user
-
                     bot.ts3c.exec_(
                         "servergroupaddclient", sgid=server["group_id"], cldbid=cldbid
                     )
-                logging.info(
-                    "Assigned world {} to {} ({}) using {}".format(
-                        server["name"],
-                        event[0]["invokername"],
-                        event[0]["invokeruid"],
-                        account.get("name", "Unknown account"),
+                    logging.info(
+                        "Assigned world {} to {} ({}) using {}".format(
+                            server["name"],
+                            event[0]["invokername"],
+                            event[0]["invokeruid"],
+                            account.get("name", "Unknown account"),
+                        )
                     )
-                )
-                bot.send_message(event[0]["invokerid"], STRINGS["welcome_registered"])
-                bot.send_message(event[0]["invokerid"], STRINGS["welcome_registered_2"])
+                    bot.send_message(
+                        event[0]["invokerid"], STRINGS["welcome_registered"]
+                    )
+                    bot.send_message(
+                        event[0]["invokerid"], STRINGS["welcome_registered_2"]
+                    )
 
             except (ts3.TS3Error, msql.Error) as err:
                 if (
