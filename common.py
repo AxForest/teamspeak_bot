@@ -22,8 +22,8 @@ def fetch_account(key: str):
         response = requests.get(
             "https://api.guildwars2.com/v2/account?access_token=" + key
         )
-        if (
-            400 <= response.status_code < 500 and "Invalid" in response.text
+        if 400 <= response.status_code < 500 and (
+            "Invalid" in response.text or "invalid" in response.text
         ):  # Invalid API key
             return None
         elif response.status_code == 200:
