@@ -7,6 +7,7 @@ STRINGS = {
     ),
     "error_saving": "Fehler beim Speichern des API-Keys. Bitte kontaktieren Sie einen Admin.",
     "groups_revoked": "Done! Rechte von {} vorherigen Nutzern entzogen. Gruppen: {}",
+    "groups_removed": "Folgende Gruppen wurden entfernt: {}",
     "guild_error": (
         "Beim Setzen der Gruppe ist ein Fehler aufgetreten. "
         "Bitte versuchen Sie es erneut."

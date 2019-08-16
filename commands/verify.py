@@ -63,6 +63,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         account = common.fetch_account(row[0])
         if not account:
             bot.send_message(event[0]["invokerid"], STRINGS["invalid_token"])
+            removed_groups = common.remove_roles(bot.ts3c, cldbid)
+            bot.send_message(event[0]["invokerid"], STRINGS["groups_removed"].format(removed_groups))
             return
         world = account.get("world")
 
@@ -88,6 +90,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 "WHERE `apikey` = %s AND `ignored` = FALSE",
                 (json.dumps(account.get("guilds", [])), row[0]),
             )
+            msqlc.commit()
             bot.send_message(
                 event[0]["invokerid"],
                 STRINGS["verify_valid_world"].format(
