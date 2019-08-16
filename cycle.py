@@ -185,7 +185,7 @@ if __name__ == "__main__":
                                     reason = "Invalid API key."
                                 elif account.get("world") not in server_ids:
                                     reason = "Invalid world: {}".format(
-                                        account.get("world")
+                                        common.world_name_from_id(account.get("world"))
                                     )
                                 else:
                                     reason = "No fucking clue."

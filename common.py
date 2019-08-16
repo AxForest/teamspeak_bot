@@ -9,6 +9,7 @@ import ts3
 from ratelimit import limits
 
 import config
+import constants
 from constants import STRINGS
 
 
@@ -116,3 +117,10 @@ def init_logger(name: str):
         sentry_sdk.init(
             dsn=config.SENTRY_DSN, before_send=before_send, send_default_pii=True
         )
+
+
+def world_name_from_id(wid: int):
+    for srv in constants.SERVERS:
+        if srv["id"] == wid:
+            return srv["name"]
+    return "Unknown ({})".format(wid)

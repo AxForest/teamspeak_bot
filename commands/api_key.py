@@ -184,7 +184,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 "User {} ({}) is currently on world {} and tried to register using {}.".format(
                     event[0]["invokername"],
                     event[0]["invokeruid"],
-                    world,
+                    common.world_name_from_id(world),
                     account.get("name", "Unknown account"),
                 )
             )
