@@ -17,7 +17,7 @@ class RateLimitException(Exception):
     pass
 
 
-@limits(calls=500, period=60 * 60)  # Rate limit is 600/600 but let's play it safe
+@limits(calls=500, period=60)  # Rate limit is 600 per minute but let's play it safe
 def fetch_account(key: str):
     try:
         response = requests.get(

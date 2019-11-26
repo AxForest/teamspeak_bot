@@ -137,12 +137,11 @@ if __name__ == "__main__":
                     `users`
                 WHERE
                     `ignored` = FALSE 
-                AND (TIMESTAMPDIFF( DAY , now( ) , `last_check` ) <= -7 OR `last_check` IS NULL)
+                AND (TIMESTAMPDIFF( DAY , now( ) , `last_check` ) <= -2 OR `last_check` IS NULL)
                 GROUP BY
                     `name`
                 ORDER BY
                     `last_check` ASC
-                LIMIT 500
                 """
             )
             results = cur.fetchall()
