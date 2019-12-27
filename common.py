@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging.handlers
+import os
 import sys
 from pathlib import Path
 
@@ -41,11 +42,7 @@ def fetch_account(key: str):
 
 def assign_server_role(bot, server_id: int, invokerid: str, cldbid: str):
     # Grab server info from config
-    server = None
-    for s in config.SERVERS:
-        if s["id"] == server_id:
-            server = s
-            break
+    server = find_world(server_id)
 
     if not server:
         bot.send_message(invokerid, STRINGS["unknown_server"])
@@ -69,17 +66,15 @@ def remove_roles(ts3c, cldbid: str, use_whitelist=True):
         try:
             ts3c.exec_("servergroupdelclient", sgid=server_group["sgid"], cldbid=cldbid)
             logging.info(
-                "Removed user dbid:{} from group {}".format(
-                    cldbid, server_group["name"]
-                )
+                "Removed user dbid:%s from group %s", cldbid, server_group["name"]
             )
             removed_groups.append(server_group["name"])
         except ts3.TS3Error:
             # User most likely doesn't have the group
             logging.exception(
-                "Failed to remove user_db:{} from group {} for some reason.".format(
-                    cldbid, server_group["name"]
-                )
+                "Failed to remove cldbid:%s from group %s for some reason.",
+                cldbid,
+                server_group["name"],
             )
 
     return removed_groups
@@ -124,3 +119,9 @@ def world_name_from_id(wid: int):
         if srv["id"] == wid:
             return srv["name"]
     return "Unknown ({})".format(wid)
+
+
+def find_world(world_id: int):
+    for s in config.SERVERS:
+        if s["id"] == world_id:
+            return s

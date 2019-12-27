@@ -19,9 +19,8 @@ def limit_fetch_account(api_key):
             return common.fetch_account(api_key)
         except ratelimit.RateLimitException as exception:
             logging.info(
-                "Ran into the soft API limit, waiting {} seconds.".format(
-                    exception.period_remaining
-                )
+                "Ran into the soft API limit, waiting %s seconds.",
+                exception.period_remaining,
             )
             time.sleep(exception.period_remaining)
         except common.RateLimitException:
@@ -111,9 +110,10 @@ if __name__ == "__main__":
                                 cldbid=dbid,
                             )
                             logging.info(
-                                "Migrating unregistered user. Nick:{}, id:{}, uid:{}".format(
-                                    user["client_nickname"], dbid, uid
-                                )
+                                "Migrating unregistered user. Nick:%s, id:%s, uid:%s",
+                                user["client_nickname"],
+                                dbid,
+                                uid,
                             )
 
                     # Skip to next group of users
@@ -190,9 +190,11 @@ if __name__ == "__main__":
                                     reason = "No fucking clue."
 
                                 logging.info(
-                                    "Removed {}'s ({}) permissions. Groups: {}. Reason: {}".format(
-                                        row[1], tsuid, removed_groups, reason
-                                    )
+                                    "Removed %s's (%s) permissions. Groups: %s. Reason: %s",
+                                    row[1],
+                                    tsuid,
+                                    removed_groups,
+                                    reason,
                                 )
                             except (ts3.TS3Error, msql.Error) as err:
                                 if (

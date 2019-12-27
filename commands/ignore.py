@@ -66,16 +66,17 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         msqlc.commit()
 
         logging.info(
-            "{} ({}) marked previous instances of {} as ignored".format(
-                event[0]["invokername"], event[0]["invokeruid"], match.group(1)
-            )
+            "%s (%s) marked previous instances of %s as ignored",
+            event[0]["invokername"],
+            event[0]["invokeruid"],
+            match.group(1),
         )
         bot.send_message(
             event[0]["invokerid"],
             STRINGS["groups_revoked"].format(len(results), removed_groups),
         )
     except msql.Error as err:
-        logging.exception("Failed to mark api key {} as ignored".format(match.group(1)))
+        logging.exception("Failed to mark api key %s as ignored", match.group(1))
         raise err
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")

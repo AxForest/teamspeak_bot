@@ -71,11 +71,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         world = account.get("world")
 
         # Grab server info from config
-        server = None
-        for s in config.SERVERS:
-            if s["id"] == world:
-                server = s
-                break
+        server = common.find_world(world)
 
         # Server wasn't found in config
         if not server:

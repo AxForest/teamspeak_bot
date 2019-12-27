@@ -20,7 +20,7 @@ class Bot:
         for _ in commands.__all__:
             mod = import_module("commands.{}".format(_))
             mod.REGEX = re.compile(mod.MESSAGE_REGEX)
-            logging.info("Registered command.{}".format(_))
+            logging.info("Registered command.%s", _)
             self.commands.append(mod)
 
         # Connect to TS3
@@ -73,16 +73,14 @@ class Bot:
     def handle_event(self, event):
         if event.event == "notifyclientmoved":
             if event[0]["ctid"] == str(config.CHANNEL_ID):
-                logging.info("User id:{} joined channel".format(event[0]["clid"]))
+                logging.info("User id:%s joined channel", event[0]["clid"])
                 self.send_message(event[0]["clid"], STRINGS["welcome"])
             else:
-                logging.info("User id:{} left channel".format(event[0]["clid"]))
+                logging.info("User id:%s left channel", event[0]["clid"])
         elif event.event == "notifytextmessage":
             message = event[0]["msg"].strip()
             logging.info(
-                "{} ({}): {}".format(
-                    event[0]["invokername"], event[0]["invokeruid"], message
-                )
+                "%s (%s): %s", event[0]["invokername"], event[0]["invokeruid"], message
             )
 
             valid_command = False
@@ -103,7 +101,7 @@ class Bot:
 
     def send_message(self, recipient: str, msg: str):
         try:
-            logging.info("Response: {}".format(msg))
+            logging.info("Response: %s", msg)
             self.ts3c.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
         except ts3.query.TS3Error:
             logging.exception(
