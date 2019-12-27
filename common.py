@@ -85,7 +85,12 @@ def init_logger(name: str):
         Path("logs").mkdir()
 
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+
+    if os.environ.get("ENV", "dev"):
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
     hldr = logging.handlers.TimedRotatingFileHandler(
         "logs/{}.log".format(name), when="W0", encoding="utf-8", backupCount=16
     )
