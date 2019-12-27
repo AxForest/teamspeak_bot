@@ -46,6 +46,14 @@ STRINGS = {
     ),
     "list_not_found": "Gruppe nicht gefunden!",
     "missing_token": "Es ist scheinbar kein API-Key hinterlegt!",
+    "roles_revoked_invalid_key": (
+        "Ihre Rechte wurden entfernt, da kein API-Key hinterlegt ist, "
+        "oder er ungültig wurde."
+    ),
+    "roles_revoked_invalid_world": (
+        "Ihre Rechte wurden entfernt, da sich der "
+        "hinterlegte Account auf einer unbekannten Welt befindet."
+    ),
     "token_in_use": (
         "Dieser API-Key/Account ist bereits auf einen anderen Nutzer registiert. "
         "Bitte kontaktieren Sie einen Admin."
