@@ -7,7 +7,6 @@ import ts3
 import common
 import config
 from bot import Bot
-from constants import STRINGS
 
 MESSAGE_REGEX = "!info \\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "!info <API-Key>"
@@ -27,11 +26,16 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
             bot.send_message(
                 event[0]["invokerid"],
-                STRINGS["info_world"].format(account.get("name"), server, guilds),
+                "info_world",
+                i18n_kwargs={
+                    "user": account.get("name"),
+                    "world": server,
+                    "guilds": guilds,
+                },
             )
         else:
             logging.info("This seems to be an invalid API key.")
-            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token"])
+            bot.send_message(event[0]["invokerid"], "invalid_token")
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
+        bot.send_message(event[0]["invokerid"], "error_api")

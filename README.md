@@ -2,12 +2,8 @@
 A TeamSpeak bot for assigning server groups based on the user's world in Guild Wars 2
 
 # Requirements 
-* python3
-* mysql-connector-python==8.0.15
-* requests==2.21.0
-* ts3==2.0.0b2
-* ratelimit==2.2.1
-* sentry-sdk (optional)
+* Python 3.6+
+* Python libs listed in [requirements.txt](requirements.txt)
 
 # Installation/Usage
 - Create a table in a MySQL/MariaDB database  

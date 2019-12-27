@@ -1,7 +1,7 @@
 import datetime
+import json
 import logging
 import typing
-import json
 
 import mysql.connector as msql
 import requests
@@ -10,7 +10,6 @@ import ts3
 import common
 import config
 from bot import Bot
-from constants import STRINGS
 
 MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Guild Tag]"
@@ -50,7 +49,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         row = cur.fetchone()
 
         if not row:
-            bot.send_message(event[0]["invokerid"], STRINGS["missing_token"])
+            bot.send_message(event[0]["invokerid"], "missing_token")
             return
 
         if row[2]:
@@ -72,7 +71,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             if not account:
                 common.remove_roles(bot.ts3c, cldbid)
                 logging.info("Revoked user's permissions.")
-                bot.send_message(event[0]["invokerid"], STRINGS["invalid_token_admin"])
+                bot.send_message(event[0]["invokerid"], "invalid_token_admin")
                 return
 
             guilds = account.get("guilds", [])
@@ -96,10 +95,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             if len(available_guilds) > 0:
                 bot.send_message(
                     event[0]["invokerid"],
-                    STRINGS["guild_selection"].format("\n- ".join(available_guilds)),
+                    "guild_selection",
+                    i18n_kwargs={"guilds": "\n- ".join(available_guilds)},
                 )
             else:
-                bot.send_message(event[0]["invokerid"], STRINGS["guild_unknown"])
+                bot.send_message(event[0]["invokerid"], "guild_unknown")
         else:
             guild = match.group(1).lower()
 
@@ -108,7 +108,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 common.remove_roles(bot.ts3c, cldbid)
                 common.assign_server_role(bot, row[3], event[0]["invokerid"], cldbid)
 
-                bot.send_message(event[0]["invokerid"], STRINGS["guild_removed"])
+                bot.send_message(event[0]["invokerid"], "guild_removed")
                 return
 
             guild_info = None
@@ -122,13 +122,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
             # Guild not found
             if not guild_info:
-                bot.send_message(
-                    event[0]["invokerid"], STRINGS["guild_invalid_selection"]
-                )
+                bot.send_message(event[0]["invokerid"], "guild_invalid_selection")
                 return
 
             if guild_info["guid"] not in guilds:
-                bot.send_message(event[0]["invokerid"], STRINGS["guild_not_in_guild"])
+                bot.send_message(event[0]["invokerid"], "guild_not_in_guild")
                 return
 
             # Remove other roles
@@ -141,17 +139,19 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 )
             except ts3.query.TS3QueryError as err:
                 logging.exception("Failed to assign guild group to user.")
-                bot.send_message(event[0]["invokerid"], STRINGS["guild_error"])
+                bot.send_message(event[0]["invokerid"], "guild_error")
                 return
 
             bot.send_message(
-                event[0]["invokerid"], STRINGS["guild_set"].format(guild_info["name"])
+                event[0]["invokerid"],
+                "guild_set",
+                i18n_kwargs={"guild": guild_info["name"]},
             )
     except msql.Error:
         logging.exception("MySQL error in !guild.")
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
+        bot.send_message(event[0]["invokerid"], "error_api")
     finally:
         if cur:
             cur.close()

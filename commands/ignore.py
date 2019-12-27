@@ -10,7 +10,6 @@ import ts3
 import common
 import config
 from bot import Bot
-from constants import STRINGS
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API KEY>"
@@ -26,7 +25,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         json = common.fetch_account(match.group(1))
         if not json:
             logging.info("This seems to be an invalid API key.")
-            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token"])
+            bot.send_message(event[0]["invokerid"], "invalid_token")
             return
 
         msqlc = msql.connect(
@@ -73,14 +72,15 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         )
         bot.send_message(
             event[0]["invokerid"],
-            STRINGS["groups_revoked"].format(len(results), removed_groups),
+            "roles_revoked",
+            i18n_kwargs={"amount": len(results), "roles": removed_groups},
         )
     except msql.Error as err:
         logging.exception("Failed to mark api key %s as ignored", match.group(1))
         raise err
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
+        bot.send_message(event[0]["invokerid"], "error_api")
     finally:
         if cur:
             cur.close()

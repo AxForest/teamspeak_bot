@@ -11,7 +11,6 @@ from ratelimit import limits
 
 import config
 import constants
-from constants import STRINGS
 
 
 class RateLimitException(Exception):
@@ -45,7 +44,7 @@ def assign_server_role(bot, server_id: int, invokerid: str, cldbid: str):
     server = find_world(server_id)
 
     if not server:
-        bot.send_message(invokerid, STRINGS["unknown_server"])
+        bot.send_message(invokerid, "unknown_server")
         return
 
     bot.ts3c.exec_("servergroupaddclient", sgid=server["group_id"], cldbid=cldbid)
@@ -130,3 +129,26 @@ def find_world(world_id: int):
     for s in config.SERVERS:
         if s["id"] == world_id:
             return s
+
+
+class User:
+    id: int
+    db_id: int
+    unique_id: str
+    nickname: str
+    country: str
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def __repr__(self):
+        return "<User nickname={0.nickname} db_id={0.db_id} unique_id={0.unique_id} country={0.country}".format(
+            self
+        )
+
+    @property
+    def locale(self):
+        if self.country in ["DE", "AT"]:
+            return "de"
+        return "en"

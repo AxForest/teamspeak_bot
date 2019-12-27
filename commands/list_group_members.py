@@ -4,7 +4,6 @@ import ts3
 
 import config
 from bot import Bot
-from constants import STRINGS
 
 MESSAGE_REGEX = "!list +([\\w ]+)"
 USAGE = "!list <TS Group>"
@@ -39,7 +38,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
     # Group not found
     if group is None:
-        bot.send_message(event[0]["invokerid"], STRINGS["list_not_found"])
+        bot.send_message(event[0]["invokerid"], "list_not_found")
         return
 
     members = bot.ts3c.exec_("servergroupclientlist", "names", sgid=group["sgid"])
@@ -47,10 +46,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
     members = sorted(members, key=lambda _: _["client_nickname"])
 
     if len(members) >= 50:
-        bot.send_message(event[0]["invokerid"], STRINGS["list_50_users"])
+        bot.send_message(event[0]["invokerid"], "list_50_users")
         return
 
-    text_groups = [STRINGS["list_users"].format(len(members), group["name"])]
+    text_groups = [""]
     index = 0
     for member in members:
         member_text = "\n- [URL=client://0/{}]{}[/URL]".format(
@@ -62,5 +61,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         text_groups[index] += member_text
 
+    bot.send_message(
+        event[0]["invokerid"],
+        "list_users",
+        i18n_kwargs={"amount": len(members), "role": group["name"]},
+    )
     for _ in text_groups:
-        bot.send_message(event[0]["invokerid"], _)
+        bot.send_message(event[0]["invokerid"], _, is_translation=False)

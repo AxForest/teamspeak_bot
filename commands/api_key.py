@@ -9,7 +9,6 @@ import ts3
 import common
 import config
 from bot import Bot
-from constants import STRINGS
 
 MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API KEY>"
@@ -23,7 +22,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         account = common.fetch_account(key)
         if not account:
             logging.info("This seems to be an invalid API key.")
-            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token_retry"])
+            bot.send_message(event[0]["invokerid"], "invalid_token_retry")
             return
         world = account.get("world")
 
@@ -59,7 +58,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                             account.get("name"),
                         )
                     )
-                    bot.send_message(event[0]["invokerid"], STRINGS["token_in_use"])
+                    bot.send_message(event[0]["invokerid"], "token_in_use")
                     return
 
                 # Mark previous encounters using the same tsuid and account as ignored
@@ -115,7 +114,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                         sgid=config.LEGACY_ANNOYANCE_GROUP,
                         cldbid=cldbid,
                     )
-                    bot.send_message(event[0]["invokerid"], STRINGS["legacy_removed"])
+                    bot.send_message(event[0]["invokerid"], "legacy_removed")
                     return
                 elif is_registered:
                     logging.info(
@@ -125,9 +124,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                             account.get("name", "Unknown account"),
                         )
                     )
-                    bot.send_message(
-                        event[0]["invokerid"], STRINGS["already_registered"]
-                    )
+                    bot.send_message(event[0]["invokerid"], "already_registered")
                 else:
                     # Assign configured role if user is not a legacy user
                     bot.ts3c.exec_(
@@ -141,12 +138,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                             account.get("name", "Unknown account"),
                         )
                     )
-                    bot.send_message(
-                        event[0]["invokerid"], STRINGS["welcome_registered"]
-                    )
-                    bot.send_message(
-                        event[0]["invokerid"], STRINGS["welcome_registered_2"]
-                    )
+                    bot.send_message(event[0]["invokerid"], "welcome_registered")
+                    bot.send_message(event[0]["invokerid"], "welcome_registered_2")
 
             except (ts3.TS3Error, msql.Error) as err:
                 if (
@@ -160,16 +153,14 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                             account.get("name", "Unknown account"),
                         )
                     )
-                    bot.send_message(
-                        event[0]["invokerid"], STRINGS["already_registered"]
-                    )
+                    bot.send_message(event[0]["invokerid"], "already_registered")
                 else:
                     logging.exception(
                         "Failed to assign server group to user uid:{}".format(
                             event[0]["invokeruid"]
                         )
                     )
-                    bot.send_message(event[0]["invokerid"], STRINGS["error_saving"])
+                    bot.send_message(event[0]["invokerid"], "error_saving")
             finally:
                 if cur:
                     cur.close()
@@ -184,9 +175,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                     account.get("name", "Unknown account"),
                 )
             )
-            bot.send_message(event[0]["invokerid"], STRINGS["invalid_world"])
+            bot.send_message(event[0]["invokerid"], "invalid_world")
     except (
         requests.RequestException,
         common.RateLimitException,
     ):  # API seems to be down
-        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
+        bot.send_message(event[0]["invokerid"], "error_api")

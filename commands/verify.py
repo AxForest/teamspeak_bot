@@ -11,7 +11,6 @@ import ts3
 import common
 import config
 from bot import Bot
-from constants import STRINGS
 
 MESSAGE_REGEX = "!verify +([A-Za-z0-9+/=]+)"
 USAGE = "!verify <TS Database ID|TS Unique ID>"
@@ -35,7 +34,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 cldbid = user[0]["cldbid"]
                 cluid = match.group(1)
         except ts3.query.TS3QueryError:
-            bot.send_message(event[0]["invokerid"], STRINGS["verify_not_found"])
+            bot.send_message(event[0]["invokerid"], "verify_not_found")
             return
 
         # Connect to MySQL
@@ -56,16 +55,18 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         row = cur.fetchone()
 
         if not row:
-            bot.send_message(event[0]["invokerid"], STRINGS["verify_no_token"])
+            bot.send_message(event[0]["invokerid"], "verify_no_token")
             return
 
         # Grab account
         account = common.fetch_account(row[0])
         if not account:
-            bot.send_message(event[0]["invokerid"], STRINGS["invalid_token"])
+            bot.send_message(event[0]["invokerid"], "invalid_token")
             removed_groups = common.remove_roles(bot.ts3c, cldbid)
             bot.send_message(
-                event[0]["invokerid"], STRINGS["groups_removed"].format(removed_groups)
+                event[0]["invokerid"],
+                "roles_removed",
+                i18n_kwargs={"roles": removed_groups},
             )
             return
         world = account.get("world")
@@ -78,9 +79,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             removed_groups = common.remove_roles(bot.ts3c, cldbid)
             bot.send_message(
                 event[0]["invokerid"],
-                STRINGS["verify_invalid_world"].format(
-                    common.world_name_from_id(world), removed_groups
-                ),
+                "verify_invalid_world",
+                i18n_kwargs={
+                    "world": common.world_name_from_id(world),
+                    "roles": removed_groups,
+                },
             )
         else:
             cur.execute(
@@ -91,15 +94,14 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             msqlc.commit()
             bot.send_message(
                 event[0]["invokerid"],
-                STRINGS["verify_valid_world"].format(
-                    account.get("name"), server["name"]
-                ),
+                "verify_valid_world",
+                i18n_kwargs={"user": account.get("name"), "world": server["name"]},
             )
     except msql.Error:
         logging.exception("MySQL error in !verify.")
     except (requests.RequestException, common.RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], STRINGS["error_api"])
+        bot.send_message(event[0]["invokerid"], "error_api")
     finally:
         if cur:
             cur.close()
