@@ -1,5 +1,6 @@
-mysql-connector-python==8.0.15
-requests==2.21.0
-ts3==2.0.0b2
+mysql-connector-python==8.0.18
+python-i18n==0.3.7
 ratelimit==2.2.1
+requests==2.22.0
 sentry-sdk
+ts3==2.0.0b2
