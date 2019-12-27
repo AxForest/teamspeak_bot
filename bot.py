@@ -134,7 +134,8 @@ class Bot:
         server_groups = self.ts3c.exec_(
             "servergroupsbyclientid", cldbid=client_database_id
         )
-        if "Guest" in [_["name"] for _ in server_groups]:
+        if "Guest" in [_["name"] for _ in server_groups if "name" in _]:
+            # XXX: Events sometimes arrive in the wrong order
             return
 
         msqlc, cur = None, None
