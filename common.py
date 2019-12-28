@@ -85,7 +85,7 @@ def init_logger(name: str):
 
     logger = logging.getLogger()
 
-    if os.environ.get("ENV", "dev"):
+    if os.environ.get("ENV", "") == "dev":
         level = logging.DEBUG
     else:
         level = logging.INFO
