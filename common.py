@@ -86,10 +86,11 @@ def init_logger(name: str):
     logger = logging.getLogger()
 
     if os.environ.get("ENV", "dev"):
-        logger.setLevel(logging.DEBUG)
+        level = logging.DEBUG
     else:
-        logger.setLevel(logging.INFO)
+        level = logging.INFO
 
+    logger.setLevel(level)
     hldr = logging.handlers.TimedRotatingFileHandler(
         "logs/{}.log".format(name), when="W0", encoding="utf-8", backupCount=16
     )
@@ -100,7 +101,7 @@ def init_logger(name: str):
     logger.addHandler(hldr)
     stream = logging.StreamHandler(sys.stdout)
     stream.setFormatter(fmt)
-    stream.setLevel(logging.DEBUG)
+    stream.setLevel(level)
     logger.addHandler(stream)
 
     if config.SENTRY_DSN:
