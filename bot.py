@@ -86,7 +86,7 @@ class Bot:
     def handle_event(self, event):
         if event.event == "notifycliententerview":  # User connected/entered view
             # Skip server query and other non-voice clients
-            if event[0]["client_type"] != "0":
+            if event[0].get("client_type", 42) != "0":
                 return
 
             self.users[event[0]["clid"]] = common.User(
