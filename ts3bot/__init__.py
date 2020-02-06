@@ -11,17 +11,24 @@ import mysql.connector as msql
 import requests
 import ts3
 
-import config
 from ts3bot import commands, common
+from ts3bot.config import Config
 
 
 class Bot:
     def __init__(self):
         self.users = {}
-        self.commands = []
+
         # Register commands
+        self.commands = []
         for _ in commands.__all__:
-            mod = import_module("ts3bot.commands.{}".format(_))
+            if Config.has_option("commands", _) and not Config.getboolean(
+                "commands", _
+            ):
+                logging.info("Skipping command.%s", _)
+                continue
+
+            mod = import_module(f"ts3bot.commands.{_}")
             mod.REGEX = re.compile(mod.MESSAGE_REGEX)
             logging.info("Registered command.%s", _)
             self.commands.append(mod)
@@ -36,30 +43,34 @@ class Bot:
         # Connect to TS3
         self.ts3c = ts3.query.TS3ServerConnection(
             "{}://{}:{}@{}".format(
-                config.TS3_PROTOCOL,
-                config.CLIENT_USER,
-                config.CLIENT_PASS,
-                config.QUERY_HOST,
+                Config.get("teamspeak", "protocol"),
+                Config.get("bot_login", "username"),
+                Config.get("bot_login", "password"),
+                Config.get("teamspeak", "hostname"),
             )
         )
 
         # Select server and change nick
-        self.ts3c.exec_("use", sid=config.SERVER_ID)
+        self.ts3c.exec_("use", sid=Config.get("teamspeak", "server_id"))
 
         current_nick = self.ts3c.exec_("whoami")
-        if current_nick[0]["client_nickname"] != config.CLIENT_NICK:
-            self.ts3c.exec_("clientupdate", client_nickname=config.CLIENT_NICK)
+        self.client_nick = Config.get("bot_login", "nickname")
+        if current_nick[0]["client_nickname"] != self.client_nick:
+            self.ts3c.exec_("clientupdate", client_nickname=self.client_nick)
 
         # Subscribe to events
-        self.ts3c.exec_("servernotifyregister", event="channel", id=config.CHANNEL_ID)
+        self.channel_id = Config.get("teamspeak", "channel_id")
+        self.ts3c.exec_(
+            "servernotifyregister", event="channel", id=self.channel_id
+        )
         self.ts3c.exec_("servernotifyregister", event="textprivate")
         self.ts3c.exec_("servernotifyregister", event="server")
 
         # Move to target channel
-        self.own_id = self.ts3c.exec_("clientfind", pattern=config.CLIENT_NICK)[0][
+        self.own_id = self.ts3c.exec_("clientfind", pattern=self.client_nick)[0][
             "clid"
         ]
-        self.ts3c.exec_("clientmove", clid=self.own_id, cid=config.CHANNEL_ID)
+        self.ts3c.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
 
     def loop(self):
         while True:
@@ -73,7 +84,7 @@ class Bot:
                 # Ignore own events
                 if (
                     "invokername" in event[0]
-                    and event[0]["invokername"] == config.CLIENT_NICK
+                    and event[0]["invokername"] == self.client_nick
                     or "clid" in event[0]
                     and event[0]["clid"] == self.own_id
                 ):
@@ -103,7 +114,7 @@ class Bot:
             if event[0]["clid"] in self.users:
                 del self.users[event[0]["clid"]]
         elif event.event == "notifyclientmoved":
-            if event[0]["ctid"] == str(config.CHANNEL_ID):
+            if event[0]["ctid"] == str(self.channel_id):
                 logging.info("User id:%s joined channel", event[0]["clid"])
                 self.send_message(event[0]["clid"], "welcome")
             else:

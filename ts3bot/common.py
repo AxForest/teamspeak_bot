@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
-
 import logging.handlers
 import os
 import sys
+import warnings
 from pathlib import Path
 
 import requests
 import ts3
 from ratelimit import limits
 
-import config
 from ts3bot import constants
+from ts3bot.config import Config
 
 
 class RateLimitException(Exception):
@@ -58,7 +57,7 @@ def remove_roles(ts3c, cldbid: str, use_whitelist=True):
     for server_group in server_groups:
         if (
             use_whitelist
-            and server_group["name"] in config.WHITELIST["CYCLE"]
+            and server_group["name"] in Config.whitelist_cycle
             or server_group["name"] == "Guest"
         ):
             continue
@@ -104,7 +103,8 @@ def init_logger(name: str):
     stream.setLevel(level)
     logger.addHandler(stream)
 
-    if config.SENTRY_DSN:
+    sentry_dsn = Config.get("sentry", "dsn")
+    if sentry_dsn:
         import sentry_sdk
 
         def before_send(event, hint):
@@ -114,9 +114,7 @@ def init_logger(name: str):
                     return None
             return event
 
-        sentry_sdk.init(
-            dsn=config.SENTRY_DSN, before_send=before_send, send_default_pii=True
-        )
+        sentry_sdk.init(dsn=sentry_dsn, before_send=before_send, send_default_pii=True)
 
 
 def world_name_from_id(wid: int):
@@ -127,9 +125,10 @@ def world_name_from_id(wid: int):
 
 
 def find_world(world_id: int):
-    for s in config.SERVERS:
-        if s["id"] == world_id:
-            return s
+    warnings.warn(
+        "DEPRECATED: Use database query instead.", DeprecationWarning, stacklevel=2
+    )
+    return {"id": world_id, "name": "Unknown", "group_id": "100"}
 
 
 class User:
@@ -150,6 +149,7 @@ class User:
 
     @property
     def locale(self):
+        # TODO: Force locale
         if self.country in ["DE", "AT"]:
             return "de"
         return "en"
