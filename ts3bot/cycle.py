@@ -9,7 +9,7 @@ import ratelimit
 import requests
 import ts3
 
-import common
+from ts3bot import common
 import config
 
 

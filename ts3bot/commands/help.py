@@ -4,7 +4,7 @@ import i18n
 import ts3
 
 import config
-from bot import Bot
+from ts3bot import Bot
 
 MESSAGE_REGEX = "!help\\s*"
 USAGE = "!help"

@@ -7,9 +7,8 @@ import mysql.connector as msql
 import requests
 import ts3
 
-import common
 import config
-from bot import Bot
+from ts3bot import Bot, common
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API KEY>"

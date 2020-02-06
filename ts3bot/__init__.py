@@ -1,20 +1,18 @@
-#!/usr/bin/env python3.7
-# -*- coding: utf-8 -*-
 import datetime
 import json
 import logging
 import re
 import typing
 from importlib import import_module
+from pathlib import Path
 
 import i18n
 import mysql.connector as msql
 import requests
 import ts3
 
-import commands
-import common
 import config
+from ts3bot import commands, common
 
 
 class Bot:
@@ -23,13 +21,13 @@ class Bot:
         self.commands = []
         # Register commands
         for _ in commands.__all__:
-            mod = import_module("commands.{}".format(_))
+            mod = import_module("ts3bot.commands.{}".format(_))
             mod.REGEX = re.compile(mod.MESSAGE_REGEX)
             logging.info("Registered command.%s", _)
             self.commands.append(mod)
 
         # Register translation settings
-        i18n.set("load_path", ["i18n"])
+        i18n.set("load_path", [str(Path(__file__).parent / "i18n")])
         i18n.set("filename_format", "{locale}.json")
         i18n.set("enable_memoization", True)
         i18n.set("skip_locale_root_data", True)
@@ -250,8 +248,3 @@ class Bot:
                 cur.close()
             if msqlc:
                 msqlc.close()
-
-
-if __name__ == "__main__":
-    common.init_logger("bot")
-    Bot().loop()

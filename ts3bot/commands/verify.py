@@ -8,9 +8,8 @@ import mysql.connector as msql
 import requests
 import ts3
 
-import common
 import config
-from bot import Bot
+from ts3bot import Bot, common
 
 MESSAGE_REGEX = "!verify +([A-Za-z0-9+/=]+)"
 USAGE = "!verify <TS Database ID|TS Unique ID>"

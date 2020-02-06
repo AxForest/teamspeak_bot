@@ -10,7 +10,7 @@ import ts3
 from ratelimit import limits
 
 import config
-import constants
+from ts3bot import constants
 
 
 class RateLimitException(Exception):

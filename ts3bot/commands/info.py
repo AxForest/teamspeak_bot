@@ -4,9 +4,8 @@ import typing
 import requests
 import ts3
 
-import common
 import config
-from bot import Bot
+from ts3bot import Bot, common
 
 MESSAGE_REGEX = "!info \\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "!info <API-Key>"

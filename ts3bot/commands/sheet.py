@@ -6,7 +6,7 @@ from pathlib import Path
 import ts3
 
 import config
-from bot import Bot
+from ts3bot import Bot
 
 MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
 USAGE = "!sheet <ebg,red,green,blue,reset,remove> [note]"

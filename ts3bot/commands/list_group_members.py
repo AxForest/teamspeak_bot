@@ -3,7 +3,7 @@ import typing
 import ts3
 
 import config
-from bot import Bot
+from ts3bot import Bot
 
 MESSAGE_REGEX = "!list +([\\w ]+)"
 USAGE = "!list <TS Group>"
