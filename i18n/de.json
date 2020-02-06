@@ -25,6 +25,8 @@
     "roles_revoked": "Done! Rechte von %{amount} vorherigen Nutzern entzogen. Gruppen: %{roles}",
     "roles_revoked_invalid_key": "Ihre Rechte wurden entfernt, da kein API-Key hinterlegt ist, oder er ungültig wurde.",
     "roles_revoked_invalid_world": "Ihre Rechte wurden entfernt, da sich der hinterlegte Account auf einer unbekannten Welt befindet.",
+    "sheet_changed": "Reset-Sheet wurde aktualisiert. Bitte überprüfen Sie, dass alles korrekt in der Beschreibung eingetragen wurde.",
+    "sheet_map_full": "Die gewählte Map wird bereits von 2 anderen Leads bespielt.",
     "token_in_use": "Dieser API-Key/Account ist bereits auf einen anderen Nutzer registiert. Bitte kontaktieren Sie einen Admin.",
     "unknown_server": "Der aktuell hinterlegte Server konnt nicht zugeordnet werden. Bitte wenden Sie sich an einen Admin.",
     "verify_invalid_world": "Der Nutzer ist derzeit auf einem unbekannten Server: %{world}. Folgende Gruppen wurden entfernt: %{roles}",

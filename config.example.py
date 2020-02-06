@@ -30,6 +30,9 @@ SQL_USER = "root"
 SQL_PASS = "root"
 SQL_DB = "ts"
 
+# Which channel to render the current reset sheet on
+SHEET_CHANNEL_ID = 634
+
 WHITELIST = {
     # List of admins/mods, can use !help/!ignore etc
     "ADMIN": ["V2h5IGhlbGxvIHRoZXJlIQ==", "R28gc2V0IHlvdXIgYWRtaW4gdWlkcyBoZXJl"],
