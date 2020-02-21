@@ -21,7 +21,7 @@ class Identity(Base):
 
     __tablename__ = "identities"
     id = Column(types.Integer, primary_key=True)
-    guid = Column(types.String, unique=True, nullable=False)
+    guid = Column(types.String(32), unique=True, nullable=False,)
 
     accounts: AppenderQuery = relationship(
         "LinkAccountIdentity", lazy="dynamic", back_populates="identity"
@@ -56,9 +56,9 @@ class Guild(Base):
     __tablename__ = "guilds"
 
     id = Column(types.Integer, primary_key=True)
-    guid = Column(types.String, unique=True, nullable=False)
-    name = Column(types.String, unique=True, nullable=False)
-    tag = Column(types.String, nullable=False)
+    guid = Column(types.String(36), unique=True, nullable=False)
+    name = Column(types.String(255), unique=True, nullable=False)
+    tag = Column(types.String(32), nullable=False)
 
     # TS3 group id
     group_id = Column(types.Integer, nullable=True)
@@ -119,11 +119,11 @@ class Account(Base):
     __tablename__ = "accounts"
 
     id = Column(types.Integer, primary_key=True)
-    name = Column(types.String, unique=True, nullable=False)
+    name = Column(types.String(41), unique=True, nullable=False)
     world: typing.Union[enums.World, int, str] = Column(
         types.Enum(enums.World), nullable=False
     )
-    api_key = Column(types.String, nullable=False)
+    api_key = Column(types.String(72), nullable=False)
 
     guilds: AppenderQuery = relationship(
         "LinkAccountGuild", lazy="dynamic", back_populates="account"
@@ -254,7 +254,7 @@ class Account(Base):
             # Update name, changes rarely
             new_name = account_info.get("name")
             if new_name != self.name:
-                logging.info("%s got renamed to %s", self.name)
+                logging.info("%s got renamed to %s", self.name, new_name)
 
             # Update guilds
             account_guilds = account_info.get("guilds", [])

@@ -3,6 +3,7 @@ import logging
 import time
 import typing
 
+import requests
 import ts3
 from sqlalchemy import and_, create_engine
 from sqlalchemy.exc import OperationalError
@@ -49,7 +50,20 @@ def update_accounts(session: Session):
     # Verify accounts and update guild links
     for idx, account in enumerate(accounts):
         logging.info("%s/%s: Updating %s", idx + 1, num_accounts, account.name)
-        account.update(session)
+        try:
+            account.update(session)
+        except ts3bot.InvalidKeyException:
+            logging.info(
+                "%s/%s: Invalid account %s", idx + 1, num_accounts, account.name
+            )
+        except requests.RequestException:
+            logging.warning(
+                "%s/%s: Failed to update account %s",
+                idx + 1,
+                num_accounts,
+                account.name,
+                exc_info=True,
+            )
 
     logging.info("--- Verification complete ---")
 
@@ -137,7 +151,16 @@ def migrate_known_guilds(session: Session):
         num_guilds = len(GUILDS)
         for idx, (guild_id, info) in enumerate(GUILDS.items()):
             logging.info("%s/%s: Creating %s", idx + 1, num_guilds, info[0])
-            Guild.get_or_create(session, guild_id, group_id=info[1])
+            try:
+                Guild.get_or_create(session, guild_id, group_id=info[1])
+            except requests.RequestException:
+                logging.warning(
+                    "%s/%s: Failed to create guild %s",
+                    idx + 1,
+                    num_guilds,
+                    guild_id,
+                    exc_info=True,
+                )
 
         logging.info("--- Migrating complete, config.py can be deleted now ---")
     except:
@@ -208,7 +231,12 @@ def migrate_database(session: Session, source_database: str):
         # Create guilds
         _guilds = json.loads(row[6])
         for guild in _guilds:
-            Guild.get_or_create(session, guild)
+            try:
+                Guild.get_or_create(session, guild)
+            except requests.RequestException:
+                logging.warning(
+                    "%s: Failed to create guild %s", idx + 1, guild, exc_info=True
+                )
 
         session.commit()
 

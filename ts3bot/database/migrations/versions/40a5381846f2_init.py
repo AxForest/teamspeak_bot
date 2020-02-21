@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         "accounts",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("name", sa.String(41), nullable=False),
         sa.Column(
             "world",
             sa.Enum(
@@ -80,7 +80,7 @@ def upgrade():
             ),
             nullable=False,
         ),
-        sa.Column("api_key", sa.String(), nullable=False),
+        sa.Column("api_key", sa.String(72), nullable=False),
         sa.Column("is_valid", sa.Boolean(), nullable=False),
         sa.Column("last_check", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
@@ -157,9 +157,9 @@ def upgrade():
     op.create_table(
         "guilds",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("guid", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("tag", sa.String(), nullable=False),
+        sa.Column("guid", sa.String(36), nullable=False),
+        sa.Column("name", sa.String(255), nullable=False),
+        sa.Column("tag", sa.String(32), nullable=False),
         sa.Column("group_id", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -169,7 +169,7 @@ def upgrade():
     op.create_table(
         "identities",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("guid", sa.String(), nullable=False),
+        sa.Column("guid", sa.String(32), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("guid"),

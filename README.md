@@ -18,5 +18,6 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 - Run `python3 -m ts3bot cycle` in regular intervals
 
 # Notes
-- The bot assumes that the guest group is still called `Guest`
-- The world group will always remain, even if a guild is selected
+- The bot assumes that the guest group is still called `Guest`.
+- The world group will always remain, even if a guild is selected.
+- The database **HAS TO BE** utf8mb4/utf8mb4_bin or you will encounter strange issues.
