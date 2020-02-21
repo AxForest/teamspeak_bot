@@ -316,6 +316,6 @@ class User:
     @property
     def locale(self):
         # TODO: Force locale
-        if self.country in ["DE", "AT"]:
+        if self.country in ["DE", "AT", "CH"]:
             return "de"
         return "en"
