@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import re
 import typing
@@ -7,77 +6,100 @@ from importlib import import_module
 from pathlib import Path
 
 import i18n
-import mysql.connector as msql
 import requests
 import ts3
+from sqlalchemy.orm import Session, load_only
 
-from ts3bot import commands, common
+import ts3bot
+from ts3bot import commands
 from ts3bot.config import Config
+from ts3bot.database import models
 
 
 class Bot:
-    def __init__(self):
-        self.users = {}
+    def __init__(self, session: Session, connect=True, is_cycle: bool = False):
+        self.users: typing.Dict[str, ts3bot.User] = {}
+        self.session = session
+        self.is_cycle = is_cycle
 
-        # Register commands
-        self.commands = []
-        for _ in commands.__all__:
-            if Config.has_option("commands", _) and not Config.getboolean(
-                "commands", _
-            ):
-                logging.info("Skipping command.%s", _)
-                continue
+        if is_cycle:
+            self.client_nick = Config.get("cycle_login", "nickname")
+            self.channel_id = None
+        else:
+            # Register commands
+            self.commands = []
+            for _ in commands.__all__:
+                if Config.has_option("commands", _) and not Config.getboolean(
+                    "commands", _
+                ):
+                    logging.info("Skipping command.%s", _)
+                    continue
 
-            mod = import_module(f"ts3bot.commands.{_}")
-            mod.REGEX = re.compile(mod.MESSAGE_REGEX)
-            logging.info("Registered command.%s", _)
-            self.commands.append(mod)
+                mod = import_module(f"ts3bot.commands.{_}")
+                mod.REGEX = re.compile(mod.MESSAGE_REGEX)
+                logging.info("Registered command.%s", _)
+                self.commands.append(mod)
 
-        # Register translation settings
-        i18n.set("load_path", [str(Path(__file__).parent / "i18n")])
-        i18n.set("filename_format", "{locale}.json")
-        i18n.set("enable_memoization", True)
-        i18n.set("skip_locale_root_data", True)
-        i18n.set("locale", "de")
+            # Register translation settings
+            i18n.set("load_path", [str(Path(__file__).parent / "i18n")])
+            i18n.set("filename_format", "{locale}.json")
+            i18n.set("enable_memoization", True)
+            i18n.set("skip_locale_root_data", True)
+            i18n.set("locale", "de")
+
+            self.client_nick = Config.get("bot_login", "nickname")
+
+        self.channel_id = Config.get("teamspeak", "channel_id")
+        self.ts3c: typing.Optional[ts3.query.TS3ServerConnection] = None
+        self.own_id: int = 0
+
+        if connect:
+            self.connect()
+
+    def connect(self):
+        if self.is_cycle:
+            username = Config.get("cycle_login", "username")
+            password = Config.get("cycle_login", "password")
+        else:
+            username = Config.get("bot_login", "username")
+            password = Config.get("bot_login", "password")
 
         # Connect to TS3
         self.ts3c = ts3.query.TS3ServerConnection(
             "{}://{}:{}@{}".format(
                 Config.get("teamspeak", "protocol"),
-                Config.get("bot_login", "username"),
-                Config.get("bot_login", "password"),
+                username,
+                password,
                 Config.get("teamspeak", "hostname"),
             )
         )
 
         # Select server and change nick
-        self.ts3c.exec_("use", sid=Config.get("teamspeak", "server_id"))
+        self.exec_("use", sid=Config.get("teamspeak", "server_id"))
 
-        current_nick = self.ts3c.exec_("whoami")
-        self.client_nick = Config.get("bot_login", "nickname")
+        current_nick = self.exec_("whoami")
         if current_nick[0]["client_nickname"] != self.client_nick:
-            self.ts3c.exec_("clientupdate", client_nickname=self.client_nick)
+            self.exec_("clientupdate", client_nickname=self.client_nick)
 
-        # Subscribe to events
-        self.channel_id = Config.get("teamspeak", "channel_id")
-        self.ts3c.exec_(
-            "servernotifyregister", event="channel", id=self.channel_id
-        )
-        self.ts3c.exec_("servernotifyregister", event="textprivate")
-        self.ts3c.exec_("servernotifyregister", event="server")
+        self.own_id: int = self.exec_("clientfind", pattern=self.client_nick)[0]["clid"]
 
-        # Move to target channel
-        self.own_id = self.ts3c.exec_("clientfind", pattern=self.client_nick)[0][
-            "clid"
-        ]
-        self.ts3c.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
+        if not self.is_cycle:
+            # Subscribe to events
+            self.exec_("servernotifyregister", event="channel", id=self.channel_id)
+            self.exec_("servernotifyregister", event="textprivate")
+            self.exec_("servernotifyregister", event="server")
+
+            # Move to target channel
+            self.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
+
+    def exec_(self, cmd: str, *options, **params):
+        return self.ts3c.exec_(cmd, *options, **params)
 
     def loop(self):
         while True:
             self.ts3c.send_keepalive()
             try:
-                event = self.ts3c.wait_for_event(timeout=60)
-                # type: ts3.response.TS3Event
+                event: ts3.response.TS3Event = self.ts3c.wait_for_event(timeout=60)
             except ts3.query.TS3TimeoutError:
                 pass  # Ignore wait timeout
             else:
@@ -92,14 +114,18 @@ class Bot:
 
                 self.handle_event(event)
 
-    def handle_event(self, event):
+    def handle_event(self, event: ts3.response.TS3Event):
         if event.event == "notifycliententerview":  # User connected/entered view
             # Skip server query and other non-voice clients
             if event[0].get("client_type", 42) != "0":
                 return
 
-            self.users[event[0]["clid"]] = common.User(
-                id=int(event[0]["clid"]),
+            clid = event[0].get("clid")
+            if not clid:
+                return
+
+            self.users[clid] = ts3bot.User(
+                id=int(clid),
                 db_id=int(event[0]["client_database_id"]),
                 unique_id=event[0]["client_unique_identifier"],
                 nickname=event[0]["client_nickname"],
@@ -111,12 +137,13 @@ class Bot:
                 event[0]["clid"],
             )
         elif event.event == "notifyclientleftview":
-            if event[0]["clid"] in self.users:
-                del self.users[event[0]["clid"]]
+            clid = event[0].get("clid")
+            if clid in self.users:
+                del self.users[clid]
         elif event.event == "notifyclientmoved":
-            if event[0]["ctid"] == str(self.channel_id):
-                logging.info("User id:%s joined channel", event[0]["clid"])
-                self.send_message(event[0]["clid"], "welcome")
+            if event[0].get("ctid") == str(self.channel_id):
+                logging.info("User id:%s joined channel", event[0].get("clid"))
+                self.send_message(event[0].get("clid"), "welcome")
             else:
                 logging.info("User id:%s left channel", event[0]["clid"])
         elif event.event == "notifytextmessage":
@@ -148,11 +175,15 @@ class Bot:
         is_translation: bool = True,
         i18n_kwargs: typing.Dict = None,
     ):
+        if not recipient:
+            logging.error("Got invalid recipient %s", recipient)
+            return
+
         if is_translation:
             # Look up user's locale
             if recipient not in self.users:
-                info = self.ts3c.exec_("clientinfo", clid=recipient)
-                self.users[recipient] = common.User(
+                info = self.exec_("clientinfo", clid=recipient)
+                self.users[recipient] = ts3bot.User(
                     id=int(recipient),
                     db_id=int(info[0]["client_database_id"]),
                     unique_id=info[0]["client_unique_identifier"],
@@ -169,7 +200,7 @@ class Bot:
 
         try:
             logging.info("Response: %s", msg)
-            self.ts3c.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
+            self.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
         except ts3.query.TS3Error:
             logging.exception(
                 "Seems like the user I tried to message vanished into thin air"
@@ -178,84 +209,83 @@ class Bot:
     def verify_user(
         self, client_unique_id: str, client_database_id: str, client_id: str
     ):
-        def revoked(response="roles_revoked_invalid_key"):
-            removed_roles = common.remove_roles(self.ts3c, client_database_id)
+        def revoked(response: str):
+            account.invalidate(self.session)
+            changes = ts3bot.sync_groups(
+                self, client_database_id, account, remove_all=True
+            )
+
+            reason = "unknown reason"
+            if response == "groups_revoked_missing_key":
+                reason = "missing API key"
+            elif response == "groups_revoked_invalid_key":
+                reason = "invalid API key"
+
             logging.info(
-                "Revoked user's (cldbid:%s) roles (%s) due to invalid API key/world.",
+                "Revoked user's (cldbid:%s) groups (%s) due to %s.",
                 client_database_id,
-                removed_roles,
+                changes["removed"],
+                reason,
             )
             self.send_message(client_id, response)
 
-        # Skip user if they only have the Guest role
-        server_groups = self.ts3c.exec_(
-            "servergroupsbyclientid", cldbid=client_database_id
+        # Get all current groups
+        server_groups = self.exec_("servergroupsbyclientid", cldbid=client_database_id)
+
+        known_groups: typing.List[int] = (
+            [
+                _.group_id
+                for _ in self.session.query(ts3bot.database.models.WorldGroup).options(
+                    load_only(ts3bot.database.models.WorldGroup.group_id)
+                )
+            ]
+            + [
+                _.group_id
+                for _ in self.session.query(ts3bot.database.models.Guild)
+                .filter(ts3bot.database.models.Guild.group_id.isnot(None))
+                .options(load_only(ts3bot.database.models.Guild.group_id))
+            ]
+            + [
+                int(Config.get("teamspeak", "generic_world_id")),
+                int(Config.get("teamspeak", "generic_guild_id")),
+            ]
         )
-        if "Guest" in [_["name"] for _ in server_groups if "name" in _]:
-            # XXX: Events sometimes arrive in the wrong order
+
+        # Check if user has any known groups
+        has_group = False
+        has_skip_group = False
+        for server_group in server_groups:
+            if int(server_group.get("sgid", -1)) in known_groups:
+                has_group = True
+            if server_group.get("name") in Config.whitelist_groups:
+                has_skip_group = True
+
+        # Skip users without any known groups or in skip group
+        # Skip group = Whitelisted groups on users that should be ignored like
+        # guests, music bots, etc
+        if not has_group or has_skip_group:
             return
 
-        msqlc, cur = None, None
+        # Grab user's account info
+        account = models.Account.get_by_guid(self.session, client_unique_id)
+
+        # User does not exist in DB
+        if not account:
+            revoked("groups_revoked_missing_key")
+            return
+
+        # User was checked today, don't check again
+        if (datetime.datetime.today() - account.last_check).days < 1:
+            return
+
+        logging.debug("Checking %s/%s", account, client_unique_id)
+
         try:
-            msqlc = msql.connect(
-                user=config.SQL_USER,
-                password=config.SQL_PASS,
-                host=config.SQL_HOST,
-                port=config.SQL_PORT,
-                database=config.SQL_DB,
-            )
-            cur = msqlc.cursor()
-
-            # Grab user's latest API key
-            cur.execute(
-                "SELECT `apikey`, `last_check` FROM `users` WHERE `ignored` = FALSE "
-                "AND `tsuid` = %s ORDER BY `timestamp` DESC LIMIT 1",
-                (client_unique_id,),
-            )
-
-            row = cur.fetchone()
-            # User does not exist in DB
-            if not row:
-                revoked()
-                return
-
-            # User was checked today, don't check again
-            if (datetime.datetime.today() - row[1]).days < 1:
-                return
-
-            logging.debug(
-                "Checking cldbid:%s, cluid:%s", client_database_id, client_unique_id
-            )
-
-            account = common.fetch_account(row[0])
-            # Account could not be fetched, invalid API key
-            if not account:
-                revoked()
-                return
-
-            world = common.find_world(account.get("world", -1))
-            # World is not listed in config
-            if not world:
-                logging.info(
-                    "User cldbid:%s is currently on %s.",
-                    client_database_id,
-                    common.world_name_from_id(account.get("world")),
-                )
-                revoked("roles_revoked_invalid_world")
-                return
-            else:
-                cur.execute(
-                    "UPDATE `users` SET `last_check` = CURRENT_TIMESTAMP, "
-                    "`guilds` = %s WHERE `apikey` = %s AND `ignored` = FALSE",
-                    (json.dumps(account.get("guilds", [])), row[0]),
-                )
-                msqlc.commit()
-        except msql.Error:
-            logging.exception("MySQL error")
-        except (requests.RequestException, common.RateLimitException):
+            account.update(self.session)
+            # Sync groups
+            ts3bot.sync_groups(self, client_database_id, account)
+        except ts3bot.InvalidKeyException:
+            revoked("groups_revoked_invalid_key")
+        except (requests.RequestException, ts3bot.RateLimitException):
             logging.exception("Error during API call")
-        finally:
-            if cur:
-                cur.close()
-            if msqlc:
-                msqlc.close()
+            return

@@ -5,8 +5,11 @@ __pycache__/
 .venv
 venv/
 
-logs/
+# Distribution
+*.egg-info
+build/
 
+logs/
 *.sqlite3
 config.ini
 sheet.json

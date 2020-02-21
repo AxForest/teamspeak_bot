@@ -5,8 +5,8 @@ from pathlib import Path
 
 import ts3
 
-import config
-from ts3bot import Bot
+from ts3bot.bot import Bot
+from ts3bot.config import Config
 
 MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
 USAGE = "!sheet <ebg,red,green,blue,reset,remove> [note]"
@@ -14,15 +14,13 @@ STATE_FILE = Path("sheet.json")
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    if not hasattr(config, "SHEET_CHANNEL_ID"):
+    sheet_channel_id = Config.get("teamspeak", "sheet_channel_id")
+    if sheet_channel_id == 0:
         return
 
     current_state = {"EBG": [], "Rot": [], "Grün": [], "Blau": []}
 
-    if (
-        match.group(1) == "reset"
-        and event[0]["invokeruid"] in config.WHITELIST["ADMIN"]
-    ):
+    if match.group(1) == "reset" and event[0]["invokeruid"] in Config.whitelist_admin:
         pass
     elif match.group(1) in ["ebg", "red", "green", "blue", "r", "g", "b", "remove"]:
         if STATE_FILE.exists():
@@ -74,7 +72,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         "- !sheet red/green/blue (note)\t—\tRegister your lead with an optional note (20 characters).\n"
         "- !sheet remove\t—\tRemove the lead"
     )
-    bot.ts3c.exec_("channeledit", cid=config.SHEET_CHANNEL_ID, channel_description=desc)
+    bot.exec_("channeledit", cid=sheet_channel_id, channel_description=desc)
     bot.send_message(event[0]["invokerid"], "sheet_changed")
 
     STATE_FILE.write_text(json.dumps(current_state))

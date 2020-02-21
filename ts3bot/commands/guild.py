@@ -1,158 +1,114 @@
 import datetime
-import json
 import logging
 import typing
 
-import mysql.connector as msql
 import requests
 import ts3
 
-import config
-from ts3bot import Bot, common
+from ts3bot import InvalidKeyException, RateLimitException, sync_groups
+from ts3bot.bot import Bot
+from ts3bot.database import models
 
 MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Guild Tag]"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    msqlc = None
-    cur = None
-    try:
-        cluid = event[0]["invokeruid"]
-        cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=event[0]["invokeruid"])[
-            0
-        ]["cldbid"]
+    cluid = event[0]["invokeruid"]
+    cldbid = bot.exec_("clientgetdbidfromuid", cluid=event[0]["invokeruid"])[0][
+        "cldbid"
+    ]
 
-        # Connect to MySQL
-        msqlc = msql.connect(
-            user=config.SQL_USER,
-            password=config.SQL_PASS,
-            host=config.SQL_HOST,
-            port=config.SQL_PORT,
-            database=config.SQL_DB,
+    # Grab user's account
+    account = models.Account.get_by_guid(bot.session, cluid)
+
+    if not account or not account.is_valid:
+        bot.send_message(event[0]["invokerid"], "missing_token")
+        return
+
+    # Saved account is older than one day or has no guilds
+    if (
+        datetime.datetime.today() - account.last_check
+    ).days >= 1 or account.guilds.count() == 0:
+        bot.send_message(event[0]["invokerid"], "account_updating")
+
+        try:
+            account.update(bot.session)
+
+            # Sync groups in case the user has left a guild or similar changes
+            sync_groups(bot, cldbid, account)
+        except InvalidKeyException:
+            # Invalidate link
+            account.invalidate(bot.session)
+            sync_groups(bot, cldbid, account, remove_all=True)
+
+            logging.info("Revoked user's permissions.")
+            bot.send_message(event[0]["invokerid"], "invalid_token_admin")
+            return
+        except (requests.RequestException, RateLimitException):
+            logging.exception("Error during API call")
+            bot.send_message(event[0]["invokerid"], "error_api")
+
+    # User requested guild removal
+    if match.group(1) and match.group(1).lower() == "remove":
+        # Remove guilds
+        account.guilds.filter(models.LinkAccountGuild.is_active.is_(True)).update(
+            {"is_active": False}
         )
-        cur = msqlc.cursor()
+        bot.session.commit()
 
-        # Grab user's latest API key
-        cur.execute(
-            """
-            SELECT `apikey`, `last_check`, `guilds`, `world`
-            FROM `users`
-            WHERE `ignored` = FALSE
-            AND `tsuid` = %s
-            ORDER BY `timestamp` DESC
-            LIMIT 1
-            """,
-            (cluid,),
-        )
-        row = cur.fetchone()
+        # Sync groups
+        changes = sync_groups(bot, cldbid, account)
+        if len(changes["removed"]) > 0:
+            bot.send_message(event[0]["invokerid"], "guild_removed")
+        else:
+            bot.send_message(event[0]["invokerid"], "guild_error")
 
-        if not row:
-            bot.send_message(event[0]["invokerid"], "missing_token")
+        return
+
+    available_guilds = account.guilds.join(models.Guild).filter(
+        models.Guild.group_id.isnot(None)
+    )
+
+    # No guild specified
+    if not match.group(1):
+        available_guilds = available_guilds.all()
+        if len(available_guilds) > 0:
+            bot.send_message(
+                event[0]["invokerid"],
+                "guild_selection",
+                i18n_kwargs={
+                    "guilds": "\n- ".join([_.guild.tag for _ in available_guilds])
+                },
+            )
+        else:
+            bot.send_message(event[0]["invokerid"], "guild_unknown")
+    else:
+        guild = match.group(1).lower()
+
+        selected_guild: typing.Optional[
+            models.LinkAccountGuild
+        ] = available_guilds.filter(models.Guild.tag.ilike(guild)).one_or_none()
+
+        # Guild not found or user not in guild
+        if not selected_guild:
+            bot.send_message(event[0]["invokerid"], "guild_invalid_selection")
             return
 
-        if row[2]:
-            guilds = json.loads(row[2])
-        else:
-            guilds = []
+        # Remove other guilds
+        account.guilds.update({"is_active": False})
 
-        # Saved account is older than one day, was never checked, or has no guilds
-        if (
-            not row[1]
-            or (datetime.datetime.today() - row[1]).days >= 1
-            or len(guilds) == 0
-        ):
-            logging.info("Fetching user's guilds.")
-            # Grab account
-            account = common.fetch_account(row[0])
+        # Assign guild
+        selected_guild.is_active = True
+        bot.session.commit()
 
-            # API key seems to be invalid, revoke roles
-            if not account:
-                common.remove_roles(bot.ts3c, cldbid)
-                logging.info("Revoked user's permissions.")
-                bot.send_message(event[0]["invokerid"], "invalid_token_admin")
-                return
-
-            guilds = account.get("guilds", [])
-
-            # Save user's guilds
-            cur.execute(
-                "UPDATE `users` SET `guilds` = %s, `last_check` = CURRENT_TIMESTAMP()"
-                "WHERE `ignored` = FALSE AND `tsuid` = %s",
-                (json.dumps(guilds), cluid),
-            )
-            msqlc.commit()
-
-        # No guild specified
-        if not match.group(1):
-            # Search for possible guilds
-            available_guilds = []
-            for guild in guilds:
-                if guild in config.GUILDS:
-                    available_guilds.append(config.GUILDS[guild][0])
-
-            if len(available_guilds) > 0:
-                bot.send_message(
-                    event[0]["invokerid"],
-                    "guild_selection",
-                    i18n_kwargs={"guilds": "\n- ".join(available_guilds)},
-                )
-            else:
-                bot.send_message(event[0]["invokerid"], "guild_unknown")
-        else:
-            guild = match.group(1).lower()
-
-            # User requested guild removal
-            if guild == "remove":
-                common.remove_roles(bot.ts3c, cldbid)
-                common.assign_server_role(bot, row[3], event[0]["invokerid"], cldbid)
-
-                bot.send_message(event[0]["invokerid"], "guild_removed")
-                return
-
-            guild_info = None
-            for c_guild in config.GUILDS:
-                if config.GUILDS[c_guild][0].lower() == guild:
-                    guild_info = {
-                        "guid": c_guild,
-                        "name": config.GUILDS[c_guild][0],
-                        "id": config.GUILDS[c_guild][1],
-                    }
-
-            # Guild not found
-            if not guild_info:
-                bot.send_message(event[0]["invokerid"], "guild_invalid_selection")
-                return
-
-            if guild_info["guid"] not in guilds:
-                bot.send_message(event[0]["invokerid"], "guild_not_in_guild")
-                return
-
-            # Remove other roles
-            common.remove_roles(bot.ts3c, cldbid)
-
-            # Assign guild
-            try:
-                bot.ts3c.exec_(
-                    "servergroupaddclient", sgid=guild_info["id"], cldbid=cldbid
-                )
-            except ts3.query.TS3QueryError as err:
-                logging.exception("Failed to assign guild group to user.")
-                bot.send_message(event[0]["invokerid"], "guild_error")
-                return
-
+        # Sync groups
+        changes = sync_groups(bot, cldbid, account)
+        if len(changes["added"]) > 0:
             bot.send_message(
                 event[0]["invokerid"],
                 "guild_set",
-                i18n_kwargs={"guild": guild_info["name"]},
+                i18n_kwargs={"guild": selected_guild.guild.name},
             )
-    except msql.Error:
-        logging.exception("MySQL error in !guild.")
-    except (requests.RequestException, common.RateLimitException):
-        logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], "error_api")
-    finally:
-        if cur:
-            cur.close()
-        if msqlc:
-            msqlc.close()
+        else:
+            bot.send_message(event[0]["invokerid"], "guild_error")

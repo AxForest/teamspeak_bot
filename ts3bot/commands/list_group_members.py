@@ -2,30 +2,33 @@ import typing
 
 import ts3
 
-import config
-from ts3bot import Bot
+from ts3bot.bot import Bot
+from ts3bot.config import Config
 
-MESSAGE_REGEX = "!list +([\\w ]+)"
+MESSAGE_REGEX = "!list +([\\w\\- ]+)"
 USAGE = "!list <TS Group>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=event[0]["invokeruid"])[0][
+    cldbid = bot.exec_("clientgetdbidfromuid", cluid=event[0]["invokeruid"])[0][
         "cldbid"
     ]
-    user_groups = bot.ts3c.exec_("servergroupsbyclientid", cldbid=cldbid)
+    user_groups = bot.exec_("servergroupsbyclientid", cldbid=cldbid)
     allowed = False
 
-    for group in user_groups:
-        if group["name"] in config.WHITELIST["GROUP_LIST"]:
-            allowed = True
-            break
+    if event[0]["invokeruid"] in Config.whitelist_admin:
+        allowed = True
+    else:
+        for group in user_groups:
+            if group["name"] in Config.whitelist_group_list:
+                allowed = True
+                break
 
     # User doesn't have any whitelisted groups
     if not allowed:
         return
 
-    groups = bot.ts3c.exec_("servergrouplist")
+    groups = bot.exec_("servergrouplist")
     group = None
     search_group = match.group(1).strip()
     for _ in groups:
@@ -41,7 +44,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         bot.send_message(event[0]["invokerid"], "list_not_found")
         return
 
-    members = bot.ts3c.exec_("servergroupclientlist", "names", sgid=group["sgid"])
+    members = bot.exec_("servergroupclientlist", "names", sgid=group["sgid"])
 
     members = sorted(members, key=lambda _: _["client_nickname"])
 
@@ -64,7 +67,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
     bot.send_message(
         event[0]["invokerid"],
         "list_users",
-        i18n_kwargs={"amount": len(members), "role": group["name"]},
+        i18n_kwargs={"amount": len(members), "group": group["name"]},
     )
     for _ in text_groups:
         bot.send_message(event[0]["invokerid"], _, is_translation=False)

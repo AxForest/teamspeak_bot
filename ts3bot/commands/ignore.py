@@ -1,87 +1,77 @@
-# -*- coding: utf-8 -*-
-
 import logging
 import typing
 
-import mysql.connector as msql
-import requests
 import ts3
 
-import config
-from ts3bot import Bot, common
+from ts3bot import InvalidKeyException, fetch_api, sync_groups
+from ts3bot.bot import Bot
+from ts3bot.config import Config
+from ts3bot.database import models
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API KEY>"
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    if event[0]["invokeruid"] not in config.WHITELIST["ADMIN"]:
+    if event[0]["invokeruid"] not in Config.whitelist_admin:
         return
-
-    msqlc = None
-    cur = None
     try:
-        json = common.fetch_account(match.group(1))
-        if not json:
-            logging.info("This seems to be an invalid API key.")
-            bot.send_message(event[0]["invokerid"], "invalid_token")
-            return
-
-        msqlc = msql.connect(
-            user=config.SQL_USER,
-            password=config.SQL_PASS,
-            host=config.SQL_HOST,
-            port=config.SQL_PORT,
-            database=config.SQL_DB,
+        json = fetch_api("account", api_key=match.group(1))
+        account = (
+            bot.session.query(models.Account)
+            .filter(models.Account.name == json.get("name"))
+            .one_or_none()
         )
-        cur = msqlc.cursor()
 
-        # Grab distinct TS unique IDs
-        cur.execute(
-            "SELECT DISTINCT `tsuid` FROM `users` "
-            "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
-            (match.group(1), json.get("name")),
-        )
-        removed_groups = []
-        results = cur.fetchall()
-        for result in results:
+        # Account does not exist
+        if not account:
+            logging.info("User was not registered.")
+            bot.send_message(
+                event[0]["invokerid"],
+                "account_unknown",
+                i18n_kwargs={"account": json.get("name")},
+            )
+
+        # Get previous identity
+        previous_identity: typing.Optional[
+            models.LinkAccountIdentity
+        ] = account.valid_identities.one_or_none()
+
+        # Remove previous links
+        account.invalidate(bot.session)
+
+        if previous_identity:
+            # Get cldbid and sync groups
             try:
-                cldbid = bot.ts3c.exec_("clientgetdbidfromuid", cluid=result[0])[0][
-                    "cldbid"
-                ]
-                removed_groups = common.remove_roles(
-                    bot.ts3c, cldbid, use_whitelist=False
+                cldbid = bot.exec_(
+                    "clientgetdbidfromuid", cluid=previous_identity.identity.guid
+                )[0]["cldbid"]
+
+                result = sync_groups(bot, cldbid, account, remove_all=True)
+
+                logging.info(
+                    "%s (%s) marked previous links of %s as ignored",
+                    event[0]["invokername"],
+                    event[0]["invokeruid"],
+                    account.name,
+                )
+
+                bot.send_message(
+                    event[0]["invokerid"],
+                    "groups_revoked",
+                    i18n_kwargs={"amount": 1, "groups": result["removed"]},
                 )
             except ts3.TS3Error:
-                # User might not exist in the db, whatever
-                pass
+                # User might not exist in the db
+                logging.info("Failed to remove groups from user", exc_info=True)
 
-        cur.execute(
-            "UPDATE `users` SET `ignored` = TRUE "
-            "WHERE `ignored` = FALSE AND (`apikey` = %s OR `name` = %s)",
-            (match.group(1), json.get("name")),
-        )
-        msqlc.commit()
-
-        logging.info(
-            "%s (%s) marked previous instances of %s as ignored",
-            event[0]["invokername"],
-            event[0]["invokeruid"],
-            match.group(1),
-        )
-        bot.send_message(
-            event[0]["invokerid"],
-            "roles_revoked",
-            i18n_kwargs={"amount": len(results), "roles": removed_groups},
-        )
-    except msql.Error as err:
-        logging.exception("Failed to mark api key %s as ignored", match.group(1))
-        raise err
-    except (requests.RequestException, common.RateLimitException):
-        logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], "error_api")
-    finally:
-        if cur:
-            cur.close()
-        if msqlc:
-            msqlc.close()
+        else:
+            bot.send_message(
+                event[0]["invokerid"],
+                "groups_revoked",
+                i18n_kwargs={"amount": 0, "groups": []},
+            )
+    except InvalidKeyException:
+        logging.info("This seems to be an invalid API key.")
+        bot.send_message(event[0]["invokerid"], "invalid_token")
+        return
