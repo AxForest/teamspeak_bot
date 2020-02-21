@@ -38,7 +38,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         return
 
     try:
-        bot.send_message(event[0]["invokerid"], "verify_fetching")
+        bot.send_message(event[0]["invokerid"], "account_updating")
         result = account.update(bot.session)
         if result["transfer"]:
             old_world: enums.World = result["transfer"][0]
