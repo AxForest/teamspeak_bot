@@ -258,7 +258,7 @@ class Account(Base):
 
             # Update guilds
             account_guilds = account_info.get("guilds", [])
-            guilds_joined = []
+            guids_joined = []
             guilds_left = []
             old_guilds = []
 
@@ -268,19 +268,13 @@ class Account(Base):
                 old_guilds.append(link_guild.guild.guid)
 
                 if link_guild.guild.guid not in account_guilds:
-                    guilds_left.append(link_guild.guild.guid)
+                    guilds_left.append(link_guild.guild.name)
 
             # Collect new guilds
             guild_guid: str
             for guild_guid in account_guilds:
                 if guild_guid not in old_guilds:
-                    guilds_joined.append(guild_guid)
-
-            if len(guilds_joined) > 0:
-                logging.info("%s joined new guilds: %s", self.name, guilds_joined)
-
-            if len(guilds_left) > 0:
-                logging.info("%s left guilds: %s", self.name, guilds_left)
+                    guids_joined.append(guild_guid)
 
             # Process guild leaves
             session.query(LinkAccountGuild).filter(
@@ -303,11 +297,18 @@ class Account(Base):
             ).delete(synchronize_session="fetch")
 
             # Process guild joins
-            for guild_guid in guilds_joined:
+            guilds_joined = []
+            for guild_guid in guids_joined:
                 guild = Guild.get_or_create(session, guild_guid)
+                guilds_joined.append(guild.name)
                 LinkAccountGuild.get_or_create(session, self, guild)
 
             result["guilds"] = [guilds_joined, guilds_left]
+
+            if len(guilds_joined) > 0:
+                logging.info("%s joined new guilds: %s", self.name, guilds_joined)
+            if len(guilds_left) > 0:
+                logging.info("%s left guilds: %s", self.name, guilds_left)
 
             self.last_check = datetime.datetime.now()
             self.is_valid = True
