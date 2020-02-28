@@ -8,7 +8,8 @@ from pathlib import Path
 import i18n
 import requests
 import ts3
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy import exc
+from sqlalchemy.orm import Session, load_only, sessionmaker
 
 import ts3bot
 from ts3bot import commands
@@ -115,6 +116,19 @@ class Bot:
                 self.handle_event(event)
 
     def handle_event(self, event: ts3.response.TS3Event):
+        # Got an event where the DB is relevant
+        if event.event in ["notifycliententerview", "notifytextmessage"]:
+            try:
+                self.session.execute("SELECT VERSION()")
+            except exc.DBAPIError as e:
+                if e.connection_invalidated:
+                    logging.debug("Database connection was invalidated")
+                else:
+                    raise
+            finally:
+                # Close session anyway to force-use a new connection
+                self.session.close()
+
         if event.event == "notifycliententerview":  # User connected/entered view
             # Skip server query and other non-voice clients
             if event[0].get("client_type", 42) != "0":

@@ -123,7 +123,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 i18n_kwargs={
                     "world": enums.World(account_info.get("world")).proper_name
                 },
-            )  # TODO: Rewrite message
+            )
 
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
