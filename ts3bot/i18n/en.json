@@ -30,6 +30,7 @@
     "sheet_map_full": "The selected map already has 2 leads.",
     "token_in_use": "This account is already registered to another user. Please contact an admin.",
     "unknown_server": "Your server could not be found, please contact an admin.",
+    "verify_guild_change": "The user left %{guilds_left} and joined %{guilds_joined}.",
     "verify_invalid_world": "The user is currently on an unknown server: %{world}. Removed groups: %{groups}",
     "verify_no_token": "Apparently the user didn't register!",
     "verify_not_found": "User not found!",
