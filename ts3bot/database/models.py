@@ -236,7 +236,7 @@ class Account(Base):
         result = {"transfer": None, "guilds": None}
 
         try:
-            account_info = ts3bot.fetch_api("account", api_key=self.api_key)
+            account_info = ts3bot.limit_fetch_api("account", api_key=self.api_key)
 
             # Update world
             new_world = enums.World(account_info.get("world"))

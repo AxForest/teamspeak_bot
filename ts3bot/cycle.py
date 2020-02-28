@@ -1,9 +1,11 @@
 import datetime
 import logging
+import time
 import typing
 
 import requests
 import ts3
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 import ts3bot
@@ -20,11 +22,11 @@ class Cycle:
         if account:
             account.invalidate(self.session)
 
-        changes = ts3bot.sync_groups(
-            self.bot, cldbid, account, remove_all=True
-        )
+        changes = ts3bot.sync_groups(self.bot, cldbid, account, remove_all=True)
         if len(changes["removed"]) > 0:
-            logging.info("Revoked user's (cldbid:%s) groups (%s).", cldbid, changes["removed"])
+            logging.info(
+                "Revoked user's (cldbid:%s) groups (%s).", cldbid, changes["removed"]
+            )
         else:
             logging.debug("Removed no groups from user (cldbid:%s).", cldbid)
 
@@ -67,7 +69,7 @@ class Cycle:
                         ts3bot.sync_groups(self.bot, cldbid, account)
                     except ts3bot.InvalidKeyException:
                         self.revoke(account, cldbid)
-                    except (requests.RequestException, ts3bot.RateLimitException):
+                    except requests.RequestException:
                         logging.exception("Error during API call")
                         raise
 
@@ -80,3 +82,26 @@ class Cycle:
                 if e.args[0].error["id"] != "1281":
                     logging.exception("Error retrieving user list")
                 users = []
+
+        # Update all other accounts
+        accounts = self.session.query(models.Account).filter(
+            and_(
+                models.Account.last_check
+                <= datetime.datetime.today() - datetime.timedelta(days=2),
+                models.Account.is_valid.is_(True),
+            )
+        )
+
+        num_accounts = accounts.count()
+
+        for idx, account in enumerate(accounts):
+            if idx % 100 == 0 or idx - 1 == num_accounts:
+                logging.info("%s/%s: Checking %s", idx + 1, num_accounts, account.name)
+
+            try:
+                account.update(self.session)
+            except ts3bot.InvalidKeyException:
+                pass
+            except requests.RequestException:
+                logging.exception("Error during API call")
+                raise

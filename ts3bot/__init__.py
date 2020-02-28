@@ -1,7 +1,7 @@
-import functools
 import logging.handlers
 import os
 import sys
+import time
 import typing
 from pathlib import Path
 
@@ -34,6 +34,18 @@ class RateLimitException(Exception):
 
 class InvalidKeyException(Exception):
     pass
+
+
+def limit_fetch_api(endpoint: str, api_key: typing.Optional[str] = None, level=0):
+    if level >= 3:
+        raise RateLimitException("Encountered rate limit after waiting multiple times")
+
+    try:
+        return fetch_api(endpoint, api_key)
+    except ts3bot.RateLimitException:
+        logging.warning("Got rate-limited, waiting 1 minute.")
+        time.sleep(60)
+        return limit_fetch_api(endpoint, api_key, level=level + 1)
 
 
 def fetch_api(endpoint: str, api_key: typing.Optional[str] = None):

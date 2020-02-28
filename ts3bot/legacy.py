@@ -1,7 +1,5 @@
 import json
 import logging
-import time
-import typing
 
 import requests
 import ts3
@@ -21,25 +19,6 @@ from ts3bot.database.models import (
     LinkAccountIdentity,
     WorldGroup,
 )
-
-# region Monkey patch fetch_api
-real_fetch = ts3bot.fetch_api
-
-
-def limit_fetch_api(endpoint: str, api_key: typing.Optional[str] = None):
-    while True:
-        try:
-            return real_fetch(endpoint, api_key)
-        except ts3bot.RateLimitException:
-            logging.warning("Got rate-limited, waiting 1 minute.")
-            time.sleep(60)
-            return real_fetch(endpoint, api_key)
-
-
-ts3bot.fetch_api = limit_fetch_api
-
-
-# endregion
 
 
 def update_accounts(session: Session):
