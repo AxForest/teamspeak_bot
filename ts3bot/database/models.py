@@ -89,7 +89,8 @@ class Guild(Base):
             session.add(instance)
             session.commit()
         else:
-            instance.group_id = group_id
+            if group_id:
+                instance.group_id = group_id
             session.commit()
 
         return instance
