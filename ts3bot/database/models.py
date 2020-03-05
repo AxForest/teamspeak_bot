@@ -260,7 +260,7 @@ class Account(Base):
             # Update guilds
             account_guilds = account_info.get("guilds", [])
             guids_joined = []
-            guids_left = []
+            links_left = []
             guilds_left = []
             old_guilds = []
 
@@ -270,7 +270,7 @@ class Account(Base):
                 old_guilds.append(link_guild.guild.guid)
 
                 if link_guild.guild.guid not in account_guilds:
-                    guids_left.append(link_guild.guild.guid)
+                    links_left.append(link_guild.id)
                     guilds_left.append(link_guild.guild.name)
 
             # Collect new guilds
@@ -281,22 +281,7 @@ class Account(Base):
 
             # Process guild leaves
             session.query(LinkAccountGuild).filter(
-                LinkAccountGuild.id.in_(
-                    session.query(LinkAccountGuild)
-                    .join(Guild)
-                    .filter(
-                        and_(
-                            LinkAccountGuild.account == self,
-                            Guild.guid.in_(guids_left),
-                            Guild.group_id.isnot(None),
-                        )
-                    )
-                    .options(
-                        joinedload(LinkAccountGuild.guild).load_only(Guild.group_id)
-                    )
-                    .with_entities(Guild.group_id)
-                    .subquery()
-                )
+                LinkAccountGuild.id.in_(links_left)
             ).delete(synchronize_session="fetch")
 
             # Process guild joins
