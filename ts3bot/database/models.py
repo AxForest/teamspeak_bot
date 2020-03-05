@@ -21,7 +21,7 @@ class Identity(Base):
 
     __tablename__ = "identities"
     id = Column(types.Integer, primary_key=True)
-    guid = Column(types.String(32), unique=True, nullable=False,)
+    guid = Column(types.String(32), unique=True, nullable=False)
 
     accounts: AppenderQuery = relationship(
         "LinkAccountIdentity", lazy="dynamic", back_populates="identity"
@@ -260,6 +260,7 @@ class Account(Base):
             # Update guilds
             account_guilds = account_info.get("guilds", [])
             guids_joined = []
+            guids_left = []
             guilds_left = []
             old_guilds = []
 
@@ -269,6 +270,7 @@ class Account(Base):
                 old_guilds.append(link_guild.guild.guid)
 
                 if link_guild.guild.guid not in account_guilds:
+                    guids_left.append(link_guild.guild.guid)
                     guilds_left.append(link_guild.guild.name)
 
             # Collect new guilds
@@ -285,7 +287,7 @@ class Account(Base):
                     .filter(
                         and_(
                             LinkAccountGuild.account == self,
-                            Guild.guid.in_(guilds_left),
+                            Guild.guid.in_(guids_left),
                             Guild.group_id.isnot(None),
                         )
                     )
