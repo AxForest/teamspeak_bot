@@ -65,9 +65,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         text_groups[index] += member_text
 
     bot.send_message(
-        event[0]["invokerid"],
-        "list_users",
-        i18n_kwargs={"amount": len(members), "group": group["name"]},
+        event[0]["invokerid"], "list_users", amount=len(members), group=group["name"]
     )
     for _ in text_groups:
         bot.send_message(event[0]["invokerid"], _, is_translation=False)

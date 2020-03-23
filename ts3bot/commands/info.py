@@ -28,11 +28,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         bot.send_message(
             event[0]["invokerid"],
             "info_world",
-            i18n_kwargs={
-                "user": account.get("name"),
-                "world": server.proper_name,
-                "guilds": ", ".join([_.name for _ in guilds]),
-            },
+            user=account.get("name"),
+            world=server.proper_name,
+            guilds=", ".join([_.name for _ in guilds]),
         )
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")

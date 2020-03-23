@@ -187,7 +187,7 @@ class Bot:
         recipient: str,
         msg: str,
         is_translation: bool = True,
-        i18n_kwargs: typing.Dict = None,
+        **i18n_kwargs: typing.AnyStr,
     ):
         if not recipient:
             logging.error("Got invalid recipient %s", recipient)
@@ -207,10 +207,7 @@ class Bot:
 
             i18n.set("locale", self.users[recipient].locale)
 
-            if i18n_kwargs:
-                msg = i18n.t(msg, **i18n_kwargs)
-            else:
-                msg = i18n.t(msg)
+            msg = i18n.t(msg, **i18n_kwargs)
 
         try:
             logging.info("Response: %s", msg)

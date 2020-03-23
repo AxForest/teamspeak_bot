@@ -29,7 +29,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "account_unknown",
-                i18n_kwargs={"account": json.get("name")},
+                account=json.get("name")
             )
 
         # Get previous identity
@@ -59,7 +59,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 bot.send_message(
                     event[0]["invokerid"],
                     "groups_revoked",
-                    i18n_kwargs={"amount": 1, "groups": result["removed"]},
+                    amount="1",
+                    groups=result["removed"]
                 )
             except ts3.TS3Error:
                 # User might not exist in the db
@@ -69,7 +70,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "groups_revoked",
-                i18n_kwargs={"amount": 0, "groups": []},
+                amount="0",
+                groups=[]
             )
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")

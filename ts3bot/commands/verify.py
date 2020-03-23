@@ -47,10 +47,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "verify_transferred",
-                i18n_kwargs={
-                    "old_world": old_world.proper_name,
-                    "new_world": new_world.proper_name,
-                },
+                old_world=old_world.proper_name,
+                new_world=new_world.proper_name,
             )
         guilds_joined, guilds_left = result["guilds"]
 
@@ -58,10 +56,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "verify_guild_change",
-                i18n_kwargs={
-                    "guilds_joined": guilds_joined,
-                    "guilds_left": guilds_left,
-                },
+                guilds_joined=guilds_joined,
+                guilds_left=guilds_left,
             )
 
         # Sync user's groups
@@ -70,7 +66,8 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         bot.send_message(
             event[0]["invokerid"],
             "verify_valid_world",
-            i18n_kwargs={"user": account.name, "world": account.world.proper_name},
+            user=account.name,
+            world=account.world.proper_name,
         )
     except InvalidKeyException:
         bot.send_message(event[0]["invokerid"], "invalid_token")
@@ -80,9 +77,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         changes = sync_groups(bot, cldbid, account)
 
         bot.send_message(
-            event[0]["invokerid"],
-            "groups_removed",
-            i18n_kwargs={"groups": changes["removed"]},
+            event[0]["invokerid"], "groups_removed", groups=str(changes["removed"])
         )
     except requests.RequestException:
         bot.send_message(event[0]["invokerid"], "error_api")

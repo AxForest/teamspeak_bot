@@ -77,9 +77,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "guild_selection",
-                i18n_kwargs={
-                    "guilds": "\n- ".join([_.guild.tag for _ in available_guilds])
-                },
+                guilds="\n- ".join([_.guild.tag for _ in available_guilds]),
             )
         else:
             bot.send_message(event[0]["invokerid"], "guild_unknown")
@@ -108,7 +106,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "guild_set",
-                i18n_kwargs={"guild": selected_guild.guild.name},
+                guild=selected_guild.guild.name
             )
         else:
             bot.send_message(event[0]["invokerid"], "guild_error")

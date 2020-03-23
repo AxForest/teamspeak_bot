@@ -111,7 +111,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                     bot.send_message(
                         event[0]["invokerid"],
                         "registration_update",
-                        i18n_kwargs={"account": account.name},
+                        account=account.name
                     )
                 else:
                     bot.send_message(event[0]["invokerid"], "welcome_registered")
@@ -120,9 +120,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             bot.send_message(
                 event[0]["invokerid"],
                 "invalid_world",
-                i18n_kwargs={
-                    "world": enums.World(account_info.get("world")).proper_name
-                },
+                world=enums.World(account_info.get("world")).proper_name
             )
 
     except InvalidKeyException:
