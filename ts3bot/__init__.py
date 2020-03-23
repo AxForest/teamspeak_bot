@@ -149,6 +149,7 @@ def sync_groups(
     cldbid: str,
     account: typing.Optional[ts3bot.database.models.Account],
     remove_all=False,
+    skip_whitelisted=False,
 ) -> typing.Dict[str, list]:
     def sg_dict(_id, _name):
         return {"sgid": _id, "name": _name}
@@ -260,6 +261,15 @@ def sync_groups(
         # Skip unknown groups
         if sgid not in guild_groups and sgid not in world_groups:
             continue
+
+        # Skip users with whitelisted group
+        if skip_whitelisted and server_group.get("name") in Config.whitelist_groups:
+            logging.info(
+                "Skipping cldbid:%s due to whitelisted group: %s",
+                cldbid,
+                server_group.get("name"),
+            )
+            return group_changes
 
         _remove_group(server_group)
 

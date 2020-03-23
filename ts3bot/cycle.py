@@ -22,7 +22,9 @@ class Cycle:
         if account:
             account.invalidate(self.session)
 
-        changes = ts3bot.sync_groups(self.bot, cldbid, account, remove_all=True)
+        changes = ts3bot.sync_groups(
+            self.bot, cldbid, account, remove_all=True, skip_whitelisted=True
+        )
         if len(changes["removed"]) > 0:
             logging.info(
                 "Revoked user's (cldbid:%s) groups (%s).", cldbid, changes["removed"]
