@@ -246,6 +246,7 @@ def sync_groups(
     }
 
     # Remove user from all other known invalid groups
+    invalid_groups = []
     for server_group in server_groups:
         sgid = int(server_group["sgid"])
         # Skip known valid groups
@@ -258,10 +259,6 @@ def sync_groups(
         ):
             continue
 
-        # Skip unknown groups
-        if sgid not in guild_groups and sgid not in world_groups:
-            continue
-
         # Skip users with whitelisted group
         if skip_whitelisted and server_group.get("name") in Config.whitelist_groups:
             logging.info(
@@ -271,6 +268,13 @@ def sync_groups(
             )
             return group_changes
 
+        # Skip unknown groups
+        if sgid not in guild_groups and sgid not in world_groups:
+            continue
+
+        invalid_groups.append(server_group)
+
+    for server_group in invalid_groups:
         _remove_group(server_group)
 
     # User has additional guild groups but shouldn't
