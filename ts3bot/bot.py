@@ -223,7 +223,9 @@ class Bot:
         self, client_unique_id: str, client_database_id: str, client_id: str
     ):
         def revoked(response: str):
-            account.invalidate(self.session)
+            if account:
+                account.invalidate(self.session)
+
             changes = ts3bot.sync_groups(
                 self, client_database_id, account, remove_all=True
             )
