@@ -119,7 +119,9 @@ class Bot:
         # Got an event where the DB is relevant
         if event.event in ["notifycliententerview", "notifytextmessage"]:
             try:
-                self.session.execute("SELECT VERSION()")
+                # Skip check when using SQLite
+                if self.session.bind.name != "sqlite":
+                    self.session.execute("SELECT VERSION()")
             except exc.DBAPIError as e:
                 if e.connection_invalidated:
                     logging.debug("Database connection was invalidated")
