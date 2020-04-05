@@ -154,7 +154,7 @@ class Account(Base):
     def __repr__(self):
         return str(self)
 
-    def world_group(self, session) -> typing.Optional["WorldGroup"]:
+    def world_group(self, session: Session) -> typing.Optional["WorldGroup"]:
         return (
             session.query(WorldGroup)
             .filter(WorldGroup.world == self.world)
@@ -268,10 +268,10 @@ class Account(Base):
 
             # Update guilds
             account_guilds = account_info.get("guilds", [])
-            guids_joined = []
-            links_left = []
-            guilds_left = []
-            old_guilds = []
+            guids_joined: typing.List[str] = []
+            links_left: typing.List[int] = []
+            guilds_left: typing.List[str] = []
+            old_guilds: typing.List[str] = []
 
             # Collect left guilds
             link_guild: LinkAccountGuild
@@ -289,9 +289,10 @@ class Account(Base):
                     guids_joined.append(guild_guid)
 
             # Process guild leaves
-            session.query(LinkAccountGuild).filter(
-                LinkAccountGuild.id.in_(links_left)
-            ).delete(synchronize_session="fetch")
+            if len(links_left) > 0:
+                session.query(LinkAccountGuild).filter(
+                    LinkAccountGuild.id.in_(links_left)
+                ).delete(synchronize_session="fetch")
 
             # Process guild joins
             guilds_joined = []
