@@ -1,12 +1,11 @@
 import datetime
 import logging
-import time
 import typing
 
 import requests
 import ts3
-from sqlalchemy import and_
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, func
+from sqlalchemy.orm import Session, load_only
 
 import ts3bot
 from ts3bot.bot import Bot
@@ -32,10 +31,43 @@ class Cycle:
         else:
             logging.debug("Removed no groups from user (cldbid:%s).", cldbid)
 
+    def fix_user_guilds(self):
+        """
+        Removes duplicate selected guilds from users.
+        No need to force-sync the user as that's done on join and in the
+        following verification function.
+        """
+
+        duplicate_guilds = (
+            self.session.query(models.LinkAccountGuild)
+            .group_by(models.LinkAccountGuild.account_id)
+            .having(func.count(models.LinkAccountGuild.guild_id) > 1)
+        )
+        for row in duplicate_guilds:
+            logging.warning(f"{row.account} has multiple guilds.")
+
+            # Delete duplicates
+            self.session.query(models.LinkAccountGuild).filter(
+                models.LinkAccountGuild.id.is_(
+                    self.session.query(models.LinkAccountGuild)
+                    .filter(models.LinkAccountGuild.account_id.is_(s.account_id))
+                    .order_by(models.LinkAccountGuild.id)
+                    .options(load_only(models.LinkAccountGuild.id))
+                    .limit(1)
+                    .subquery()
+                )
+            ).delete(synchronize_session="fetch")
+
     def run(self):
+        self.fix_user_guilds()
+        self.verify_accounts()
+
+        # Clean up "empty" guilds
+        models.Guild.cleanup(self.session)
+
+    def verify_accounts(self):
         """
         Removes users from known groups if no account is known or the account is invalid
-        :return:
         """
         # Retrieve users
         users = self.bot.exec_("clientdblist", duration=200)

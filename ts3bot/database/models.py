@@ -120,6 +120,27 @@ class Guild(Base):
             group_id=group_id,
         )
 
+    @staticmethod
+    def cleanup(session: Session):
+        """
+        Removes all guilds without players
+        :param session:
+        :return:
+        """
+        deleted = (
+            session.query(Guild)
+            .filter(
+                Guild.id.notin_(
+                    session.query(LinkAccountGuild.guild_id)
+                    .group_by(LinkAccountGuild.guild_id)
+                    .subquery()
+                )
+            )
+            .delete(synchronize_session="fetch")
+        )
+
+        logging.info(f"Deleted {deleted} empty guilds")
+
 
 class Account(Base):
     """
