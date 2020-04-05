@@ -2,7 +2,7 @@
 
 Revision ID: 40a5381846f2
 Revises: 
-Create Date: 2020-02-21 20:55:25.553091
+Create Date: 2020-04-06 13:14:13.560467
 
 """
 from alembic import op
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         "accounts",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(41), nullable=False),
+        sa.Column("name", sa.String(length=41), nullable=False),
         sa.Column(
             "world",
             sa.Enum(
@@ -80,12 +80,12 @@ def upgrade():
             ),
             nullable=False,
         ),
-        sa.Column("api_key", sa.String(72), nullable=False),
+        sa.Column("api_key", sa.String(length=72), nullable=False),
         sa.Column("is_valid", sa.Boolean(), nullable=False),
         sa.Column("last_check", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_accounts")),
+        sa.UniqueConstraint("name", name=op.f("uq_accounts_name")),
     )
     op.create_table(
         "groups_world",
@@ -150,29 +150,28 @@ def upgrade():
             nullable=False,
         ),
         sa.Column("is_linked", sa.Boolean(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("group_id"),
-        sa.UniqueConstraint("world"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_groups_world")),
+        sa.UniqueConstraint("group_id", name=op.f("uq_groups_world_group_id")),
+        sa.UniqueConstraint("world", name=op.f("uq_groups_world_world")),
     )
     op.create_table(
         "guilds",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("guid", sa.String(36), nullable=False),
-        sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("tag", sa.String(32), nullable=False),
+        sa.Column("guid", sa.String(length=36), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("tag", sa.String(length=32), nullable=False),
         sa.Column("group_id", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("guid"),
-        sa.UniqueConstraint("name"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_guilds")),
+        sa.UniqueConstraint("guid", name=op.f("uq_guilds_guid")),
     )
     op.create_table(
         "identities",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("guid", sa.String(32), nullable=False),
+        sa.Column("guid", sa.String(length=32), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("guid"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_identities")),
+        sa.UniqueConstraint("guid", name=op.f("uq_identities_guid")),
     )
     op.create_table(
         "link_account_guild",
@@ -180,9 +179,19 @@ def upgrade():
         sa.Column("account_id", sa.Integer(), nullable=False),
         sa.Column("guild_id", sa.Integer(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["guild_id"], ["guilds.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_link_account_guild_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["guild_id"],
+            ["guilds.id"],
+            name=op.f("fk_link_account_guild_guild_id_guilds"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_link_account_guild")),
     )
     op.create_table(
         "link_identity_account",
@@ -192,14 +201,30 @@ def upgrade():
         sa.Column("is_deleted", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["identity_id"], ["identities.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_link_identity_account_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["identity_id"],
+            ["identities.id"],
+            name=op.f("fk_link_identity_account_identity_id_identities"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_link_identity_account")),
         sa.UniqueConstraint(
-            "account_id", "is_deleted", "deleted_at", name="_account_deleted_uc_"
+            "account_id",
+            "is_deleted",
+            "deleted_at",
+            name=op.f("uq_link_identity_account_account_id"),
         ),
         sa.UniqueConstraint(
-            "identity_id", "is_deleted", "deleted_at", name="_identity_deleted_uc_"
+            "identity_id",
+            "is_deleted",
+            "deleted_at",
+            name=op.f("uq_link_identity_account_identity_id"),
         ),
     )
     # ### end Alembic commands ###

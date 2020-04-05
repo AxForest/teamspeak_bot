@@ -3,7 +3,7 @@ import logging
 import typing
 
 import requests
-from sqlalchemy import Column, ForeignKey, UniqueConstraint, types, and_
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, types, and_, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, joinedload
 from sqlalchemy.orm.dynamic import AppenderQuery
@@ -11,7 +11,16 @@ from sqlalchemy.orm.dynamic import AppenderQuery
 import ts3bot
 from ts3bot.database import enums
 
-Base = declarative_base()
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(column_0_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+metadata = MetaData(naming_convention=convention)
+Base = declarative_base(metadata=metadata)
 
 
 class Identity(Base):
@@ -57,7 +66,7 @@ class Guild(Base):
 
     id = Column(types.Integer, primary_key=True)
     guid = Column(types.String(36), unique=True, nullable=False)
-    name = Column(types.String(255), unique=True, nullable=False)
+    name = Column(types.String(255), nullable=False)  # Should be considered unique
     tag = Column(types.String(32), nullable=False)
 
     # TS3 group id
@@ -341,8 +350,6 @@ class LinkAccountGuild(Base):
 
     __tablename__ = "link_account_guild"
 
-    # TODO: Prevent account from having multiple guilds active
-
     id = Column(types.Integer, primary_key=True)
     account_id = Column(
         types.Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
@@ -394,12 +401,8 @@ class LinkAccountIdentity(Base):
 
     # Prevent identity/account being registered multiple times
     __table_args__ = (
-        UniqueConstraint(
-            "account_id", "is_deleted", "deleted_at", name="_account_deleted_uc_"
-        ),
-        UniqueConstraint(
-            "identity_id", "is_deleted", "deleted_at", name="_identity_deleted_uc_"
-        ),
+        UniqueConstraint("account_id", "is_deleted", "deleted_at"),
+        UniqueConstraint("identity_id", "is_deleted", "deleted_at"),
     )
 
     id = Column(types.Integer, primary_key=True)
