@@ -140,17 +140,12 @@ class Bot:
             if not clid:
                 return
 
-            self.users[clid] = ts3bot.User(
-                id=int(clid),
-                db_id=int(event[0]["client_database_id"]),
-                unique_id=event[0]["client_unique_identifier"],
-                nickname=event[0]["client_nickname"],
-                country=event[0]["client_country"],
-            )
+            self.create_user(clid)
+
             self.verify_user(
                 event[0]["client_unique_identifier"],
                 event[0]["client_database_id"],
-                event[0]["clid"],
+                clid,
             )
         elif event.event == "notifyclientleftview":
             clid = event[0].get("clid")
@@ -184,6 +179,17 @@ class Bot:
             if not valid_command:
                 self.send_message(event[0]["invokerid"], "invalid_input")
 
+    def create_user(self, client_id: str):
+        info = self.exec_("clientinfo", clid=client_id)
+        self.users[client_id] = ts3bot.User(
+            id=int(client_id),
+            db_id=int(info[0]["client_database_id"]),
+            unique_id=info[0]["client_unique_identifier"],
+            nickname=info[0]["client_nickname"],
+            country=info[0]["client_country"],
+            total_connections=int(info[0]["client_totalconnections"]),
+        )
+
     def send_message(
         self,
         recipient: str,
@@ -198,14 +204,7 @@ class Bot:
         if is_translation:
             # Look up user's locale
             if recipient not in self.users:
-                info = self.exec_("clientinfo", clid=recipient)
-                self.users[recipient] = ts3bot.User(
-                    id=int(recipient),
-                    db_id=int(info[0]["client_database_id"]),
-                    unique_id=info[0]["client_unique_identifier"],
-                    nickname=info[0]["client_nickname"],
-                    country=info[0]["client_country"],
-                )
+                self.create_user(recipient)
 
             i18n.set("locale", self.users[recipient].locale)
 
