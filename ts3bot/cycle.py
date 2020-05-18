@@ -40,6 +40,7 @@ class Cycle:
 
         duplicate_guilds = (
             self.session.query(models.LinkAccountGuild)
+            .filter(models.LinkAccountGuild.is_active.is_(True))
             .group_by(models.LinkAccountGuild.account_id)
             .having(func.count(models.LinkAccountGuild.guild_id) > 1)
         )
@@ -48,10 +49,12 @@ class Cycle:
 
             # Delete duplicates
             self.session.query(models.LinkAccountGuild).filter(
-                models.LinkAccountGuild.id.is_(
+                models.LinkAccountGuild.id
+                != (
                     self.session.query(models.LinkAccountGuild)
-                    .filter(models.LinkAccountGuild.account_id.is_(s.account_id))
-                    .order_by(models.LinkAccountGuild.id)
+                    .filter(models.LinkAccountGuild.account_id == row.account_id)
+                    .filter(models.LinkAccountGuild.is_active.is_(True))
+                    .order_by(models.LinkAccountGuild.id.desc())
                     .options(load_only(models.LinkAccountGuild.id))
                     .limit(1)
                     .subquery()
