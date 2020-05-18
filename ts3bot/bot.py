@@ -180,15 +180,24 @@ class Bot:
                 self.send_message(event[0]["invokerid"], "invalid_input")
 
     def create_user(self, client_id: str):
-        info = self.exec_("clientinfo", clid=client_id)
-        self.users[client_id] = ts3bot.User(
-            id=int(client_id),
-            db_id=int(info[0]["client_database_id"]),
-            unique_id=info[0]["client_unique_identifier"],
-            nickname=info[0]["client_nickname"],
-            country=info[0]["client_country"],
-            total_connections=int(info[0]["client_totalconnections"]),
-        )
+        try:
+            info = self.exec_("clientinfo", clid=client_id)
+            self.users[client_id] = ts3bot.User(
+                id=int(client_id),
+                db_id=int(info[0]["client_database_id"]),
+                unique_id=info[0]["client_unique_identifier"],
+                nickname=info[0]["client_nickname"],
+                country=info[0]["client_country"],
+                total_connections=int(info[0].get("client_totalconnections", -1)),
+            )
+        except ts3.TS3Error as e:
+            if e.args[0].error["id"] == "512":
+                # User went away, just ignore
+                pass
+            else:
+                logging.exception("Failed to get client info for user")
+        except KeyError:
+            logging.exception("Failed to get client info for user")
 
     def send_message(
         self,
