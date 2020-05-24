@@ -34,6 +34,7 @@
     "verify_invalid_world": "The user is currently on an unknown server: %{world}. Removed groups: %{groups}",
     "verify_no_token": "Apparently the user didn't register!",
     "verify_not_found": "User not found!",
+    "verify_transferred": "User transferred from %{old_world} to %{new_world}.",
     "verify_valid_world": "Registration appears to be valid, user is known as %{user} on %{world}.",
     "welcome": "Welcome to the automatic registration on the Kodash TS. Please send me an API key which you can generate at [url]https://account.arena.net/applications[/url]. \nKeep in mind that this key should not be deleted as you will lose your groups otherwise.",
     "welcome_registered": "Welcome to the Kodash TS! To view all channels/users either reconnect or click on the little speech bubble with an eye in the upper menu above the channel list.",
