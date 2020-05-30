@@ -17,7 +17,6 @@ from ts3bot.config import Config
 from ts3bot.database import models
 
 
-# TODO: Patch ts3.response.TS3QueryResponse for better error messages
 class Bot:
     def __init__(self, session: Session, connect=True, is_cycle: bool = False):
         self.users: typing.Dict[str, ts3bot.User] = {}
@@ -54,6 +53,7 @@ class Bot:
         self.channel_id = Config.get("teamspeak", "channel_id")
         self.ts3c: typing.Optional[ts3.query.TS3ServerConnection] = None
         self.own_id: int = 0
+        self.own_uid: str = ""
 
         if connect:
             self.connect()
@@ -84,6 +84,9 @@ class Bot:
             self.exec_("clientupdate", client_nickname=self.client_nick)
 
         self.own_id: int = self.exec_("clientfind", pattern=self.client_nick)[0]["clid"]
+        self.own_uid = self.exec_("clientinfo", clid=self.own_id)[0][
+            "client_unique_identifier"
+        ]
 
         if not self.is_cycle:
             # Subscribe to events

@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 import typing
 from pathlib import Path
 
@@ -9,8 +10,18 @@ from ts3bot.bot import Bot
 from ts3bot.config import Config
 
 MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
-USAGE = "!sheet <ebg,red,green,blue,reset,remove> [note]"
+USAGE = "!sheet <ebg,red,green,blue,remove> [note]"
 STATE_FILE = Path("sheet.json")
+
+COMMAND_MAPPING = {
+    "ebg": "EBG",
+    "red": "Rot",
+    "green": "Grün",
+    "blue": "Blau",
+    "r": "Rot",
+    "g": "Grün",
+    "b": "Blau",
+}
 
 
 def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
@@ -20,43 +31,65 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
     current_state = {"EBG": [], "Rot": [], "Grün": [], "Blau": []}
 
+    if match.group(1) == "help" and event[0]["invokeruid"] in Config.whitelist_admin:
+        bot.send_message(
+            event[0]["invokerid"],
+            "!sheet <ebg,red,green,blue,remove,reset> [note]\n!sheet set <ebg,red,green,blue,remove> <name> [note]",
+            is_translation=False,
+        )
+        return
+
     if match.group(1) == "reset" and event[0]["invokeruid"] in Config.whitelist_admin:
-        pass
+        pass  # Don't load the current file, just use the defaults
+    elif match.group(1) == "set" and event[0]["invokeruid"] in Config.whitelist_admin:
+        # Force-set an entry
+        match = re.match(
+            "!sheet set (ebg|red|green|blue|r|g|b|remove) (\\w+)(.*)",
+            event[0]["msg"].strip(),
+        )
+        if not match:
+            bot.send_message(event[0]["invokerid"], "invalid_input")
+            return
+
+        if STATE_FILE.exists():
+            current_state = json.loads(STATE_FILE.read_text())
+
+        if match.group(1) == "remove":
+            current_state = _remove_lead(current_state, name_field=match.group(2))
+        else:
+            # Add new entry
+            current_state = _add_lead(
+                current_state,
+                wvw_map=match.group(1),
+                note=match.group(3),
+                name=match.group(2),
+            )
+            if not current_state:
+                bot.send_message(event[0]["invokerid"], "sheet_map_full")
+                return
+
     elif match.group(1) in ["ebg", "red", "green", "blue", "r", "g", "b", "remove"]:
         if STATE_FILE.exists():
             current_state = json.loads(STATE_FILE.read_text())
 
-        # Remove old entry
-        current_state = _remove_lead(current_state, event[0]["invokeruid"])
-
-        if match.group(1) != "remove":
-            # Add user to groups
-            _map = {
-                "ebg": "EBG",
-                "red": "Rot",
-                "green": "Grün",
-                "blue": "Blau",
-                "r": "Rot",
-                "g": "Grün",
-                "b": "Blau",
-            }
-
-            # Only allow two leads per map
-            if len(current_state[_map[match.group(1).lower()]]) >= 2:
+        if match.group(1) == "remove":
+            current_state = _remove_lead(current_state, uid=event[0]["invokeruid"])
+        else:
+            current_state = _add_lead(
+                current_state,
+                wvw_map=match.group(1),
+                note=match.group(2),
+                uid=event[0]["invokeruid"],
+                name=event[0]["invokername"],
+            )
+            if not current_state:
                 bot.send_message(event[0]["invokerid"], "sheet_map_full")
                 return
-
-            current_state[_map[match.group(1).lower()]].append(
-                {
-                    "lead": f"[URL=client://0/{event[0]['invokeruid']}]{event[0]['invokername']}[/URL]",
-                    "note": (match.group(2) or "").strip()[0:20],
-                    "date": _tidy_date(),
-                }
-            )
     else:
         bot.send_message(event[0]["invokerid"], "invalid_input")
         return
 
+    # Build new table
     desc = "[table][tr][td] | Map | [/td][td] | Lead | [/td][td] | Note | [/td][td] | Date | [/td][/tr]"
     for _map, leads in current_state.items():
         if len(leads) == 0:
@@ -64,10 +97,14 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             continue
 
         for lead in leads:
-            desc += f"[tr][td]{_map}[/td][td]{lead['lead']}[/td][td]{_encode(lead['note'])}[/td][td]{lead['date']}[/td][/tr]"
+            desc += (
+                f"[tr][td]{_map}[/td][td]{lead['lead']}[/td][td]{_encode(lead['note'])}[/td]"
+                f"[td]{lead['date']}[/td][/tr]"
+            )
 
     desc += (
         f"[/table]\n[hr]Last change: {_tidy_date()}\n\n"
+        f"Link to bot: [URL=client://0/{bot.own_uid}]{Config.get('bot_login', 'nickname')}[/URL]\n"  # Add link to self
         "Usage:\n"
         "- !sheet red/green/blue (note)\t—\tRegister your lead with an optional note (20 characters).\n"
         "- !sheet remove\t—\tRemove the lead"
@@ -84,12 +121,46 @@ def _tidy_date(date: datetime.datetime = None):
     return date.strftime("%d.%m. %H:%M")
 
 
-def _remove_lead(maps: typing.Dict, uid: str):
+def _add_lead(
+    maps: typing.Dict,
+    wvw_map: str,
+    note: str,
+    name: str,
+    uid: typing.Optional[str] = None,
+) -> typing.Optional[typing.Dict]:
+    mapping = COMMAND_MAPPING[wvw_map]
+
+    lead = f"[URL=client://0/{uid}]{name}[/URL]" if uid else name
+
+    # Remove leads with the same name
+    maps = _remove_lead(maps, name_field=lead)
+
+    # Only allow two leads per map
+    if len(maps[mapping]) >= 2:
+        return None
+
+    maps[mapping].append(
+        {"lead": lead, "note": note.strip()[0:20], "date": _tidy_date()}
+    )
+    return maps
+
+
+def _remove_lead(
+    maps: typing.Dict,
+    name_field: typing.Optional[str] = None,
+    uid: typing.Optional[str] = None,
+):
+    def compare(_lead):
+        if uid:
+            return uid not in _lead["lead"]
+
+        return name_field != _lead["lead"]
+
     new_leads = {}
     for _map, leads in maps.items():
         new_leads[_map] = []
         for lead in leads:
-            if uid not in lead["lead"]:
+            if compare(lead):
                 new_leads[_map].append(lead)
     return new_leads
 
