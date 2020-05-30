@@ -1,10 +1,15 @@
 import logging
 import typing
 
-import ts3
 from requests import RequestException
 
-from ts3bot import InvalidKeyException, RateLimitException, fetch_api, sync_groups
+from ts3bot import (
+    InvalidKeyException,
+    RateLimitException,
+    events,
+    fetch_api,
+    sync_groups,
+)
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models
 
@@ -12,7 +17,7 @@ MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API KEY>"
 
 
-def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     key = match.group(1)
 
     # Check with ArenaNet's API
@@ -32,7 +37,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 bot.session, account_info, key
             )
             identity: models.Identity = models.Identity.get_or_create(
-                bot.session, event[0]["invokeruid"]
+                bot.session, event.uid
             )
 
             # Check if account is registered to anyone
@@ -43,20 +48,18 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             # Account is already linked
             if linked_identity:
                 # Account is linked to another guid
-                if linked_identity.identity.guid != event[0]["invokeruid"]:
+                if linked_identity.identity.guid != event.uid:
                     logging.warning(
                         "{} ({}) tried to use an already registered API key/account. ({})".format(
-                            event[0]["invokername"],
-                            event[0]["invokeruid"],
-                            account_info.get("name"),
+                            event.name, event.uid, account_info.get("name"),
                         )
                     )
-                    bot.send_message(event[0]["invokerid"], "token_in_use")
+                    bot.send_message(event.id, "token_in_use")
                 else:  # Account is linked to current guid
                     logging.info(
                         "User {} ({}) tried to register a second time for whatever reason using {}".format(
-                            event[0]["invokername"],
-                            event[0]["invokeruid"],
+                            event.name,
+                            event.uid,
                             account_info.get("name", "Unknown account"),
                         )
                     )
@@ -67,7 +70,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                         account.is_valid = True
                         bot.session.commit()
 
-                    bot.send_message(event[0]["invokerid"], "registration_exists")
+                    bot.send_message(event.id, "registration_exists")
             else:
                 # Otherwise account is not yet linked and can be used
 
@@ -77,14 +80,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 bot.session.commit()
 
                 # Get user's DB id
-                cldbid = bot.exec_(
-                    "clientgetdbidfromuid", cluid=event[0]["invokeruid"]
-                )[0]["cldbid"]
+                cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
 
                 # Unlink previous account from identity
-                current_account = models.Account.get_by_guid(
-                    bot.session, event[0]["invokeruid"]
-                )
+                current_account = models.Account.get_by_guid(bot.session, event.uid)
                 if current_account:
                     logging.info("Delinking %s from cldbid:%s", current_account, cldbid)
                     current_account.invalidate(bot.session)
@@ -101,30 +100,28 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 logging.info(
                     "Assigned world %s to %s (%s) using %s",
                     server_group.world.name,
-                    event[0]["invokername"],
-                    event[0]["invokeruid"],
+                    event.name,
+                    event.uid,
                     account_info.get("name", "Unknown account"),
                 )
 
                 # Was registered with other account previously
                 if current_account:
                     bot.send_message(
-                        event[0]["invokerid"],
-                        "registration_update",
-                        account=account.name
+                        event.id, "registration_update", account=account.name,
                     )
                 else:
-                    bot.send_message(event[0]["invokerid"], "welcome_registered")
-                    bot.send_message(event[0]["invokerid"], "welcome_registered_2")
+                    bot.send_message(event.id, "welcome_registered")
+                    bot.send_message(event.id, "welcome_registered_2")
         else:
             bot.send_message(
-                event[0]["invokerid"],
+                event.id,
                 "invalid_world",
-                world=enums.World(account_info.get("world")).proper_name
+                world=enums.World(account_info.get("world")).proper_name,
             )
 
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
-        bot.send_message(event[0]["invokerid"], "invalid_token_retry")
+        bot.send_message(event.id, "invalid_token_retry")
     except (RateLimitException, RequestException):
-        bot.send_message(event[0]["invokerid"], "error_api")
+        bot.send_message(event.id, "error_api")

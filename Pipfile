@@ -7,11 +7,12 @@ verify_ssl = true
 requests-mock = "==1.7.*"
 
 [packages]
+alembic = "==1.4.*"
+pydantic = "==1.5.*"
 python-i18n = "==0.3.*"
 requests = "==2.22.*"
 sentry-sdk = "==0.14.*"
 sqlalchemy = "==1.3.*"
-alembic = "==1.4.*"
 ts3 = "==2.0.0b2"
 
 [requires]

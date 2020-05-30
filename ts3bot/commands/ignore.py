@@ -3,7 +3,7 @@ import typing
 
 import ts3
 
-from ts3bot import InvalidKeyException, fetch_api, sync_groups
+from ts3bot import InvalidKeyException, events, fetch_api, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config
 from ts3bot.database import models
@@ -12,9 +12,10 @@ MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API KEY>"
 
 
-def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    if event[0]["invokeruid"] not in Config.whitelist_admin:
+def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+    if event.uid not in Config.whitelist_admin:
         return
+
     try:
         json = fetch_api("account", api_key=match.group(1))
         account = (
@@ -27,9 +28,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         if not account:
             logging.info("User was not registered.")
             bot.send_message(
-                event[0]["invokerid"],
-                "account_unknown",
-                account=json.get("name")
+                event.id, "account_unknown", account=json.get("name")
             )
 
         # Get previous identity
@@ -51,16 +50,16 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
                 logging.info(
                     "%s (%s) marked previous links of %s as ignored",
-                    event[0]["invokername"],
-                    event[0]["invokeruid"],
+                    event.name,
+                    event.uid,
                     account.name,
                 )
 
                 bot.send_message(
-                    event[0]["invokerid"],
+                    event.id,
                     "groups_revoked",
                     amount="1",
-                    groups=result["removed"]
+                    groups=result["removed"],
                 )
             except ts3.TS3Error:
                 # User might not exist in the db
@@ -68,12 +67,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         else:
             bot.send_message(
-                event[0]["invokerid"],
-                "groups_revoked",
-                amount="0",
-                groups=[]
+                event.id, "groups_revoked", amount="0", groups=[]
             )
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
-        bot.send_message(event[0]["invokerid"], "invalid_token")
+        bot.send_message(event.id, "invalid_token")
         return

@@ -47,5 +47,5 @@ if __name__ == "__main__":
         parser.print_help()
 
 # TODO: !help: Respond with appropriate commands
-# TODO: Write wrapper for event[0]["whatever"]
 # TODO: Wrapper for servergroupaddclient/servergroupdelclient
+# TODO: API timeout, async rewrite

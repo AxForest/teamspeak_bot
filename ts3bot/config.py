@@ -17,6 +17,10 @@ class Config:
         return Config.config.get(section, option)
 
     @staticmethod
+    def getint(section, option):
+        return int(Config.config.get(section, option))
+
+    @staticmethod
     def has_option(section, option):
         return Config.config.has_option(section, option)
 
@@ -49,7 +53,7 @@ class Config:
             "# Generic guild group": None,
             "generic_guild_id": 98,
             "# How many times users should be told to register on connect": None,
-            "annoy_total_connections": 5
+            "annoy_total_connections": 5,
         }
         config["bot_login"] = {
             "# User account for regular bot": None,

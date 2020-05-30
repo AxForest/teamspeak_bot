@@ -3,9 +3,8 @@ import logging
 import typing
 
 import requests
-import ts3
 
-from ts3bot import InvalidKeyException, RateLimitException, sync_groups
+from ts3bot import InvalidKeyException, RateLimitException, events, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.database import models
 
@@ -13,24 +12,21 @@ MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Guild Tag]"
 
 
-def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
-    cluid = event[0]["invokeruid"]
-    cldbid = bot.exec_("clientgetdbidfromuid", cluid=event[0]["invokeruid"])[0][
-        "cldbid"
-    ]
+def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+    cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
 
     # Grab user's account
-    account = models.Account.get_by_guid(bot.session, cluid)
+    account = models.Account.get_by_guid(bot.session, event.uid)
 
     if not account or not account.is_valid:
-        bot.send_message(event[0]["invokerid"], "missing_token")
+        bot.send_message(event.id, "missing_token")
         return
 
     # Saved account is older than one day or has no guilds
     if (
         datetime.datetime.today() - account.last_check
     ).days >= 1 or account.guilds.count() == 0:
-        bot.send_message(event[0]["invokerid"], "account_updating")
+        bot.send_message(event.id, "account_updating")
 
         try:
             account.update(bot.session)
@@ -43,11 +39,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             sync_groups(bot, cldbid, account, remove_all=True)
 
             logging.info("Revoked user's permissions.")
-            bot.send_message(event[0]["invokerid"], "invalid_token_admin")
+            bot.send_message(event.id, "invalid_token_admin")
             return
         except (requests.RequestException, RateLimitException):
             logging.exception("Error during API call")
-            bot.send_message(event[0]["invokerid"], "error_api")
+            bot.send_message(event.id, "error_api")
 
     # User requested guild removal
     if match.group(1) and match.group(1).lower() == "remove":
@@ -60,7 +56,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         # There is no active guild, no need to remove anything
         if not active_guild:
-            bot.send_message(event[0]["invokerid"], "guild_already_removed")
+            bot.send_message(event.id, "guild_already_removed")
             return
 
         # Remove guilds
@@ -72,9 +68,9 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         # Sync groups
         changes = sync_groups(bot, cldbid, account)
         if len(changes["removed"]) > 0:
-            bot.send_message(event[0]["invokerid"], "guild_removed")
+            bot.send_message(event.id, "guild_removed")
         else:
-            bot.send_message(event[0]["invokerid"], "guild_error")
+            bot.send_message(event.id, "guild_error")
 
         return
 
@@ -87,12 +83,12 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         available_guilds = available_guilds.all()
         if len(available_guilds) > 0:
             bot.send_message(
-                event[0]["invokerid"],
+                event.id,
                 "guild_selection",
                 guilds="\n- ".join([_.guild.tag for _ in available_guilds]),
             )
         else:
-            bot.send_message(event[0]["invokerid"], "guild_unknown")
+            bot.send_message(event.id, "guild_unknown")
     else:
         guild = match.group(1).lower()
 
@@ -102,11 +98,11 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
         # Guild not found or user not in guild
         if not selected_guild:
-            bot.send_message(event[0]["invokerid"], "guild_invalid_selection")
+            bot.send_message(event.id, "guild_invalid_selection")
             return
 
         if selected_guild.is_active:
-            bot.send_message(event[0]["invokerid"], "guild_already_active")
+            bot.send_message(event.id, "guild_already_active")
             return
 
         # Remove other guilds
@@ -119,10 +115,6 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         # Sync groups
         changes = sync_groups(bot, cldbid, account)
         if len(changes["added"]) > 0:
-            bot.send_message(
-                event[0]["invokerid"],
-                "guild_set",
-                guild=selected_guild.guild.name
-            )
+            bot.send_message(event.id, "guild_set", guild=selected_guild.guild.name)
         else:
-            bot.send_message(event[0]["invokerid"], "guild_error")
+            bot.send_message(event.id, "guild_error")

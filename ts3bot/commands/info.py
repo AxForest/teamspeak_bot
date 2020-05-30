@@ -2,10 +2,9 @@ import logging
 import typing
 
 import requests
-import ts3
 from sqlalchemy.orm import load_only
 
-from ts3bot import InvalidKeyException, RateLimitException, fetch_api
+from ts3bot import InvalidKeyException, RateLimitException, events, fetch_api
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models
 
@@ -13,7 +12,7 @@ MESSAGE_REGEX = "!info \\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "!info <API-Key>"
 
 
-def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     try:
         account = fetch_api("account", api_key=match.group(1))
         server = enums.World(account.get("world"))
@@ -26,7 +25,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         )
 
         bot.send_message(
-            event[0]["invokerid"],
+            event.id,
             "info_world",
             user=account.get("name"),
             world=server.proper_name,
@@ -34,7 +33,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         )
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
-        bot.send_message(event[0]["invokerid"], "invalid_token")
+        bot.send_message(event.id, "invalid_token")
     except (requests.RequestException, RateLimitException):
         logging.exception("Error during API call")
-        bot.send_message(event[0]["invokerid"], "error_api")
+        bot.send_message(event.id, "error_api")

@@ -4,8 +4,7 @@ import re
 import typing
 from pathlib import Path
 
-import ts3
-
+from ts3bot import events
 from ts3bot.bot import Bot
 from ts3bot.config import Config
 
@@ -24,31 +23,31 @@ COMMAND_MAPPING = {
 }
 
 
-def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     sheet_channel_id = Config.get("teamspeak", "sheet_channel_id")
     if sheet_channel_id == 0:
         return
 
     current_state = {"EBG": [], "Rot": [], "Grün": [], "Blau": []}
 
-    if match.group(1) == "help" and event[0]["invokeruid"] in Config.whitelist_admin:
+    if match.group(1) == "help" and event.uid in Config.whitelist_admin:
         bot.send_message(
-            event[0]["invokerid"],
+            event.id,
             "!sheet <ebg,red,green,blue,remove,reset> [note]\n!sheet set <ebg,red,green,blue,remove> <name> [note]",
             is_translation=False,
         )
         return
 
-    if match.group(1) == "reset" and event[0]["invokeruid"] in Config.whitelist_admin:
+    if match.group(1) == "reset" and event.uid in Config.whitelist_admin:
         pass  # Don't load the current file, just use the defaults
-    elif match.group(1) == "set" and event[0]["invokeruid"] in Config.whitelist_admin:
+    elif match.group(1) == "set" and event.uid in Config.whitelist_admin:
         # Force-set an entry
         match = re.match(
             "!sheet set (ebg|red|green|blue|r|g|b|remove) (\\w+)(.*)",
-            event[0]["msg"].strip(),
+            event.message.strip(),
         )
         if not match:
-            bot.send_message(event[0]["invokerid"], "invalid_input")
+            bot.send_message(event.id, "invalid_input")
             return
 
         if STATE_FILE.exists():
@@ -65,7 +64,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
                 name=match.group(2),
             )
             if not current_state:
-                bot.send_message(event[0]["invokerid"], "sheet_map_full")
+                bot.send_message(event.id, "sheet_map_full")
                 return
 
     elif match.group(1) in ["ebg", "red", "green", "blue", "r", "g", "b", "remove"]:
@@ -73,20 +72,20 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
             current_state = json.loads(STATE_FILE.read_text())
 
         if match.group(1) == "remove":
-            current_state = _remove_lead(current_state, uid=event[0]["invokeruid"])
+            current_state = _remove_lead(current_state, uid=event.uid)
         else:
             current_state = _add_lead(
                 current_state,
                 wvw_map=match.group(1),
                 note=match.group(2),
-                uid=event[0]["invokeruid"],
-                name=event[0]["invokername"],
+                uid=event.uid,
+                name=event.name,
             )
             if not current_state:
-                bot.send_message(event[0]["invokerid"], "sheet_map_full")
+                bot.send_message(event.id, "sheet_map_full")
                 return
     else:
-        bot.send_message(event[0]["invokerid"], "invalid_input")
+        bot.send_message(event.id, "invalid_input")
         return
 
     # Build new table
@@ -110,7 +109,7 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         "- !sheet remove\t—\tRemove the lead"
     )
     bot.exec_("channeledit", cid=sheet_channel_id, channel_description=desc)
-    bot.send_message(event[0]["invokerid"], "sheet_changed")
+    bot.send_message(event.id, "sheet_changed")
 
     STATE_FILE.write_text(json.dumps(current_state))
 

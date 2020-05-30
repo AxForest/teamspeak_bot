@@ -26,6 +26,7 @@
     "list_not_found": "Group not found!",
     "list_users": "There are %{amount} members in %{group}:",
     "missing_token": "Seems like no API key is known.",
+    "parsing_error": "The message was not received completely, please send it again.",
     "registration_exists": "You should already have the correct server group, the saved API key is now updated.",
     "registration_update": "You were already registered, overwrite previous link with %{account}.",
     "sheet_changed": "Reset sheet was updated. Please check that everything has been entered correctly in the channel description.",

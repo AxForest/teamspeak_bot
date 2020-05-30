@@ -26,6 +26,7 @@
     "list_not_found": "Gruppe nicht gefunden!",
     "list_users": "Es sind %{amount} Member in %{group}:",
     "missing_token": "Es ist scheinbar kein API-Key hinterlegt!",
+    "parsing_error": "Die Nachricht kam leider nicht komplett an, bitte erneut senden.",
     "registration_exists": "Sie sind bereits registriert, der gespeicherte API-Key wurde nun aktualisiert.",
     "registration_update": "Sie waren bereits registiert! Der verknüpfte Account ist nun %{account}.",
     "sheet_changed": "Reset-Sheet wurde aktualisiert. Bitte überprüfen Sie, dass alles korrekt in der Beschreibung eingetragen wurde.",

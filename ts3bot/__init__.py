@@ -7,6 +7,7 @@ from pathlib import Path
 
 import requests
 import ts3
+from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
 
 import ts3bot.bot
@@ -323,23 +324,13 @@ def sync_groups(
     return group_changes
 
 
-class User:
+class User(BaseModel):
     id: int
     db_id: int
     unique_id: str
     nickname: str
     country: str
     total_connections: int
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def __repr__(self):
-        return (
-            "<User nickname={0.nickname} db_id={0.db_id} unique_id={0.unique_id} country={0.country} "
-            "total_connections={0.total_connections}>".format(self)
-        )
 
     @property
     def locale(self):

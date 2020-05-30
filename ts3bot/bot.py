@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+import types
 import typing
 from importlib import import_module
 from pathlib import Path
@@ -12,9 +13,19 @@ from sqlalchemy import exc
 from sqlalchemy.orm import Session, load_only
 
 import ts3bot
-from ts3bot import commands
+from ts3bot import commands, events
 from ts3bot.config import Config
 from ts3bot.database import models
+
+
+class Command(types.ModuleType):
+    MESSAGE_REGEX: str
+    REGEX: re.Pattern
+    USAGE: str
+
+    @staticmethod
+    def handle(bot: "Bot", event: events.TextMessage, match: typing.Match):
+        pass
 
 
 class Bot:
@@ -28,7 +39,7 @@ class Bot:
             self.channel_id = None
         else:
             # Register commands
-            self.commands = []
+            self.commands: typing.List[Command] = []
             for _ in commands.__commands__:
                 if Config.has_option("commands", _) and not Config.getboolean(
                     "commands", _
@@ -120,6 +131,7 @@ class Bot:
                 self.handle_event(event)
 
     def handle_event(self, event: ts3.response.TS3Event):
+        evt = events.Event.from_event(event)
         # Got an event where the DB is relevant
         if event.event in ["notifycliententerview", "notifytextmessage"]:
             try:
@@ -135,53 +147,49 @@ class Bot:
                 # Close session anyway to force-use a new connection
                 self.session.close()
 
-        if event.event == "notifycliententerview":  # User connected/entered view
+        if isinstance(evt, events.ClientEnterView):  # User connected/entered view
             # Skip server query and other non-voice clients
-            if event[0].get("client_type", 42) != "0":
+            if evt.client_type != "0":
                 return
 
-            clid = event[0].get("clid")
-            if not clid:
+            if not evt.id:
                 return
 
-            self.create_user(clid)
-
-            is_known = self.verify_user(
-                event[0]["client_unique_identifier"],
-                event[0]["client_database_id"],
-                clid,
-            )
+            self.create_user(evt.id)
+            is_known = self.verify_user(evt.uid, evt.database_id, evt.id)
 
             # Message user if total_connections is below n and user is new
-            annoy_limit = Config.get("teamspeak", "annoy_total_connections")
-            if not is_known and -1 < self.users[clid].total_connections <= int(
+            annoy_limit = Config.getint("teamspeak", "annoy_total_connections")
+            if not is_known and -1 < self.users[evt.id].total_connections <= int(
                 annoy_limit
             ):
-                self.send_message(clid, "welcome_greet", con_limit=annoy_limit)
+                self.send_message(evt.id, "welcome_greet", con_limit=annoy_limit)
 
-        elif event.event == "notifyclientleftview":
-            clid = event[0].get("clid")
-            if clid in self.users:
-                del self.users[clid]
-        elif event.event == "notifyclientmoved":
-            if event[0].get("ctid") == str(self.channel_id):
-                logging.info("User id:%s joined channel", event[0].get("clid"))
-                self.send_message(event[0].get("clid"), "welcome")
+        elif isinstance(evt, events.ClientLeftView):
+            if evt.id and evt.id in self.users:
+                del self.users[evt.id]
+        elif isinstance(evt, events.ClientMoved):
+            if evt.channel_id == str(self.channel_id):
+                logging.info("User id:%s joined channel", evt.id)
+                self.send_message(evt.id, "welcome")
             else:
-                logging.info("User id:%s left channel", event[0]["clid"])
-        elif event.event == "notifytextmessage":
-            message = event[0]["msg"].strip()
-            logging.info(
-                "%s (%s): %s", event[0]["invokername"], event[0]["invokeruid"], message
-            )
+                logging.info("User id:%s left channel", evt.id)
+        elif isinstance(evt, events.TextMessage):
+            if not evt.id:
+                invoker_id = event[0].get("invokerid")
+                if invoker_id:
+                    self.send_message(invoker_id, "parsing_error")
+                return
+
+            logging.info("%s (%s): %s", evt.name, evt.uid, evt.message)
 
             valid_command = False
             for command in self.commands:
-                match = command.REGEX.match(message)
+                match = command.REGEX.match(evt.message)
                 if match:
                     valid_command = True
                     try:
-                        command.handle(self, event, match)
+                        command.handle(self, evt, match)
                     except ts3.query.TS3QueryError:
                         logging.exception(
                             "Unexpected TS3QueryError in command handler."
@@ -189,7 +197,9 @@ class Bot:
                     break
 
             if not valid_command:
-                self.send_message(event[0]["invokerid"], "invalid_input")
+                self.send_message(evt.id, "invalid_input")
+        else:
+            logging.warning("Unexpected event: %s", event.data)
 
     def create_user(self, client_id: str):
         try:
@@ -198,8 +208,8 @@ class Bot:
                 id=int(client_id),
                 db_id=int(info[0]["client_database_id"]),
                 unique_id=info[0]["client_unique_identifier"],
-                nickname=info[0]["client_nickname"],
-                country=info[0]["client_country"],
+                nickname=info[0].get("client_nickname", "Unknown"),
+                country=info[0].get("client_country", ""),
                 total_connections=int(info[0].get("client_totalconnections", -1)),
             )
         except ts3.TS3Error as e:
