@@ -9,7 +9,7 @@ import i18n
 import requests
 import ts3
 from sqlalchemy import exc
-from sqlalchemy.orm import Session, load_only, sessionmaker
+from sqlalchemy.orm import Session, load_only
 
 import ts3bot
 from ts3bot import commands
@@ -17,6 +17,7 @@ from ts3bot.config import Config
 from ts3bot.database import models
 
 
+# TODO: Patch ts3.response.TS3QueryResponse for better error messages
 class Bot:
     def __init__(self, session: Session, connect=True, is_cycle: bool = False):
         self.users: typing.Dict[str, ts3bot.User] = {}
@@ -29,7 +30,7 @@ class Bot:
         else:
             # Register commands
             self.commands = []
-            for _ in commands.__all__:
+            for _ in commands.__commands__:
                 if Config.has_option("commands", _) and not Config.getboolean(
                     "commands", _
                 ):
@@ -142,11 +143,19 @@ class Bot:
 
             self.create_user(clid)
 
-            self.verify_user(
+            is_known = self.verify_user(
                 event[0]["client_unique_identifier"],
                 event[0]["client_database_id"],
                 clid,
             )
+
+            # Message user if total_connections is below n and user is new
+            annoy_limit = Config.get("teamspeak", "annoy_total_connections")
+            if not is_known and -1 < self.users[clid].total_connections <= int(
+                annoy_limit
+            ):
+                self.send_message(clid, "welcome_greet", con_limit=annoy_limit)
+
         elif event.event == "notifyclientleftview":
             clid = event[0].get("clid")
             if clid in self.users:
@@ -229,7 +238,17 @@ class Bot:
 
     def verify_user(
         self, client_unique_id: str, client_database_id: str, client_id: str
-    ):
+    ) -> bool:
+        """
+        Verify a user if they are in a known group, otherwise nothing is done.
+        Groups are revoked/updated if necessary
+
+        :param client_unique_id: The client's UUID
+        :param client_database_id: The database ID
+        :param client_id: The client's temporary ID during the session
+        :return: True if the user has/had a known group and False if the user is new
+        """
+
         def revoked(response: str):
             if account:
                 account.invalidate(self.session)
@@ -287,7 +306,7 @@ class Bot:
         # Skip group = Whitelisted groups on users that should be ignored like
         # guests, music bots, etc
         if not has_group or has_skip_group:
-            return
+            return False
 
         # Grab user's account info
         account = models.Account.get_by_guid(self.session, client_unique_id)
@@ -295,11 +314,11 @@ class Bot:
         # User does not exist in DB
         if not account:
             revoked("groups_revoked_missing_key")
-            return
+            return True
 
         # User was checked today, don't check again
         if (datetime.datetime.today() - account.last_check).days < 1:
-            return
+            return True
 
         logging.debug("Checking %s/%s", account, client_unique_id)
 
@@ -311,4 +330,5 @@ class Bot:
             revoked("groups_revoked_invalid_key")
         except (requests.RequestException, ts3bot.RateLimitException):
             logging.exception("Error during API call")
-            return
+
+        return True

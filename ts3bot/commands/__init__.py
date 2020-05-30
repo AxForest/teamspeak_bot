@@ -1,4 +1,4 @@
-__all__ = [
+__commands__ = [
     "api_key",
     "guild",
     "help",

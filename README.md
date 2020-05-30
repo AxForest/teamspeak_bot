@@ -12,15 +12,15 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 # Installation/Usage
 - Run `pipenv install` in the cloned repo/downloaded folder (or install everything by hand)
 - Install the correct database flavour (e.g. `sqlalchemy[mysql]==1.3.*`)
-    - `sqlalchemy[mysql]` is required for migrating the old database
-- Run the bot once via `python3 -m ts3bot` to create an example config
+    - Note: `sqlalchemy[mysql]` is required for migrating the old database
+- Run the bot once via `pipenv run python -m ts3bot` to create an example config
 - Set the required info in `config.ini`
-- Run the bot inside tmux, screen, or as a service via `python3 -m ts3bot bot`
-- Run `python3 -m ts3bot cycle` in regular intervals
+- Run the bot inside tmux, screen, or as a service via `pipenv run python -m ts3bot bot`
+- Run `pipenv run python -m ts3bot cycle` in regular intervals
 
 # Updating
-- Update dependencies via `pipenv install`
-- Run `pipenv run alembic merge heads` to run all migrations
+- Update dependencies via `pipenv sync`
+- Run `pipenv run alembic upgrade heads` to run all migrations
 
 # Notes
 - The bot assumes that the guest group is still called `Guest`.

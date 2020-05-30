@@ -24,6 +24,7 @@ class Config:
     def getboolean(section, option):
         return Config.config.getboolean(section, option)
 
+    # noinspection PyTypeChecker
     @staticmethod
     def _create():
         config = configparser.RawConfigParser(allow_no_value=True)
@@ -47,6 +48,8 @@ class Config:
             "generic_world_id": 99,
             "# Generic guild group": None,
             "generic_guild_id": 98,
+            "# How many times users should be told to register on connect": None,
+            "annoy_total_connections": 5
         }
         config["bot_login"] = {
             "# User account for regular bot": None,

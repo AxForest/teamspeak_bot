@@ -37,6 +37,7 @@
     "verify_transferred": "Nutzer ist transferriert von %{old_world} auf %{new_world}.",
     "verify_valid_world": "Der Nutzer sieht sauber aus, hinterlegter Account %{user} ist auf %{world}.",
     "welcome": "Willkommen bei der automatischen Registrierung auf dem Kodash-TS. Bitte schicken Sie mir Ihren API-Key, welchen Sie hier generieren können: [url]https://account.arena.net/applications[/url]",
+    "welcome_greet": "Willkommen auf dem Kodash-TS. Falls Sie sich registrieren möchten, senden Sie mir Ihren API-Key zu, der unter [url]https://account.arena.net/applications[/url] generiert werden kann.\nDiese Nachricht wird nach %{con_limit} Verbindungen nicht mehr gesendet.",
     "welcome_registered": "Willkommen auf dem Kodash-TS! Um alle Channels sehen zu können, verbinden Sie erneut, oder klicken sie auf die Sprechblase mit dem Auge über der Channel-Liste.",
     "welcome_registered_2": "Falls Sie zu einer Gilde gehören, die hier eine Servergruppe hat, kann diese per [b]!guild[/b] gewählt werden."
 }

@@ -22,8 +22,8 @@ if __name__ == "__main__":
     sub_migrate.add_argument(
         "source_database",
         help="Use a URI of the following schema: mysql+mysqldb://"
-             "<user>:<password>@<host>[:<port>]/<dbname>. "
-             "Requires sqlalchemy[mysql]",
+        "<user>:<password>@<host>[:<port>]/<dbname>. "
+        "Requires sqlalchemy[mysql]",
     )
     sub.add_parser("bot", help="Runs the main bot")
 
