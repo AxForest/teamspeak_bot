@@ -214,7 +214,7 @@ def sync_groups(
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:
         valid_guild_group: typing.Optional[
-            ts3bot.database.models.Guild
+            ts3bot.database.models.LinkAccountGuild
         ] = account.guild_group()
         valid_world_group: typing.Optional[
             ts3bot.database.models.WorldGroup

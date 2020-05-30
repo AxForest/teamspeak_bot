@@ -182,7 +182,7 @@ class Account(Base):
             .one_or_none()
         )
 
-    def guild_group(self) -> typing.Optional["Guild"]:
+    def guild_group(self) -> typing.Optional["LinkAccountGuild"]:
         # TODO: Introduce setting to allow multiple guild tags
         return (
             self.guilds.join(Guild)
