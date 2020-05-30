@@ -8,6 +8,8 @@
     "groups_revoked": "Done! Rechte von %{amount} vorherigen Nutzern entzogen. Gruppen: %{groups}",
     "groups_revoked_invalid_key": "Ihre Rechte wurden entfernt, da der hinterlegte API-Key ungültig ist.",
     "groups_revoked_missing_key": "Ihre Rechte wurden entfernt, da scheinbar kein API-Key hinterlegt wurde",
+    "guild_already_active": "Die Gilde sollte bereits gesetzt sein. Falls dem nicht so ist, führen Sie bitte erst [b]!guild remove[/b] aus, oder wenden Sie sich an einen Admin.",
+    "guild_already_removed": "Es sollte aktuell keine Gilde gesetzt sein. Falls dem nicht so ist, wenden Sie sich bitte an einen Admin.",
     "guild_error": "Beim Setzen der Gruppe ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
     "guild_invalid_selection": "Entweder sind Sie nicht in dieser Gilde oder sie ist mir unbekannt. Sollte das nicht stimmen, wenden Sie sich an einen Admin oder warten sie ca. 24 Stunden, bis die API-Infos aktualisiert wurden.\nEine Auflistung Ihrer mir bekannten Gilden erhalten Sie via [b]!guild[/b]",
     "guild_removed": "Gilden-Gruppe wurde erfolgreich entfernt.",

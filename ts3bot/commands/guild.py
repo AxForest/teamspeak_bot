@@ -51,6 +51,18 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
 
     # User requested guild removal
     if match.group(1) and match.group(1).lower() == "remove":
+        # Get active guild
+        active_guild: typing.Optional[models.LinkAccountGuild] = account.guilds.join(
+            models.Guild
+        ).filter(models.Guild.group_id.isnot(None)).filter(
+            models.LinkAccountGuild.is_active.is_(True)
+        ).one_or_none()
+
+        # There is no active guild, no need to remove anything
+        if not active_guild:
+            bot.send_message(event[0]["invokerid"], "guild_already_removed")
+            return
+
         # Remove guilds
         account.guilds.filter(models.LinkAccountGuild.is_active.is_(True)).update(
             {"is_active": False}
@@ -91,6 +103,10 @@ def handle(bot: Bot, event: ts3.response.TS3Event, match: typing.Match):
         # Guild not found or user not in guild
         if not selected_guild:
             bot.send_message(event[0]["invokerid"], "guild_invalid_selection")
+            return
+
+        if selected_guild.is_active:
+            bot.send_message(event[0]["invokerid"], "guild_already_active")
             return
 
         # Remove other guilds

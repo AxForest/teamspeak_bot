@@ -8,6 +8,8 @@
     "groups_revoked": "Done! Permissions were removed from %{amount} previous users. Groups: %{groups}",
     "groups_revoked_invalid_key": "Your groups were removed because the linked API key is invalid.",
     "groups_revoked_missing_key": "Your groups were removed because there seems to be no API key linked to your TS3 identity.",
+    "guild_already_active": "The guild should already be set. If that is not the case, please remove it via [b]!guild remove[/b] or contact an admin.",
+    "guild_already_removed": "There should not be any guild set currently. If you believe this to be incorrect, please contact an admin to sort this out.",
     "guild_error": "Failed to set the guild group, please try again.",
     "guild_invalid_selection": "Either you are not in that guild or it's unknown for me. In case that is not correct, contact an admin or wait about 24 hours until the API infos are updated.\nYou can get a list of your known guilds by using [b]!guild[/b]",
     "guild_removed": "Successfully removed the guild group.",
