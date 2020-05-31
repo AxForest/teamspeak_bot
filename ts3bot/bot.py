@@ -315,11 +315,14 @@ class Bot:
             if server_group.get("name") in Config.whitelist_groups:
                 has_skip_group = True
 
-        # Skip users without any known groups or in skip group
-        # Skip group = Whitelisted groups on users that should be ignored like
-        # guests, music bots, etc
-        if not has_group or has_skip_group:
+        # Skip users without any known groups
+        if not has_group:
             return False
+
+        # Skip users in whitelisted groups that should be ignored like
+        # guests, music bots, etc
+        if has_skip_group:
+            return True
 
         # Grab user's account info
         account = models.Account.get_by_guid(self.session, client_unique_id)
