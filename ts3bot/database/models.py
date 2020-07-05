@@ -231,7 +231,8 @@ class Account(Base):
             for guid in account_info.get("guilds", []):
                 try:
                     guild = Guild.get_or_create(session, guid)
-                    LinkAccountGuild.get_or_create(session, instance, guild)
+                    is_leader = guid in account_info.get("guild_leader", [])
+                    LinkAccountGuild.get_or_create(session, instance, guild, is_leader)
                 except (ts3bot.RateLimitException, requests.RequestException):
                     logging.warning("Failed to request guild info", exc_info=True)
             session.commit()
@@ -335,7 +336,8 @@ class Account(Base):
             for guild_guid in guids_joined:
                 guild = Guild.get_or_create(session, guild_guid)
                 guilds_joined.append(guild.name)
-                LinkAccountGuild.get_or_create(session, self, guild)
+                is_leader = guild.guid in account_info.get("guild_leader", [])
+                LinkAccountGuild.get_or_create(session, self, guild, is_leader)
 
             result["guilds"] = [guilds_joined, guilds_left]
 
@@ -394,6 +396,12 @@ class LinkAccountGuild(Base):
     guild_id = Column(
         types.Integer, ForeignKey("guilds.id", ondelete="CASCADE"), nullable=False
     )
+    is_leader = Column(
+        types.Boolean,
+        default=False,
+        nullable=False,
+        doc="Whether the user has leader permission in this guild",
+    )
     is_active = Column(
         types.Boolean,
         default=False,
@@ -405,13 +413,15 @@ class LinkAccountGuild(Base):
     guild = relationship("Guild", back_populates="members", cascade="all, delete")
 
     def __str__(self):
-        return f"<LinkAccountGuild account={self.account.name} guild={self.guild.name}>"
+        return f"<LinkAccountGuild account={self.account.name} guild={self.guild.name} is_leader={self.is_leader}>"
 
     def __repr__(self):
         return str(self)
 
     @staticmethod
-    def get_or_create(session: Session, account: Account, guild: Guild):
+    def get_or_create(
+        session: Session, account: Account, guild: Guild, is_leader: bool
+    ):
         instance = (
             session.query(LinkAccountGuild)
             .filter(
