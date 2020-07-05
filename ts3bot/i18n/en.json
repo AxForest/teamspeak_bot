@@ -1,6 +1,6 @@
 {
     "account_unknown": "There's nobody linked to %{account}.",
-    "account_updating": "Fetching your account info.",
+    "account_updating": "Fetching account info.",
     "available_commands": "Available commands:",
     "error_api": "Error during the API requests. Please try again later or contact an admin.",
     "error_saving": "Failed to save the API key. Please contact an admin",
