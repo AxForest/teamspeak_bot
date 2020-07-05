@@ -339,6 +339,18 @@ class Account(Base):
                 is_leader = guild.guid in account_info.get("guild_leader", [])
                 LinkAccountGuild.get_or_create(session, self, guild, is_leader)
 
+            # Process all current guilds for leader status
+            link_guild: LinkAccountGuild
+            for link_guild in self.guilds:
+                # Skip new guilds
+                if link_guild.guild.guid in guids_joined:
+                    continue
+
+                # Update leader status
+                link_guild.is_leader = link_guild.guild.guid in account_info.get(
+                    "guild_leader", []
+                )
+
             result["guilds"] = [guilds_joined, guilds_left]
 
             if len(guilds_joined) > 0:
