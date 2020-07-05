@@ -325,7 +325,7 @@ class Bot:
             return True
 
         # Grab user's account info
-        account = models.Account.get_by_guid(self.session, client_unique_id)
+        account = models.Account.get_by_identity(self.session, client_unique_id)
 
         # User does not exist in DB
         if not account:

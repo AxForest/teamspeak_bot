@@ -5,6 +5,7 @@ __commands__ = [
     "ignore",
     "info",
     "list_group_members",
+    "register",
     "sheet",
     "verify",
 ]

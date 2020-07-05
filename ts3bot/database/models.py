@@ -196,7 +196,7 @@ class Account(Base):
         )
 
     @staticmethod
-    def get_by_guid(session: Session, guid: str) -> typing.Optional["Account"]:
+    def get_by_identity(session: Session, guid: str) -> typing.Optional["Account"]:
         return (
             session.query(Account)
             .join(LinkAccountIdentity)
@@ -207,21 +207,24 @@ class Account(Base):
         )
 
     @staticmethod
+    def get_by_api_info(
+        session: Session, guid: str, name: str
+    ) -> typing.Optional["Account"]:
+        # TODO: Remove name after GUID migration
+        return (
+            session.query(Account)
+            .filter(or_(Account.guid == guid, Account.name == name))
+            .one_or_none()
+        )
+
+    @staticmethod
     def get_or_create(session: Session, account_info: dict, api_key: str):
         """
         Returns an Account instance, the account is created if necessary
         """
         # Get account by guid or name
-        # TODO: Remove name after GUID migration
-        instance = (
-            session.query(Account)
-            .filter(
-                or_(
-                    Account.guid == account_info.get("id"),
-                    Account.name == account_info.get("name"),
-                )
-            )
-            .one_or_none()
+        instance = Account.get_by_api_info(
+            session, guid=account_info.get("id"), name=account_info.get("name")
         )
         if not instance:
             instance = Account.create(account_info, api_key)

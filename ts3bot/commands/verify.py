@@ -27,11 +27,11 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             cldbid = user[0]["cldbid"]
             cluid = match.group(1)
     except ts3.query.TS3QueryError:
-        bot.send_message(event.id, "verify_not_found")
+        bot.send_message(event.id, "user_not_found")
         return
 
     # Grab user's account
-    account = models.Account.get_by_guid(bot.session, cluid)
+    account = models.Account.get_by_identity(bot.session, cluid)
 
     if not account:
         bot.send_message(event.id, "verify_no_token")

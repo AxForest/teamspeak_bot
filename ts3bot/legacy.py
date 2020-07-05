@@ -78,7 +78,7 @@ def fetch_identity_guilds(session: Session):
             if guild is None:
                 continue
 
-            account = Account.get_by_guid(session, identity.guid)
+            account = Account.get_by_identity(session, identity.guid)
 
             if not account:
                 logging.warning(

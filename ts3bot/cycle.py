@@ -90,7 +90,7 @@ class Cycle:
                     self.bot.ts3c.send_keepalive()
 
                 # Get user's account
-                account = models.Account.get_by_guid(self.session, uid)
+                account = models.Account.get_by_identity(self.session, uid)
 
                 if not account:
                     self.revoke(None, cldbid)

@@ -19,16 +19,8 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
     try:
         json = fetch_api("account", api_key=match.group(1))
-        # TODO: Remove name after GUID migration
-        account = (
-            bot.session.query(models.Account)
-            .filter(
-                or_(
-                    models.Account.guid == json.get("id"),
-                    models.Account.name == json.get("name"),
-                )
-            )
-            .one_or_none()
+        account = models.Account.get_by_api_info(
+            bot.session, guid=json.get("id"), name=json.get("name")
         )
 
         # Account does not exist

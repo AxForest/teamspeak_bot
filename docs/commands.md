@@ -23,6 +23,9 @@ Returns a list of all users in that server group sorted by the nickname. Groups 
 Called `list_group_members` in the config, has an additional whitelist to allow guild leaders to view their guild groups.  
 Note that everyone in a whitelisted group will be able to list any group.
 
+## !register database-id api-key (¬)
+If the GW2 account is already registered, (generic) world and guild groups are transferred to the new user.
+Otherwise the new user is simply registered as always. The new user's registration is overwritten, in case it exists.
 
 ## !sheet <ebg, red, green, blue, remove> [note]
 Renders a little table in the channel description defined by `sheet_channel_id`.

@@ -85,7 +85,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                 cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
 
                 # Unlink previous account from identity
-                current_account = models.Account.get_by_guid(bot.session, event.uid)
+                current_account = models.Account.get_by_identity(bot.session, event.uid)
                 if current_account:
                     logging.info("Delinking %s from cldbid:%s", current_account, cldbid)
                     current_account.invalidate(bot.session)

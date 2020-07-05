@@ -73,6 +73,7 @@ class Config:
             "ignore": True,
             "info": True,
             "list_group_members": True,
+            "register": True,
             "sheet": True,
             "verify": True,
         }
