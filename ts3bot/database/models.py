@@ -1,6 +1,7 @@
 import datetime
 import logging
 import typing
+from operator import or_
 
 import requests
 from sqlalchemy import Column, ForeignKey, UniqueConstraint, types, and_, MetaData
@@ -150,6 +151,8 @@ class Account(Base):
     __tablename__ = "accounts"
 
     id = Column(types.Integer, primary_key=True)
+    # TODO: Make non-NULL after GUID migration
+    guid = Column(types.String(36), unique=True, nullable=True)
     name = Column(types.String(41), unique=True, nullable=False)
     world: typing.Union[enums.World, int, str] = Column(
         types.Enum(enums.World), nullable=False
@@ -208,9 +211,16 @@ class Account(Base):
         """
         Returns an Account instance, the account is created if necessary
         """
+        # Get account by guid or name
+        # TODO: Remove name after GUID migration
         instance = (
             session.query(Account)
-            .filter(Account.name == account_info.get("name"))
+            .filter(
+                or_(
+                    Account.guid == account_info.get("id"),
+                    Account.name == account_info.get("name"),
+                )
+            )
             .one_or_none()
         )
         if not instance:
@@ -233,6 +243,7 @@ class Account(Base):
         Returns an instance based on given information
         """
         return Account(
+            guid=account_info.get("id"),
             name=account_info.get("name"),
             world=enums.World(account_info.get("world")),
             api_key=api_key,
@@ -268,6 +279,10 @@ class Account(Base):
 
         try:
             account_info = ts3bot.limit_fetch_api("account", api_key=self.api_key)
+
+            # TODO: Remove after GUID migration is done
+            if not self.guid:
+                self.guid = account_info.get("id")
 
             # Update world
             new_world = enums.World(account_info.get("world"))

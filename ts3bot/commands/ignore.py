@@ -1,5 +1,6 @@
 import logging
 import typing
+from operator import or_
 
 import ts3
 
@@ -18,18 +19,23 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
     try:
         json = fetch_api("account", api_key=match.group(1))
+        # TODO: Remove name after GUID migration
         account = (
             bot.session.query(models.Account)
-            .filter(models.Account.name == json.get("name"))
+            .filter(
+                or_(
+                    models.Account.guid == json.get("id"),
+                    models.Account.name == json.get("name"),
+                )
+            )
             .one_or_none()
         )
 
         # Account does not exist
         if not account:
             logging.info("User was not registered.")
-            bot.send_message(
-                event.id, "account_unknown", account=json.get("name")
-            )
+            bot.send_message(event.id, "account_unknown", account=json.get("name"))
+            return
 
         # Get previous identity
         previous_identity: typing.Optional[
@@ -56,19 +62,14 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                 )
 
                 bot.send_message(
-                    event.id,
-                    "groups_revoked",
-                    amount="1",
-                    groups=result["removed"],
+                    event.id, "groups_revoked", amount="1", groups=result["removed"],
                 )
             except ts3.TS3Error:
                 # User might not exist in the db
                 logging.info("Failed to remove groups from user", exc_info=True)
 
         else:
-            bot.send_message(
-                event.id, "groups_revoked", amount="0", groups=[]
-            )
+            bot.send_message(event.id, "groups_revoked", amount="0", groups=[])
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
