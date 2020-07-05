@@ -332,8 +332,10 @@ class Bot:
             revoked("groups_revoked_missing_key")
             return True
 
-        # User was checked today, don't check again
-        if (datetime.datetime.today() - account.last_check).days < 1:
+        # User was checked, don't check again
+        if ts3bot.timedelta_hours(
+            datetime.datetime.today() - account.last_check
+        ) < Config.getint("verify", "on_join_hours"):
             return True
 
         logging.debug("Checking %s/%s", account, client_unique_id)

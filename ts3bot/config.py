@@ -94,6 +94,11 @@ class Config:
             "# List of groups whose members should be ignored during join verification": None,
             "Guest": None,
         }
+        config["verify"] = {
+            "# How long users should not be checked again in cycle and on join": None,
+            "cycle_hours": 48,
+            "on_join_hours": 24,
+        }
 
         return config
 

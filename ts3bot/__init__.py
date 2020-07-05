@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import typing
+from datetime import timedelta
 from pathlib import Path
 
 import requests
@@ -143,6 +144,15 @@ def init_logger(name: str, is_test=False):
             release=VERSION,
             send_default_pii=True,
         )
+
+
+def timedelta_hours(td: timedelta) -> int:
+    """
+    Convert a timedelta to full hours, microseconds are ignored
+    :param td: The timedelta
+    :return: Hours as integer
+    """
+    return td.days * 24 + td.seconds // 3600
 
 
 def sync_groups(

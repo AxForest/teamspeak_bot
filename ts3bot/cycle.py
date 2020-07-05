@@ -8,6 +8,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, load_only
 
 import ts3bot
+from ts3bot import Config
 from ts3bot.bot import Bot
 from ts3bot.database import models
 
@@ -95,7 +96,9 @@ class Cycle:
                     self.revoke(None, cldbid)
                 else:
                     # User was checked, don't check again
-                    if (datetime.datetime.today() - account.last_check).days < 2:
+                    if ts3bot.timedelta_hours(
+                        datetime.datetime.today() - account.last_check
+                    ) < Config.getint("verify", "cycle_hours"):
                         continue
 
                     logging.info("Checking %s/%s", account, uid)
