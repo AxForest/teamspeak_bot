@@ -14,12 +14,12 @@ STATE_FILE = Path("sheet.json")
 
 COMMAND_MAPPING = {
     "ebg": "EBG",
-    "red": "Rot",
-    "green": "Grün",
-    "blue": "Blau",
-    "r": "Rot",
-    "g": "Grün",
-    "b": "Blau",
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "r": "Red",
+    "g": "Green",
+    "b": "Blue",
 }
 
 
@@ -28,12 +28,12 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     if sheet_channel_id == 0:
         return
 
-    current_state = {"EBG": [], "Rot": [], "Grün": [], "Blau": []}
+    current_state = {"EBG": [], "Red": [], "Green": [], "Blue": []}
 
     if match.group(1) == "help" and event.uid in Config.whitelist_admin:
         bot.send_message(
             event.id,
-            "!sheet <ebg,red,green,blue,remove,reset> [note]\n!sheet set <ebg,red,green,blue,remove> <name> [note]",
+            "!sheet <ebg,red,green,blue,remove,reset>\n!sheet set <ebg,red,green,blue,remove> <name>",
             is_translation=False,
         )
         return
@@ -43,7 +43,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     elif match.group(1) == "set" and event.uid in Config.whitelist_admin:
         # Force-set an entry
         match = re.match(
-            "!sheet set (ebg|red|green|blue|r|g|b|remove) (\\w+)(.*)",
+            "!sheet set (ebg|red|green|blue|r|g|b|remove) (.*)",
             event.message.strip(),
         )
         if not match:
@@ -60,7 +60,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             current_state = _add_lead(
                 current_state,
                 wvw_map=match.group(1),
-                note=match.group(3),
+                note="",
                 name=match.group(2),
             )
             if not current_state:
