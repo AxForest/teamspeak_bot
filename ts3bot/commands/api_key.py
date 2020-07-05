@@ -1,10 +1,12 @@
 import logging
 import typing
 
+import ts3
 from requests import RequestException
 
+import ts3bot
 from ts3bot import (
-    InvalidKeyException,
+    Config, InvalidKeyException,
     RateLimitException,
     events,
     fetch_api,
@@ -112,7 +114,10 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                     )
                 else:
                     bot.send_message(event.id, "welcome_registered")
-                    bot.send_message(event.id, "welcome_registered_2")
+
+                    # Tell user about !guild if it's enabled
+                    if Config.getboolean("commands", "guild"):
+                        bot.send_message(event.id, "welcome_registered_2")
         else:
             bot.send_message(
                 event.id,
