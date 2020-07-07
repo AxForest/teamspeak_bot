@@ -14,7 +14,27 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("ts3bot")
     sub = parser.add_subparsers(dest="mode")
-    sub.add_parser("cycle", help="Verifies/updates all known accounts")
+    sub_cycle = sub.add_parser("cycle", help="Verifies/updates all known accounts")
+    sub_cycle.add_argument(
+        "--all",
+        help="Verifies everyone irregardless of cycle_hours in config",
+        action="store_true",
+    )
+    sub_cycle.add_argument(
+        "--relink",
+        help="Only verifies everyone on a world marked as is_linked, ignores cycle_hours",
+        action="store_true",
+    )
+    sub_cycle.add_argument(
+        "--ts3",
+        help="Verify everyone known to the TS3 server, this is the default",
+        action="store_true",
+    )
+    sub_cycle.add_argument(
+        "--world",
+        help="Verify world (id)",
+        type=int,
+    )
     sub_migrate = sub.add_parser(
         "migrate",
         help="Migrates the old database (<2020) to the current version. Uses cycle account",
@@ -38,7 +58,7 @@ if __name__ == "__main__":
         Bot(session).loop()
     elif args.mode == "cycle":
         init_logger("cycle")
-        Cycle(session).run()
+        Cycle(session, verify_all=args.all, verify_linked_worlds=args.relink, verify_ts3=args.ts3, verify_world=args.world).run()
     elif args.mode == "migrate":
         init_logger("migrate")
         legacy.apply_generic_groups(session)

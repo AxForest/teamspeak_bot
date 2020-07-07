@@ -1,6 +1,7 @@
 import datetime
 import logging
 import typing
+from operator import or_
 
 import requests
 import ts3
@@ -10,13 +11,30 @@ from sqlalchemy.orm import Session, load_only
 import ts3bot
 from ts3bot import Config
 from ts3bot.bot import Bot
-from ts3bot.database import models
+from ts3bot.database import enums, models
 
 
 class Cycle:
-    def __init__(self, session: Session):
+    def __init__(
+        self,
+        session: Session,
+        verify_all: bool,
+        verify_linked_worlds: bool,
+        verify_ts3: bool,
+        verify_world: typing.Optional[int] = None,
+    ):
         self.bot = Bot(session, is_cycle=True)
         self.session = session
+        self.verify_all = verify_all
+        self.verify_linked_worlds = verify_linked_worlds
+        self.verify_ts3 = verify_ts3
+
+        if verify_world:
+            self.verify_world: typing.Optional[enums.World] = enums.World(verify_world)
+        else:
+            self.verify_world = None
+
+        self.verify_begin = datetime.datetime.today()
 
     def revoke(self, account: typing.Optional[models.Account], cldbid: str):
         if account:
@@ -64,15 +82,19 @@ class Cycle:
 
     def run(self):
         self.fix_user_guilds()
+
+        # Run if --ts3 is set or nothing was passed
+        if self.verify_ts3 or not (
+            self.verify_all or self.verify_linked_worlds or self.verify_world
+        ):
+            self.verify_ts3_accounts()
+
         self.verify_accounts()
 
         # Clean up "empty" guilds
         models.Guild.cleanup(self.session)
 
-    def verify_accounts(self):
-        """
-        Removes users from known groups if no account is known or the account is invalid
-        """
+    def verify_ts3_accounts(self):
         # Retrieve users
         users = self.bot.exec_("clientdblist", duration=200)
         start = 0
@@ -98,7 +120,9 @@ class Cycle:
                     # User was checked, don't check again
                     if ts3bot.timedelta_hours(
                         datetime.datetime.today() - account.last_check
-                    ) < Config.getint("verify", "cycle_hours"):
+                    ) < Config.getint("verify", "cycle_hours") and not (
+                        self.verify_all
+                    ):
                         continue
 
                     logging.info("Checking %s/%s", account, uid)
@@ -123,14 +147,66 @@ class Cycle:
                     logging.exception("Error retrieving user list")
                 users = []
 
+    def verify_accounts(self):
+        """
+        Removes users from known groups if no account is known or the account is invalid
+        """
         # Update all other accounts
-        accounts = self.session.query(models.Account).filter(
-            and_(
-                models.Account.last_check
-                <= datetime.datetime.today() - datetime.timedelta(days=2),
-                models.Account.is_valid.is_(True),
+        if self.verify_all:
+            # Check all accounts that were not verified just now
+            accounts = self.session.query(models.Account).filter(
+                and_(
+                    models.Account.last_check <= self.verify_begin,
+                    models.Account.is_valid.is_(True),
+                )
             )
-        )
+        elif self.verify_linked_worlds:
+            # Check all accounts which are on linked worlds, or on --world
+            def or_world():
+                if self.verify_world:
+                    return or_(
+                        models.Account.world.is_(self.verify_world),
+                        models.WorldGroup.is_linked.is_(True),
+                    )
+                else:
+                    return models.WorldGroup.is_linked.is_(True)
+
+            accounts = (
+                self.session.query(models.Account)
+                .join(
+                    models.WorldGroup,
+                    models.Account.world == models.WorldGroup.world,
+                    isouter=True,
+                )
+                .filter(
+                    and_(
+                        models.Account.last_check <= self.verify_begin,
+                        or_world(),
+                        models.Account.is_valid.is_(True),
+                    )
+                )
+            )
+        elif self.verify_world:
+            # Only check accounts of this world
+            accounts = self.session.query(models.Account).filter(
+                and_(
+                    models.Account.last_check
+                    <= datetime.datetime.today()
+                    - datetime.timedelta(hours=Config.getint("verify", "cycle_hours")),
+                    models.Account.is_valid.is_(True),
+                    models.Account.world.is_(self.verify_world),
+                )
+            )
+        else:
+            # Check all accounts which were not checked <x hours ago
+            accounts = self.session.query(models.Account).filter(
+                and_(
+                    models.Account.last_check
+                    <= datetime.datetime.today()
+                    - datetime.timedelta(hours=Config.getint("verify", "cycle_hours")),
+                    models.Account.is_valid.is_(True),
+                )
+            )
 
         num_accounts = accounts.count()
 
