@@ -181,7 +181,7 @@ class Bot:
                     self.send_message(invoker_id, "parsing_error")
                 return
 
-            logging.info("%s (%s): %s", evt.name, evt.uid, evt.message)
+            logging.info("Message from %s (%s): %s", evt.name, evt.uid, evt.message)
 
             valid_command = False
             for command in self.commands:
@@ -242,7 +242,7 @@ class Bot:
             msg = i18n.t(msg, **i18n_kwargs)
 
         try:
-            logging.info("Response: %s", msg)
+            logging.info("Message to %s: %s", recipient, msg)
             self.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
         except ts3.query.TS3Error:
             logging.exception(
