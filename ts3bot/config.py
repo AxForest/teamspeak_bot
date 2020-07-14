@@ -13,19 +13,23 @@ class Config:
     whitelist_groups: typing.List[str]
 
     @staticmethod
-    def get(section, option):
+    def get(section: str, option: str):
         return Config.config.get(section, option)
 
     @staticmethod
-    def getint(section, option):
+    def getint(section: str, option: str) -> int:
         return int(Config.config.get(section, option))
 
     @staticmethod
-    def has_option(section, option):
+    def getfloat(section: str, option: str) -> float:
+        return float(Config.config.get(section, option))
+
+    @staticmethod
+    def has_option(section: str, option: str) -> bool:
         return Config.config.has_option(section, option)
 
     @staticmethod
-    def getboolean(section, option):
+    def getboolean(section: str, option: str) -> bool:
         return Config.config.getboolean(section, option)
 
     # noinspection PyTypeChecker

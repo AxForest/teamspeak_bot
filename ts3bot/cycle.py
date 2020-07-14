@@ -120,7 +120,7 @@ class Cycle:
                     # User was checked, don't check again
                     if ts3bot.timedelta_hours(
                         datetime.datetime.today() - account.last_check
-                    ) < Config.getint("verify", "cycle_hours") and not (
+                    ) < Config.getfloat("verify", "cycle_hours") and not (
                         self.verify_all
                     ):
                         continue
@@ -192,7 +192,7 @@ class Cycle:
                 and_(
                     models.Account.last_check
                     <= datetime.datetime.today()
-                    - datetime.timedelta(hours=Config.getint("verify", "cycle_hours")),
+                    - datetime.timedelta(hours=Config.getfloat("verify", "cycle_hours")),
                     models.Account.is_valid.is_(True),
                     models.Account.world.is_(self.verify_world),
                 )
@@ -203,7 +203,7 @@ class Cycle:
                 and_(
                     models.Account.last_check
                     <= datetime.datetime.today()
-                    - datetime.timedelta(hours=Config.getint("verify", "cycle_hours")),
+                    - datetime.timedelta(hours=Config.getfloat("verify", "cycle_hours")),
                     models.Account.is_valid.is_(True),
                 )
             )

@@ -146,13 +146,15 @@ def init_logger(name: str, is_test=False):
         )
 
 
-def timedelta_hours(td: timedelta) -> int:
+def timedelta_hours(td: timedelta) -> float:
     """
-    Convert a timedelta to full hours, microseconds are ignored
+    Convert a timedelta to hours with up to two digits after comma.
+    Microseconds are ignored.
+
     :param td: The timedelta
-    :return: Hours as integer
+    :return: Hours as float
     """
-    return td.days * 24 + td.seconds // 3600
+    return round(td.days * 24 + td.seconds / 3600, 2)
 
 
 def sync_groups(
