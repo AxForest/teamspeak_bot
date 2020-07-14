@@ -2,6 +2,9 @@
 
 ## API key
 When a regular API key (not JWT) is pasted the bot will try to register the user based on this key.
+If the same key is posted and the last check was over 12 minutes ago, the user's details will be updated.
+If a different key is posted for the same account, the new key is saved.  
+Overriding a previous registration of the GW2 account is possible by creating a new key named `ts3bot-{dbid}`.
 
 ## !guild (guild-tag)
 `!guild` will respond with a list of currently available guilds, or tell the user that none of their guilds are available as server group.  

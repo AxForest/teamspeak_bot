@@ -11,9 +11,10 @@ import ts3
 from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
 
-import ts3bot.bot
 import ts3bot.database.models
+from ts3bot import bot as ts3_bot, events
 from ts3bot.config import Config
+from ts3bot.database import models
 
 try:
     # Init version number
@@ -157,8 +158,106 @@ def timedelta_hours(td: timedelta) -> float:
     return round(td.days * 24 + td.seconds / 3600, 2)
 
 
+def transfer_registration(
+    bot: ts3_bot.Bot,
+    account: models.Account,
+    event: events.TextMessage,
+    is_admin: bool = False,
+    target_identity: typing.Optional[models.Identity] = None,
+    target_dbid: typing.Optional[str] = None,
+):
+    """
+    Transfers a registration and server/guild groups to the sender of the event or the target_guid
+    :param bot: The current bot instance
+    :param account: The account that should be re-registered for the target user
+    :param event: The sender of the text message, usually the one who gets permissions
+    :param is_admin: Whether the sender is an admin
+    :param target_identity: To override the user who gets the permissions
+    :param target_dbid: The target's database id, usually sourced from the event
+    :return:
+    """
+
+    # Get identity from event if necessary
+    if not target_identity:
+        target_identity: models.Identity = models.Identity.get_or_create(
+            bot.session, event.uid
+        )
+
+    # Get database id if necessary
+    if not target_dbid:
+        try:
+            target_dbid: str = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0][
+                "cldbid"
+            ]
+        except ts3.TS3Error:
+            # User might not exist in the db
+            logging.exception("Failed to get database id from event's user")
+            bot.send_message(event.id, "error_critical")
+            return
+
+    # Get current guild group to save it for later use
+    guild_group = account.guild_group()
+
+    # Get previous identity
+    previous_identity: typing.Optional[
+        models.LinkAccountIdentity
+    ] = account.valid_identities.one_or_none()
+
+    # Remove previous identities, also removes guild groups
+    account.invalidate(bot.session)
+
+    # Account is currently registered, sync groups with old identity
+    if previous_identity:
+        # Get cldbid and sync groups
+        try:
+            cldbid = bot.exec_(
+                "clientgetdbidfromuid", cluid=previous_identity.identity.guid
+            )[0]["cldbid"]
+
+            result = sync_groups(bot, cldbid, account, remove_all=True)
+
+            logging.info(
+                "Removed previous links of %s as ignored during transfer to ",
+                account.name,
+                target_identity.guid,
+            )
+
+            if is_admin:
+                bot.send_message(
+                    event.id, "groups_revoked", amount="1", groups=result["removed"]
+                )
+        except ts3.TS3Error:
+            # User might not exist in the db
+            logging.info("Failed to remove groups from user", exc_info=True)
+
+    # Invalidate target identity's link, if it exists
+    other_account = models.Account.get_by_identity(bot.session, target_identity.guid)
+    if other_account:
+        other_account.invalidate(bot.session)
+
+    # Transfer roles to new identity
+    bot.session.add(
+        models.LinkAccountIdentity(account=account, identity=target_identity)
+    )
+
+    # Add guild group
+    if guild_group:
+        guild_group.is_active = True
+
+    bot.session.commit()
+
+    # Sync group
+    sync_groups(bot, target_dbid, account)
+
+    logging.info("Transferred groups of %s to cldbid:%s", account.name, target_dbid)
+
+    bot.send_message(
+        event.id, "registration_transferred", account=account.name,
+    )
+
+
 def sync_groups(
-    bot: ts3bot.bot.Bot,
+    bot: ts3_bot.Bot,
     cldbid: str,
     account: typing.Optional[ts3bot.database.models.Account],
     remove_all=False,

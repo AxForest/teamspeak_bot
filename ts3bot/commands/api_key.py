@@ -1,3 +1,4 @@
+import datetime
 import logging
 import typing
 
@@ -6,7 +7,8 @@ from requests import RequestException
 
 import ts3bot
 from ts3bot import (
-    Config, InvalidKeyException,
+    Config,
+    InvalidKeyException,
     RateLimitException,
     events,
     fetch_api,
@@ -51,12 +53,30 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             if linked_identity:
                 # Account is linked to another guid
                 if linked_identity.identity.guid != event.uid:
-                    logging.warning(
-                        "{} ({}) tried to use an already registered API key/account. ({})".format(
-                            event.name, event.uid, account_info.get("name"),
+                    force_key_name = f"ts3bot-{event.id}"
+
+                    # Fetch token info
+                    token_info = fetch_api("tokeninfo", api_key=key)
+
+                    # Override registration, same as !register
+                    if token_info.get("name", "") == force_key_name:
+                        ts3bot.transfer_registration(bot, account, event)
+
+                        logging.info(
+                            "%s (%s) transferred permissions of %s onto themselves.",
+                            event.name,
+                            event.uid,
+                            account_info.get("name"),
                         )
+                        return
+
+                    logging.warning(
+                        "%s (%s) tried to use an already registered API key/account. (%s)",
+                        event.name,
+                        event.uid,
+                        account_info.get("name"),
                     )
-                    bot.send_message(event.id, "token_in_use")
+                    bot.send_message(event.id, "token_in_use", api_name=force_key_name)
                 else:  # Account is linked to current guid
                     logging.info(
                         "User {} ({}) tried to register a second time for whatever reason using {}".format(
