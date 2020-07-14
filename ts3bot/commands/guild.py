@@ -4,7 +4,14 @@ import typing
 
 import requests
 
-from ts3bot import InvalidKeyException, RateLimitException, events, sync_groups
+from ts3bot import (
+    Config,
+    InvalidKeyException,
+    RateLimitException,
+    events,
+    sync_groups,
+    timedelta_hours,
+)
 from ts3bot.bot import Bot
 from ts3bot.database import models
 
@@ -22,10 +29,14 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         bot.send_message(event.id, "missing_token")
         return
 
-    # Saved account is older than one day or has no guilds
+    on_join_hours_timeout = Config.getfloat("verify", "on_join_hours")
+
+    # Saved account is older than x hours or has no guilds
     if (
-        datetime.datetime.today() - account.last_check
-    ).days >= 1 or account.guilds.count() == 0:
+        timedelta_hours(datetime.datetime.today() - account.last_check)
+        >= on_join_hours_timeout
+        or account.guilds.count() == 0
+    ):
         bot.send_message(event.id, "account_updating")
 
         try:
@@ -98,7 +109,9 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
         # Guild not found or user not in guild
         if not selected_guild:
-            bot.send_message(event.id, "guild_invalid_selection")
+            bot.send_message(
+                event.id, "guild_invalid_selection", timeout=on_join_hours_timeout
+            )
             return
 
         if selected_guild.is_active:

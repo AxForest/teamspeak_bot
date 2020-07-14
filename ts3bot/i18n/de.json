@@ -11,7 +11,7 @@
     "guild_already_active": "Die Gilde sollte bereits gesetzt sein. Falls dem nicht so ist, führen Sie bitte erst [b]!guild remove[/b] aus, oder wenden Sie sich an einen Admin.",
     "guild_already_removed": "Es sollte aktuell keine Gilde gesetzt sein. Falls dem nicht so ist, wenden Sie sich bitte an einen Admin.",
     "guild_error": "Beim Setzen der Gruppe ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
-    "guild_invalid_selection": "Entweder sind Sie nicht in dieser Gilde oder sie ist mir unbekannt. Sollte das nicht stimmen, wenden Sie sich an einen Admin oder warten sie ca. 24 Stunden, bis die API-Infos aktualisiert wurden.\nEine Auflistung Ihrer mir bekannten Gilden erhalten Sie via [b]!guild[/b]",
+    "guild_invalid_selection": "Entweder sind Sie nicht in dieser Gilde oder sie ist mir unbekannt. Sollte das nicht stimmen, wenden Sie sich an einen Admin oder warten sie ca. %{timeout} Stunden, bis die API-Infos aktualisiert wurden.\nEine Auflistung Ihrer mir bekannten Gilden erhalten Sie via [b]!guild[/b]",
     "guild_removed": "Gilden-Gruppe wurde erfolgreich entfernt.",
     "guild_selection": "Die Auswahl geschieht per [b]!guild Gilden-Tag[/b]. Folgende Gilden stehen zur Auswahl:\n- %{guilds}\nFalls die Gilde entfernt werden soll, nutzen Sie [b]!guild remove[/b].",
     "guild_set": "%{guild} wurde erfolgreich gesetzt.",
