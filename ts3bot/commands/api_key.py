@@ -91,8 +91,34 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                         account.api_key = key
                         account.is_valid = True
                         bot.session.commit()
+                        bot.send_message(event.id, "registration_exists")
+                        return
 
-                    bot.send_message(event.id, "registration_exists")
+                    # Same API key supplied, last check was over 12 minutes ago
+                    if (
+                        ts3bot.timedelta_hours(
+                            datetime.datetime.today() - account.last_check
+                        )
+                        >= 0.2
+                    ):
+                        # Update saved account info if same API key was posted again with a reasonable time frame
+                        account.update(bot.session)
+                        try:
+                            # Get user's DB id
+                            cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[
+                                0
+                            ]["cldbid"]
+
+                            # Sync groups
+                            ts3bot.sync_groups(bot, cldbid, account)
+                            bot.send_message(event.id, "registration_details_updated")
+                        except ts3.TS3Error:
+                            # User might not exist in the db
+                            logging.error("Failed to sync user", exc_info=True)
+                    else:
+                        # Too early
+                        bot.send_message(event.id, "registration_too_early")
+
             else:
                 # Otherwise account is not yet linked and can be used
 
