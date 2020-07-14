@@ -30,11 +30,7 @@ if __name__ == "__main__":
         help="Verify everyone known to the TS3 server, this is the default",
         action="store_true",
     )
-    sub_cycle.add_argument(
-        "--world",
-        help="Verify world (id)",
-        type=int,
-    )
+    sub_cycle.add_argument("--world", help="Verify world (id)", type=int)
     sub_migrate = sub.add_parser(
         "migrate",
         help="Migrates the old database (<2020) to the current version. Uses cycle account",
@@ -58,7 +54,13 @@ if __name__ == "__main__":
         Bot(session).loop()
     elif args.mode == "cycle":
         init_logger("cycle")
-        Cycle(session, verify_all=args.all, verify_linked_worlds=args.relink, verify_ts3=args.ts3, verify_world=args.world).run()
+        Cycle(
+            session,
+            verify_all=args.all,
+            verify_linked_worlds=args.relink,
+            verify_ts3=args.ts3,
+            verify_world=args.world,
+        ).run()
     elif args.mode == "migrate":
         init_logger("migrate")
         legacy.apply_generic_groups(session)

@@ -220,7 +220,7 @@ def sync_groups(
     server_groups = bot.exec_("servergroupsbyclientid", cldbid=cldbid)
     server_group_ids = [int(_["sgid"]) for _ in server_groups]
 
-    group_changes = {"removed": [], "added": []}
+    group_changes: typing.Dict[str, typing.List[str]] = {"removed": [], "added": []}
 
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:

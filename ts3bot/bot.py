@@ -226,7 +226,7 @@ class Bot:
         recipient: str,
         msg: str,
         is_translation: bool = True,
-        **i18n_kwargs: typing.AnyStr,
+        **i18n_kwargs: typing.Union[typing.AnyStr, typing.List],
     ):
         if not recipient:
             logging.error("Got invalid recipient %s", recipient)

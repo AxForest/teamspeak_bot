@@ -343,7 +343,6 @@ class Account(Base):
                 LinkAccountGuild.get_or_create(session, self, guild, is_leader)
 
             # Process all current guilds for leader status
-            link_guild: LinkAccountGuild
             for link_guild in self.guilds:
                 # Skip new guilds
                 if link_guild.guild.guid in guids_joined:

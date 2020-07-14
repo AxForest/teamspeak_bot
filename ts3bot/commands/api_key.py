@@ -110,7 +110,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                 # Was registered with other account previously
                 if current_account:
                     bot.send_message(
-                        event.id, "registration_update", account=account.name,
+                        event.id, "registration_update", account=account.name
                     )
                 else:
                     bot.send_message(event.id, "welcome_registered")
