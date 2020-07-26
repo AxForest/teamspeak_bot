@@ -53,7 +53,17 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             if linked_identity:
                 # Account is linked to another guid
                 if linked_identity.identity.guid != event.uid:
-                    force_key_name = f"ts3bot-{event.id}"
+                    try:
+                        # Get user's DB id
+                        cldbid: str = bot.exec_(
+                            "clientgetdbidfromuid", cluid=event.uid
+                        )[0]["cldbid"]
+                    except ts3.TS3Error:
+                        logging.error("Failed to get user's dbid", exc_info=True)
+                        bot.send_message(event.id, "error_critical")
+                        return
+
+                    force_key_name = f"ts3bot-{cldbid}"
 
                     # Fetch token info
                     token_info = fetch_api("tokeninfo", api_key=key)
