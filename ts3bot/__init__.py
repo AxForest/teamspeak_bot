@@ -217,7 +217,7 @@ def transfer_registration(
             result = sync_groups(bot, cldbid, account, remove_all=True)
 
             logging.info(
-                "Removed previous links of %s as ignored during transfer to ",
+                "Removed previous links of %s as ignored during transfer to %s",
                 account.name,
                 target_identity.guid,
             )
