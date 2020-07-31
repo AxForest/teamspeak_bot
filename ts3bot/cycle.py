@@ -165,7 +165,7 @@ class Cycle:
             def or_world():
                 if self.verify_world:
                     return or_(
-                        models.Account.world.is_(self.verify_world),
+                        models.Account.world == self.verify_world,
                         models.WorldGroup.is_linked.is_(True),
                     )
                 else:
@@ -192,9 +192,11 @@ class Cycle:
                 and_(
                     models.Account.last_check
                     <= datetime.datetime.today()
-                    - datetime.timedelta(hours=Config.getfloat("verify", "cycle_hours")),
+                    - datetime.timedelta(
+                        hours=Config.getfloat("verify", "cycle_hours")
+                    ),
                     models.Account.is_valid.is_(True),
-                    models.Account.world.is_(self.verify_world),
+                    models.Account.world == self.verify_world,
                 )
             )
         else:
@@ -203,7 +205,9 @@ class Cycle:
                 and_(
                     models.Account.last_check
                     <= datetime.datetime.today()
-                    - datetime.timedelta(hours=Config.getfloat("verify", "cycle_hours")),
+                    - datetime.timedelta(
+                        hours=Config.getfloat("verify", "cycle_hours")
+                    ),
                     models.Account.is_valid.is_(True),
                 )
             )
