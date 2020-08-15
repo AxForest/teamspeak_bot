@@ -155,13 +155,19 @@ class Bot:
             if not evt.id:
                 return
 
-            self.create_user(evt.id)
+            was_created = self.create_user(evt.id)
             is_known = self.verify_user(evt.uid, evt.database_id, evt.id)
+
+            # Skip next check if user could not be cached
+            if not was_created:
+                return
 
             # Message user if total_connections is below n and user is new
             annoy_limit = Config.getint("teamspeak", "annoy_total_connections")
-            if not is_known and -1 < self.users[evt.id].total_connections <= int(
-                annoy_limit
+            if (
+                not is_known
+                and evt.id in self.users
+                and -1 < self.users[evt.id].total_connections <= annoy_limit
             ):
                 self.send_message(evt.id, "welcome_greet", con_limit=annoy_limit)
 
@@ -201,7 +207,12 @@ class Bot:
         else:
             logging.warning("Unexpected event: %s", event.data)
 
-    def create_user(self, client_id: str):
+    def create_user(self, client_id: str) -> bool:
+        """
+        Caches the user into our local user list, returns False if an error occured or the user left too quickly
+        :param client_id:
+        :return:
+        """
         try:
             info = self.exec_("clientinfo", clid=client_id)
             self.users[client_id] = ts3bot.User(
@@ -212,6 +223,7 @@ class Bot:
                 country=info[0].get("client_country", ""),
                 total_connections=int(info[0].get("client_totalconnections", -1)),
             )
+            return True
         except ts3.TS3Error as e:
             if e.args[0].error["id"] == "512":
                 # User went away, just ignore
@@ -221,12 +233,14 @@ class Bot:
         except KeyError:
             logging.exception("Failed to get client info for user")
 
+        return False
+
     def send_message(
         self,
         recipient: str,
         msg: str,
         is_translation: bool = True,
-        **i18n_kwargs: typing.Union[typing.AnyStr, typing.List],
+        **i18n_kwargs: typing.Union[typing.AnyStr, typing.List, int],
     ):
         if not recipient:
             logging.error("Got invalid recipient %s", recipient)
