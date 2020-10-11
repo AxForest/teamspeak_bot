@@ -16,6 +16,10 @@ def create_session(database_uri: str, is_test=False) -> Session:
             database_uri, echo=False, connect_args={"check_same_thread": False}
         )
     else:
+        # Force mysql driver to be utf8mb4
+        if database_uri.startswith("mysql") and "charset=utf8mb4" not in database_uri:
+            database_uri += "?charset=utf8mb4"
+
         engine = create_engine(
             database_uri,
             echo=False,
@@ -32,7 +36,9 @@ def create_session(database_uri: str, is_test=False) -> Session:
 
     # Hot-patch migration location if in test environment
     if is_test:
-        alembic_cfg.set_section_option("alembic", "script_location", str(Path(__file__).parent / "migrations"))
+        alembic_cfg.set_section_option(
+            "alembic", "script_location", str(Path(__file__).parent / "migrations")
+        )
 
     # Create tables if accounts does not exist
     if not engine.dialect.has_table(engine, "accounts"):
