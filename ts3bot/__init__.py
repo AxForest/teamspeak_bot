@@ -12,7 +12,8 @@ from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
 
 import ts3bot.database.models
-from ts3bot import bot as ts3_bot, events
+from ts3bot import bot as ts3_bot
+from ts3bot import events
 from ts3bot.config import Config
 from ts3bot.database import models
 
@@ -39,16 +40,29 @@ class InvalidKeyException(Exception):
     pass
 
 
-def limit_fetch_api(endpoint: str, api_key: typing.Optional[str] = None, level=0):
+class ApiErrBadData(Exception):
+    pass
+
+
+def limit_fetch_api(
+    endpoint: str, api_key: typing.Optional[str] = None, level=0, exc: Exception = None
+):
     if level >= 3:
-        raise RateLimitException("Encountered rate limit after waiting multiple times")
+        if isinstance(exc, RateLimitException):
+            raise RateLimitException("Encountered rate limit after waiting 3 times.")
+        else:
+            raise ApiErrBadData("Encountered ErrBadData even after retrying 3 times.")
 
     try:
         return fetch_api(endpoint, api_key)
-    except ts3bot.RateLimitException:
+    except ApiErrBadData as e:
+        logging.warning("Got ErrBadData from API, retrying in a few seconds.")
+        time.sleep(20)
+        return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
+    except RateLimitException as e:
         logging.warning("Got rate-limited, waiting 1 minute.")
         time.sleep(60)
-        return limit_fetch_api(endpoint, api_key, level=level + 1)
+        return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
 
 
 def fetch_api(endpoint: str, api_key: typing.Optional[str] = None):
@@ -85,6 +99,9 @@ def fetch_api(endpoint: str, api_key: typing.Optional[str] = None):
         and ("Invalid" in response.text or "invalid" in response.text)
     ):  # Invalid API key
         raise InvalidKeyException()
+
+    if response.status_code == 400 and "ErrBadData":
+        raise ApiErrBadData()
 
     if response.status_code == 200:
         return response.json()
@@ -252,7 +269,9 @@ def transfer_registration(
     logging.info("Transferred groups of %s to cldbid:%s", account.name, target_dbid)
 
     bot.send_message(
-        event.id, "registration_transferred", account=account.name,
+        event.id,
+        "registration_transferred",
+        account=account.name,
     )
 
 

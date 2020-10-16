@@ -133,6 +133,8 @@ class Cycle:
                         ts3bot.sync_groups(self.bot, cldbid, account)
                     except ts3bot.InvalidKeyException:
                         self.revoke(account, cldbid)
+                    except ts3bot.ApiErrBadData:
+                        logging.warning("Got ErrBadData for this account after multiple attempts.")
                     except requests.RequestException:
                         logging.exception("Error during API call")
                         raise
@@ -222,6 +224,8 @@ class Cycle:
                 account.update(self.session)
             except ts3bot.InvalidKeyException:
                 pass
+            except ts3bot.ApiErrBadData:
+                logging.warning("Got ErrBadData for this account after multiple attempts, ignoring for now.")
             except requests.RequestException:
                 logging.exception("Error during API call")
                 raise

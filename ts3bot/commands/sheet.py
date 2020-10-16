@@ -43,7 +43,8 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     elif match.group(1) == "set" and event.uid in Config.whitelist_admin:
         # Force-set an entry
         match = re.match(
-            "!sheet set (ebg|red|green|blue|r|g|b|remove) (.*)", event.message.strip(),
+            "!sheet set (ebg|red|green|blue|r|g|b|remove) (.*)",
+            event.message.strip(),
         )
         if not match:
             bot.send_message(event.id, "invalid_input")
@@ -57,7 +58,10 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         else:
             # Add new entry
             current_state = _add_lead(
-                current_state, wvw_map=match.group(1), note="", name=match.group(2),
+                current_state,
+                wvw_map=match.group(1),
+                note="",
+                name=match.group(2),
             )
             if not current_state:
                 bot.send_message(event.id, "sheet_map_full")

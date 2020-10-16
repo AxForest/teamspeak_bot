@@ -3,10 +3,10 @@ import logging
 import typing
 
 import ts3
-from requests import RequestException
-
 import ts3bot
+from requests import RequestException
 from ts3bot import (
+    ApiErrBadData,
     Config,
     InvalidKeyException,
     RateLimitException,
@@ -184,5 +184,5 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token_retry")
-    except (RateLimitException, RequestException):
+    except (RateLimitException, RequestException, ApiErrBadData):
         bot.send_message(event.id, "error_api")

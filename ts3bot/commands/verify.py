@@ -2,8 +2,7 @@ import typing
 
 import requests
 import ts3
-
-from ts3bot import InvalidKeyException, events, sync_groups
+from ts3bot import ApiErrBadData, InvalidKeyException, events, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config
 from ts3bot.database import enums, models
@@ -76,8 +75,6 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         account.invalidate(bot.session)
         changes = sync_groups(bot, cldbid, account)
 
-        bot.send_message(
-            event.id, "groups_removed", groups=str(changes["removed"])
-        )
-    except requests.RequestException:
+        bot.send_message(event.id, "groups_removed", groups=str(changes["removed"]))
+    except (requests.RequestException, ApiErrBadData):
         bot.send_message(event.id, "error_api")

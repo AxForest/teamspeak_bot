@@ -3,8 +3,7 @@ import typing
 from operator import or_
 
 import ts3
-
-from ts3bot import InvalidKeyException, events, fetch_api, sync_groups
+from ts3bot import ApiErrBadData, InvalidKeyException, events, fetch_api, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config
 from ts3bot.database import models
@@ -54,7 +53,10 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                 )
 
                 bot.send_message(
-                    event.id, "groups_revoked", amount="1", groups=result["removed"],
+                    event.id,
+                    "groups_revoked",
+                    amount="1",
+                    groups=result["removed"],
                 )
             except ts3.TS3Error:
                 # User might not exist in the db
@@ -65,4 +67,5 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
-        return
+    except ApiErrBadData:
+        bot.send_message(event.id, "error_api")

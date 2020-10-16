@@ -3,8 +3,13 @@ import typing
 
 import requests
 from sqlalchemy.orm import load_only
-
-from ts3bot import InvalidKeyException, RateLimitException, events, fetch_api
+from ts3bot import (
+    ApiErrBadData,
+    InvalidKeyException,
+    RateLimitException,
+    events,
+    fetch_api,
+)
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models
 
@@ -34,6 +39,6 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     except InvalidKeyException:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
-    except (requests.RequestException, RateLimitException):
+    except (requests.RequestException, RateLimitException, ApiErrBadData):
         logging.exception("Error during API call")
         bot.send_message(event.id, "error_api")

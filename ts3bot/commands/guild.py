@@ -3,8 +3,8 @@ import logging
 import typing
 
 import requests
-
 from ts3bot import (
+    ApiErrBadData,
     Config,
     InvalidKeyException,
     RateLimitException,
@@ -52,18 +52,19 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             logging.info("Revoked user's permissions.")
             bot.send_message(event.id, "invalid_token_admin")
             return
-        except (requests.RequestException, RateLimitException):
+        except (requests.RequestException, RateLimitException, ApiErrBadData):
             logging.exception("Error during API call")
             bot.send_message(event.id, "error_api")
 
     # User requested guild removal
     if match.group(1) and match.group(1).lower() == "remove":
         # Get active guild
-        active_guild: typing.Optional[models.LinkAccountGuild] = account.guilds.join(
-            models.Guild
-        ).filter(models.Guild.group_id.isnot(None)).filter(
-            models.LinkAccountGuild.is_active.is_(True)
-        ).one_or_none()
+        active_guild: typing.Optional[models.LinkAccountGuild] = (
+            account.guilds.join(models.Guild)
+            .filter(models.Guild.group_id.isnot(None))
+            .filter(models.LinkAccountGuild.is_active.is_(True))
+            .one_or_none()
+        )
 
         # There is no active guild, no need to remove anything
         if not active_guild:
