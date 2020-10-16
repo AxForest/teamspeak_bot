@@ -168,6 +168,7 @@ class Account(Base):
     )
 
     is_valid = Column(types.Boolean, default=True, nullable=False)
+    retries = Column(types.Integer, default=0, nullable=False)
 
     last_check = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
     created_at = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
@@ -362,12 +363,15 @@ class Account(Base):
 
             self.last_check = datetime.datetime.now()
             self.is_valid = True
+            self.retries = 0
         except ts3bot.InvalidKeyException:
-            self.is_valid = False
+            if self.retries >= 3:
+                self.is_valid = False
+                raise
+            else:
+                self.retries += 1
+        finally:
             session.commit()
-            raise
-
-        session.commit()
 
         return result
 
