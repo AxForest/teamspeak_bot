@@ -56,8 +56,7 @@ def limit_fetch_api(
     try:
         return fetch_api(endpoint, api_key)
     except ApiErrBadData as e:
-        logging.warning("Got ErrBadData from API, retrying in a few seconds.")
-        time.sleep(20)
+        logging.warning("Got ErrBadData from API, retrying.")
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
     except RateLimitException as e:
         logging.warning("Got rate-limited, waiting 1 minute.")
