@@ -367,8 +367,16 @@ class Account(Base):
         except ts3bot.InvalidKeyException:
             if self.retries >= 3:
                 self.is_valid = False
+                logging.info(
+                    "%s was invalid after 3 retries, marking as invalid.", self.name
+                )
                 raise
             else:
+                logging.info(
+                    "%s was invalid in this attempt, increasing counter to %s",
+                    self.name,
+                    self.retries + 1,
+                )
                 self.retries += 1
         finally:
             session.commit()
