@@ -139,6 +139,7 @@ class Guild(Base):
             )
             .delete(synchronize_session="fetch")
         )
+        session.commit()
 
         logging.info(f"Deleted {deleted} empty guilds")
 
