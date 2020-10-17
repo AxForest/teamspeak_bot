@@ -363,7 +363,11 @@ class Account(Base):
 
             self.last_check = datetime.datetime.now()
             self.is_valid = True
-            self.retries = 0
+            if self.retries > 0:
+                logging.info(
+                    "%s was valid again after %s retries.", self.name, self.retries
+                )
+                self.retries = 0
         except ts3bot.InvalidKeyException:
             if self.retries >= 3:
                 self.is_valid = False
