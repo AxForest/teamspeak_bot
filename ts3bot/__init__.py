@@ -99,7 +99,7 @@ def fetch_api(endpoint: str, api_key: typing.Optional[str] = None):
     ):  # Invalid API key
         raise InvalidKeyException()
 
-    if response.status_code == 400 and "ErrBadData":
+    if response.status_code == 400 and "ErrBadData" in response.text:
         raise ApiErrBadData()
 
     if response.status_code == 200:
