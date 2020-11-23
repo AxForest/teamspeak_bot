@@ -360,7 +360,11 @@ class Bot:
             ts3bot.sync_groups(self, client_database_id, account)
         except ts3bot.InvalidKeyException:
             revoked("groups_revoked_invalid_key")
-        except (requests.RequestException, ts3bot.RateLimitException):
+        except (
+            requests.RequestException,
+            ts3bot.RateLimitException,
+            ts3bot.ApiErrBadData,
+        ):
             logging.exception("Error during API call")
 
         return True
