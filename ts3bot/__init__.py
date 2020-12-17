@@ -44,9 +44,18 @@ class ApiErrBadData(Exception):
     pass
 
 
+ServerGroup = typing.TypedDict("ServerGroup", {"sgid": int, "name": str})
+SyncGroupChanges = typing.TypedDict(
+    "SyncGroupChanges", {"removed": typing.List[str], "added": typing.List[str]}
+)
+
+
 def limit_fetch_api(
-    endpoint: str, api_key: typing.Optional[str] = None, level=0, exc: Exception = None
-):
+    endpoint: str,
+    api_key: typing.Optional[str] = None,
+    level: int = 0,
+    exc: Exception = None,
+) -> typing.Dict:
     if level >= 3:
         if isinstance(exc, RateLimitException):
             raise RateLimitException("Encountered rate limit after waiting 3 times.")
@@ -64,7 +73,7 @@ def limit_fetch_api(
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
 
 
-def fetch_api(endpoint: str, api_key: typing.Optional[str] = None):
+def fetch_api(endpoint: str, api_key: typing.Optional[str] = None) -> typing.Dict:
     """
 
     :param endpoint: The API (v2) endpoint to request
@@ -114,7 +123,7 @@ def fetch_api(endpoint: str, api_key: typing.Optional[str] = None):
     raise requests.RequestException()  # API down
 
 
-def init_logger(name: str, is_test=False):
+def init_logger(name: str, is_test: bool = False):
     if not Path("logs").exists():
         Path("logs").mkdir()
 
@@ -146,7 +155,7 @@ def init_logger(name: str, is_test=False):
 
     sentry_dsn = Config.get("sentry", "dsn")
     if sentry_dsn:
-        import sentry_sdk
+        import sentry_sdk  # type: ignore
 
         def before_send(event, hint):
             if "exc_info" in hint:
@@ -211,8 +220,8 @@ def transfer_registration(
             bot.send_message(event.id, "error_critical")
             return
 
-    # Get current guild group to save it for later use
-    guild_group = account.guild_group()
+    # Get current guild groups to save them for later use
+    guild_groups = account.guild_groups()
 
     # Get previous identity
     previous_identity: typing.Optional[
@@ -257,8 +266,10 @@ def transfer_registration(
     )
 
     # Add guild group
-    if guild_group:
-        guild_group.is_active = True
+    if guild_groups:
+        bot.session.query(models.LinkAccountGuild).filter(
+            models.LinkAccountGuild.id.in_([g.id for g in guild_groups])
+        ).update({"is_active": True})
 
     bot.session.commit()
 
@@ -268,9 +279,7 @@ def transfer_registration(
     logging.info("Transferred groups of %s to cldbid:%s", account.name, target_dbid)
 
     bot.send_message(
-        event.id,
-        "registration_transferred",
-        account=account.name,
+        event.id, "registration_transferred", account=account.name,
     )
 
 
@@ -280,11 +289,11 @@ def sync_groups(
     account: typing.Optional[ts3bot.database.models.Account],
     remove_all=False,
     skip_whitelisted=False,
-) -> typing.Dict[str, list]:
+) -> SyncGroupChanges:
     def sg_dict(_id, _name):
         return {"sgid": _id, "name": _name}
 
-    def _add_group(group: typing.Dict):
+    def _add_group(group: ServerGroup):
         """
         Adds a user to a group if necessary, updates `server_group_ids`.
 
@@ -309,7 +318,7 @@ def sync_groups(
                 group["name"],
             )
 
-    def _remove_group(group: typing.Dict):
+    def _remove_group(group: ServerGroup):
         """
         Removes a user from a group if necessary, updates `server_group_ids`.
 
@@ -339,19 +348,22 @@ def sync_groups(
     server_groups = bot.exec_("servergroupsbyclientid", cldbid=cldbid)
     server_group_ids = [int(_["sgid"]) for _ in server_groups]
 
-    group_changes: typing.Dict[str, typing.List[str]] = {"removed": [], "added": []}
+    group_changes: SyncGroupChanges = {"removed": [], "added": []}
 
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:
-        valid_guild_group: typing.Optional[
+        valid_guild_groups: typing.List[
             ts3bot.database.models.LinkAccountGuild
-        ] = account.guild_group()
+        ] = account.guild_groups()
         valid_world_group: typing.Optional[
             ts3bot.database.models.WorldGroup
         ] = account.world_group(bot.session)
     else:
-        valid_guild_group = None
+        valid_guild_groups = []
         valid_world_group = None
+
+    valid_guild_group_ids = [g.guild.group_id for g in valid_guild_groups]
+    valid_guild_mapper = {g.guild.group_id: g for g in valid_guild_groups}
 
     # Get all valid groups
     world_groups: typing.List[int] = [
@@ -384,7 +396,7 @@ def sync_groups(
             server_group["name"] == "Guest"
             or sgid == generic_world
             or sgid == generic_guild
-            or (valid_guild_group and sgid == valid_guild_group.guild.group_id)
+            or (len(valid_guild_groups) > 0 and sgid in valid_guild_group_ids)
             or (valid_world_group and sgid == valid_world_group.group_id)
         ):
             continue
@@ -408,7 +420,7 @@ def sync_groups(
         _remove_group(server_group)
 
     # User has additional guild groups but shouldn't
-    if not valid_guild_group:
+    if len(valid_guild_group_ids) == 0:
         for _group in Config.additional_guild_groups:
             for server_group in server_groups:
                 if server_group["name"] == _group:
@@ -416,31 +428,47 @@ def sync_groups(
                     break
 
     # User is missing generic guild
-    if valid_guild_group and generic_guild["sgid"] not in server_group_ids:
+    if len(valid_guild_group_ids) > 0 and generic_guild["sgid"] not in server_group_ids:
         _add_group(generic_guild)
 
     # User has generic guild but shouldn't
-    if generic_guild["sgid"] in server_group_ids and not valid_guild_group:
+    if len(valid_guild_group_ids) == 0 and generic_guild["sgid"] in server_group_ids:
         _remove_group(generic_guild)
 
-    # User is missing valid guild
-    if valid_guild_group and valid_guild_group.guild.group_id not in server_group_ids:
-        _add_group(
-            sg_dict(valid_guild_group.guild.group_id, valid_guild_group.guild.name)
-        )
+    # Sync guild groups
+    left_guilds = [
+        gid
+        for gid in server_group_ids
+        if gid in guild_groups and gid not in valid_guild_group_ids
+    ]  # Guilds that shouldn't be applied to the user
+    joined_guilds = [
+        gid for gid in valid_guild_group_ids if gid not in server_group_ids
+    ]  # Guild that are missing in the user's group list
+
+    # Remove guilds that should not be applied
+    if len(guild_groups) > 0:
+        for group_id in left_guilds:
+            _remove_group(sg_dict(group_id, valid_guild_mapper[group_id].guild.name))
+
+    # Join guilds
+    if len(valid_guild_group_ids) > 0:
+        for group_id in joined_guilds:
+            _add_group(sg_dict(group_id, valid_guild_mapper[group_id].guild.name))
 
     # User is missing generic world
     if (
         valid_world_group
         and valid_world_group.is_linked
         and generic_world["sgid"] not in server_group_ids
-        and not valid_guild_group
+        and len(valid_guild_group_ids) == 0
     ):
         _add_group(generic_world)
 
     # User has generic world but shouldn't
     if generic_world["sgid"] in server_group_ids and (
-        not valid_world_group or not valid_world_group.is_linked or valid_guild_group
+        not valid_world_group
+        or not valid_world_group.is_linked
+        or len(valid_guild_group_ids) > 0
     ):
         _remove_group(generic_world)
 

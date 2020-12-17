@@ -187,14 +187,13 @@ class Account(Base):
             .one_or_none()
         )
 
-    def guild_group(self) -> typing.Optional["LinkAccountGuild"]:
-        # TODO: Introduce setting to allow multiple guild tags
+    def guild_groups(self) -> typing.List["LinkAccountGuild"]:
         return (
             self.guilds.join(Guild)
             .filter(
                 and_(Guild.group_id.isnot(None), LinkAccountGuild.is_active.is_(True))
             )
-            .first()
+            .all()
         )
 
     @staticmethod
@@ -226,7 +225,7 @@ class Account(Base):
         """
         # Get account by guid or name
         instance = Account.get_by_api_info(
-            session, guid=account_info.get("id"), name=account_info.get("name")
+            session, guid=account_info.get("id", ""), name=account_info.get("name", "")
         )
         if not instance:
             instance = Account.create(account_info, api_key)

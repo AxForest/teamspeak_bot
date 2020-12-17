@@ -2,7 +2,7 @@
 A TeamSpeak bot for assigning server groups based on the user's world in Guild Wars 2.
 
 # Requirements 
-* Python 3.6+
+* Python 3.8+
 * Python libs listed in [Pipfile](Pipfile)
 * pipenv or boredom
 #### TS3 Requirements

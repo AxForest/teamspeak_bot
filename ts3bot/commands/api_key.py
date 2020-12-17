@@ -152,6 +152,20 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                 )
                 bot.session.commit()
 
+                # Add all known guilds to user if enabled
+                if Config.getboolean(
+                    "guild", "assign_on_register"
+                ) and Config.getboolean("guild", "allow_multiple_guilds"):
+                    account.guilds.filter(
+                        models.LinkAccountGuild.id.in_(
+                            bot.session.query(models.LinkAccountGuild.id)
+                            .join(models.Guild)
+                            .filter(models.Guild.group_id.isnot(None))
+                            .subquery()
+                        )
+                    ).update({"is_active": True}, synchronize_session="fetch")
+                    bot.session.commit()
+
                 # Sync groups
                 sync_groups(bot, cldbid, account)
 
@@ -173,7 +187,13 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
                     # Tell user about !guild if it's enabled
                     if Config.getboolean("commands", "guild"):
-                        bot.send_message(event.id, "welcome_registered_2")
+                        if Config.getboolean(
+                            "guild", "assign_on_register"
+                        ) and Config.getboolean("guild", "allow_multiple_guilds"):
+                            bot.send_message(event.id, "welcome_registered_3")
+                        else:
+                            bot.send_message(event.id, "welcome_registered_2")
+
         else:
             bot.send_message(
                 event.id,

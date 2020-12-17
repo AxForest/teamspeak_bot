@@ -9,12 +9,12 @@
     "groups_revoked": "Done! Rechte von %{amount} vorherigen Nutzern entzogen. Gruppen: %{groups}",
     "groups_revoked_invalid_key": "Ihre Rechte wurden entfernt, da der hinterlegte API-Key ungültig ist.",
     "groups_revoked_missing_key": "Ihre Rechte wurden entfernt, da scheinbar kein API-Key hinterlegt wurde",
-    "guild_already_active": "Die Gilde sollte bereits gesetzt sein. Falls dem nicht so ist, führen Sie bitte erst [b]!guild remove[/b] aus, oder wenden Sie sich an einen Admin.",
     "guild_already_removed": "Es sollte aktuell keine Gilde gesetzt sein. Falls dem nicht so ist, wenden Sie sich bitte an einen Admin.",
     "guild_error": "Beim Setzen der Gruppe ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
     "guild_invalid_selection": "Entweder sind Sie nicht in dieser Gilde oder sie ist mir unbekannt. Sollte das nicht stimmen, wenden Sie sich an einen Admin oder warten sie ca. %{timeout} Stunden, bis die API-Infos aktualisiert wurden.\nEine Auflistung Ihrer mir bekannten Gilden erhalten Sie via [b]!guild[/b]",
-    "guild_removed": "Gilden-Gruppe wurde erfolgreich entfernt.",
-    "guild_selection": "Die Auswahl geschieht per [b]!guild Gilden-Tag[/b]. Folgende Gilden stehen zur Auswahl:\n- %{guilds}\nFalls die Gilde entfernt werden soll, nutzen Sie [b]!guild remove[/b].",
+    "guild_removed": "Gruppen wurde erfolgreich entfernt.",
+    "guild_removed_one": "Gilde %{guild} erfolgreich entfernt.",
+    "guild_selection": "Die Auswahl geschieht per [b]!guild Gilden-Tag[/b]. Folgende Gilden stehen zur Auswahl:\n- %{guilds}\nFalls alle Gilden entfernt werden sollen, nutzen Sie [b]!guild remove[/b].",
     "guild_set": "%{guild} wurde erfolgreich gesetzt.",
     "guild_unknown": "Scheinbar sind Sie in keiner mir bekannten Gilde.",
     "info_world": "Key ist gültig für %{user} auf Welt %{world}. Der Nutzer ist in folgenden bekannten Gilden: %{guilds}",
@@ -46,5 +46,7 @@
     "welcome": "Willkommen bei der automatischen Registrierung auf dem Kodash-TS. Bitte schicken Sie mir Ihren API-Key, welchen Sie hier generieren können: [url]https://account.arena.net/applications[/url]",
     "welcome_greet": "Willkommen auf dem Kodash-TS. Falls Sie sich registrieren möchten, senden Sie mir Ihren API-Key zu, der unter [url]https://account.arena.net/applications[/url] generiert werden kann.\nDiese Nachricht wird nach %{con_limit} Verbindungen nicht mehr gesendet.",
     "welcome_registered": "Willkommen auf dem Kodash-TS! Um alle Channels sehen zu können, verbinden Sie erneut, oder klicken sie auf die Sprechblase mit dem Auge über der Channel-Liste.",
-    "welcome_registered_2": "Falls Sie zu einer Gilde gehören, die hier eine Servergruppe hat, kann diese per [b]!guild[/b] gewählt werden."
+    "welcome_registered_2": "Falls Sie zu einer Gilde gehören, die hier eine Servergruppe hat, kann diese per [b]!guild[/b] gewählt werden.",
+    "welcome_registered_3": "Die passenden Servergruppen für Ihre Gilden wurden verteilt, sofern vorhanden. Falls Sie eine dieser entfernen möchten, nutzen Sie [b]!guild [tag][/b]."
+
 }

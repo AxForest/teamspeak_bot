@@ -81,7 +81,9 @@ class Cycle:
             ).delete(synchronize_session="fetch")
 
     def run(self):
-        self.fix_user_guilds()
+        # Skip check if multiple guilds are allowed
+        if not Config.getboolean("guild", "allow_multiple_guilds"):
+            self.fix_user_guilds()
 
         # Run if --ts3 is set or nothing was passed
         if self.verify_ts3 or not (
@@ -134,7 +136,9 @@ class Cycle:
                     except ts3bot.InvalidKeyException:
                         self.revoke(account, cldbid)
                     except ts3bot.ApiErrBadData:
-                        logging.warning("Got ErrBadData for this account after multiple attempts.")
+                        logging.warning(
+                            "Got ErrBadData for this account after multiple attempts."
+                        )
                     except requests.RequestException:
                         logging.exception("Error during API call")
                         raise
@@ -225,7 +229,9 @@ class Cycle:
             except ts3bot.InvalidKeyException:
                 pass
             except ts3bot.ApiErrBadData:
-                logging.warning("Got ErrBadData for this account after multiple attempts, ignoring for now.")
+                logging.warning(
+                    "Got ErrBadData for this account after multiple attempts, ignoring for now."
+                )
             except requests.RequestException:
                 logging.exception("Error during API call")
                 raise

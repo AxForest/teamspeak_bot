@@ -104,6 +104,12 @@ class Config:
             "cycle_hours": 48,
             "on_join_hours": 24,
         }
+        config["guild"] = {
+            "# Whether to allow multiple guilds on a user": None,
+            "allow_multiple_guilds": True,
+            "# Assign guild tags automatically on register, only available if allow_multiple_guilds is enabled": None,
+            "assign_on_register": True,
+        }
 
         return config
 

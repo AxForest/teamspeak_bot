@@ -58,16 +58,16 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
     # User requested guild removal
     if match.group(1) and match.group(1).lower() == "remove":
-        # Get active guild
-        active_guild: typing.Optional[models.LinkAccountGuild] = (
+        # Get active guilds
+        has_active_guilds: int = (
             account.guilds.join(models.Guild)
             .filter(models.Guild.group_id.isnot(None))
             .filter(models.LinkAccountGuild.is_active.is_(True))
-            .one_or_none()
+            .count()
         )
 
-        # There is no active guild, no need to remove anything
-        if not active_guild:
+        # There are no active guilds, no need to remove anything
+        if not has_active_guilds:
             bot.send_message(event.id, "guild_already_removed")
             return
 
@@ -115,20 +115,27 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             )
             return
 
+        # Toggle guild
         if selected_guild.is_active:
-            bot.send_message(event.id, "guild_already_active")
-            return
+            selected_guild.is_active = False
+        else:
+            selected_guild.is_active = True
 
-        # Remove other guilds
-        account.guilds.update({"is_active": False})
+            # Remove other guilds if only one is allowed
+            if not Config.getboolean("guild", "allow_multiple_guilds"):
+                account.guilds.filter(
+                    models.LinkAccountGuild.id != selected_guild.id
+                ).update({"is_active": False})
 
-        # Assign guild
-        selected_guild.is_active = True
         bot.session.commit()
 
         # Sync groups
         changes = sync_groups(bot, cldbid, account)
-        if len(changes["added"]) > 0:
+        if selected_guild.is_active and len(changes["added"]):
             bot.send_message(event.id, "guild_set", guild=selected_guild.guild.name)
+        elif not selected_guild.is_active and len(changes["removed"]):
+            bot.send_message(
+                event.id, "guild_removed_one", guild=selected_guild.guild.name
+            )
         else:
             bot.send_message(event.id, "guild_error")

@@ -9,12 +9,12 @@
     "groups_revoked": "Done! Permissions were removed from %{amount} previous users. Groups: %{groups}",
     "groups_revoked_invalid_key": "Your groups were removed because the linked API key is invalid.",
     "groups_revoked_missing_key": "Your groups were removed because there seems to be no API key linked to your TS3 identity.",
-    "guild_already_active": "The guild should already be set. If that is not the case, please remove it via [b]!guild remove[/b] or contact an admin.",
     "guild_already_removed": "There should not be any guild set currently. If you believe this to be incorrect, please contact an admin to sort this out.",
     "guild_error": "Failed to set the guild group, please try again.",
     "guild_invalid_selection": "Either you are not in that guild or it's unknown for me. In case that is not correct, contact an admin or wait about %{timeout} hours until the API infos are updated.\nYou can get a list of your known guilds by using [b]!guild[/b]",
-    "guild_removed": "Successfully removed the guild group.",
-    "guild_selection": "You can select a guild by using [b]!guild guild_tag[/b]. If you want to remove your guild group, simply send [b]!guild remove[/b].The following guilds are currently available:\n- %{guilds}",
+    "guild_removed": "Successfully removed all guild groups.",
+    "guild_removed_one": "Guild %{guild} removed successfully.",
+    "guild_selection": "You can enable/disable a guild by using [b]!guild guild_tag[/b]. If you want to remove all guild groups, simply send [b]!guild remove[/b].The following guilds are currently available:\n- %{guilds}",
     "guild_set": "Guild %{guild} set successfully.",
     "guild_unknown": "Apparently you aren't in any known guilds.",
     "info_world": "Key is valid for %{user} on %{world}. The user is in the following known guilds: %{guilds}",
@@ -46,5 +46,6 @@
     "welcome": "Welcome to the automatic registration on the Kodash TS. Please send me an API key which you can generate at [url]https://account.arena.net/applications[/url]. \nKeep in mind that this key should not be deleted as you will lose your groups otherwise.",
     "welcome_greet": "Welcome to the Kodash TS. If you want to register, please send me an API key which you can generate at [url]https://account.arena.net/applications[/url].\nThis message will not be sent again after %{con_limit} connections.",
     "welcome_registered": "Welcome to the Kodash TS! To view all channels/users either reconnect or click on the little speech bubble with an eye in the upper menu above the channel list.",
-    "welcome_registered_2": "If your guild has a server group here you can grab it by typing [b]!guild[/b] and following the instructions."
+    "welcome_registered_2": "If your guild has a server group here you can grab it by typing [b]!guild[/b] and following the instructions.",
+    "welcome_registered_3": "The server groups for your guilds have been applied, in case there were any. If you want to change them, please use [b]!guild[/b] and follow the instructions."
 }
