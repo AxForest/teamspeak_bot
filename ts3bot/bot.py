@@ -106,7 +106,8 @@ class Bot:
             self.exec_("servernotifyregister", event="server")
 
             # Move to target channel
-            self.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
+            if current_nick[0]["client_channel_id"] != self.channel_id:
+                self.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
 
     def exec_(self, cmd: str, *options, **params):
         return self.ts3c.exec_(cmd, *options, **params)
