@@ -46,3 +46,4 @@ permissions of the previous link).
 - The bot assumes that the guest group is still called `Guest`.
 - The world group will always remain, even if a guild is selected.
 - The database **HAS TO BE** utf8mb4/utf8mb4_bin or you will encounter strange issues.
+- A guild tag must be unique, meaning there cannot be two guilds with the same tag mapped to a server group.

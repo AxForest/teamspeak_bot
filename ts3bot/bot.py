@@ -6,13 +6,12 @@ import typing
 from importlib import import_module
 from pathlib import Path
 
-import i18n
+import i18n  # type: ignore
 import requests
-import ts3
+import ts3  # type: ignore
+import ts3bot
 from sqlalchemy import exc
 from sqlalchemy.orm import Session, load_only
-
-import ts3bot
 from ts3bot import commands, events
 from ts3bot.config import Config
 from ts3bot.database import models
@@ -47,7 +46,7 @@ class Bot:
                     logging.info("Skipping command.%s", _)
                     continue
 
-                mod = import_module(f"ts3bot.commands.{_}")
+                mod = typing.cast(Command, import_module(f"ts3bot.commands.{_}"))
                 mod.REGEX = re.compile(mod.MESSAGE_REGEX)
                 logging.info("Registered command.%s", _)
                 self.commands.append(mod)
@@ -94,6 +93,7 @@ class Bot:
         if current_nick[0]["client_nickname"] != self.client_nick:
             self.exec_("clientupdate", client_nickname=self.client_nick)
 
+        # TODO: Replace clientfind/clientinfo with info from whoami
         self.own_id: int = self.exec_("clientfind", pattern=self.client_nick)[0]["clid"]
         self.own_uid = self.exec_("clientinfo", clid=self.own_id)[0][
             "client_unique_identifier"
@@ -110,6 +110,9 @@ class Bot:
                 self.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
 
     def exec_(self, cmd: str, *options, **params):
+        if not self.ts3c:
+            raise ConnectionError("Not connected yet.")
+
         return self.ts3c.exec_(cmd, *options, **params)
 
     def loop(self):
@@ -241,7 +244,7 @@ class Bot:
         recipient: str,
         msg: str,
         is_translation: bool = True,
-        **i18n_kwargs: typing.Union[typing.AnyStr, typing.List, int],
+        **i18n_kwargs: typing.Union[typing.AnyStr, typing.List, int, float],
     ):
         if not recipient:
             logging.error("Got invalid recipient %s", recipient)
@@ -278,11 +281,12 @@ class Bot:
         """
 
         def revoked(response: str):
-            if account:
-                account.invalidate(self.session)
+            l_account = typing.cast(typing.Optional[models.Account], account)
+            if l_account:
+                l_account.invalidate(self.session)
 
             changes = ts3bot.sync_groups(
-                self, client_database_id, account, remove_all=True
+                self, client_database_id, l_account, remove_all=True
             )
 
             reason = "unknown reason"

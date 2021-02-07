@@ -6,7 +6,7 @@ Create Date: 2020-07-05 22:24:09.581633
 
 """
 import sqlalchemy as sa
-from alembic import op
+from alembic import op  # type: ignore
 from sqlalchemy.sql import expression
 
 # revision identifiers, used by Alembic.

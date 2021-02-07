@@ -1,7 +1,7 @@
 import logging
 import typing
 
-import ts3
+import ts3  # type: ignore
 from requests import RequestException
 from ts3bot import (
     ApiErrBadData,

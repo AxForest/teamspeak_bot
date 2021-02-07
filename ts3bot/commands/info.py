@@ -32,7 +32,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         bot.send_message(
             event.id,
             "info_world",
-            user=account.get("name"),
+            user=account.get("name", "Unknown.0000"),
             world=server.proper_name,
             guilds=", ".join([_.name for _ in guilds]),
         )

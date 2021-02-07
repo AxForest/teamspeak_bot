@@ -2,16 +2,16 @@ import os
 import sys
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy import engine_from_config, pool, create_engine
+from alembic import context  # type: ignore
+from sqlalchemy import create_engine, pool
 
 # Force module path
 sys.path.insert(
     0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 )
 
-from ts3bot.database.models import Base
 from ts3bot.config import Config
+from ts3bot.database.models.base import Base
 
 # Load custom config
 Config.load()

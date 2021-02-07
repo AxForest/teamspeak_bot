@@ -7,11 +7,9 @@ from datetime import timedelta
 from pathlib import Path
 
 import requests
-import ts3
+import ts3  # type: ignore
 from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
-
-import ts3bot.database.models
 from ts3bot import bot as ts3_bot
 from ts3bot import events
 from ts3bot.config import Config
@@ -156,6 +154,9 @@ def init_logger(name: str, is_test: bool = False):
     sentry_dsn = Config.get("sentry", "dsn")
     if sentry_dsn:
         import sentry_sdk  # type: ignore
+        from sentry_sdk.integrations.sqlalchemy import (
+            SqlalchemyIntegration,
+        )  # type: ignore
 
         def before_send(event, hint):
             if "exc_info" in hint:
@@ -169,6 +170,7 @@ def init_logger(name: str, is_test: bool = False):
             before_send=before_send,
             release=VERSION,
             send_default_pii=True,
+            integrations=[SqlalchemyIntegration()],
         )
 
 
@@ -204,16 +206,17 @@ def transfer_registration(
 
     # Get identity from event if necessary
     if not target_identity:
-        target_identity: models.Identity = models.Identity.get_or_create(
-            bot.session, event.uid
+        # TODO: Remove workaround once mypy gets its shit together https://github.com/python/mypy/pull/9956
+        target_identity = typing.cast(
+            models.Identity, models.Identity.get_or_create(bot.session, event.uid)
         )
 
     # Get database id if necessary
     if not target_dbid:
         try:
-            target_dbid: str = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0][
-                "cldbid"
-            ]
+            target_dbid = typing.cast(
+                str, bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
+            )
         except ts3.TS3Error:
             # User might not exist in the db
             logging.exception("Failed to get database id from event's user")
@@ -279,14 +282,16 @@ def transfer_registration(
     logging.info("Transferred groups of %s to cldbid:%s", account.name, target_dbid)
 
     bot.send_message(
-        event.id, "registration_transferred", account=account.name,
+        event.id,
+        "registration_transferred",
+        account=account.name,
     )
 
 
 def sync_groups(
     bot: ts3_bot.Bot,
     cldbid: str,
-    account: typing.Optional[ts3bot.database.models.Account],
+    account: typing.Optional[models.Account],
     remove_all=False,
     skip_whitelisted=False,
 ) -> SyncGroupChanges:
@@ -353,11 +358,11 @@ def sync_groups(
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:
         valid_guild_groups: typing.List[
-            ts3bot.database.models.LinkAccountGuild
+            models.LinkAccountGuild
         ] = account.guild_groups()
-        valid_world_group: typing.Optional[
-            ts3bot.database.models.WorldGroup
-        ] = account.world_group(bot.session)
+        valid_world_group: typing.Optional[models.WorldGroup] = account.world_group(
+            bot.session
+        )
     else:
         valid_guild_groups = []
         valid_world_group = None
@@ -368,24 +373,23 @@ def sync_groups(
     # Get all valid groups
     world_groups: typing.List[int] = [
         _.group_id
-        for _ in bot.session.query(ts3bot.database.models.WorldGroup).options(
-            load_only(ts3bot.database.models.WorldGroup.group_id)
+        for _ in bot.session.query(models.WorldGroup).options(
+            load_only(models.WorldGroup.group_id)
         )
     ]
     guild_groups: typing.List[int] = [
         _.group_id
-        for _ in bot.session.query(ts3bot.database.models.Guild)
-        .filter(ts3bot.database.models.Guild.group_id.isnot(None))
-        .options(load_only(ts3bot.database.models.Guild.group_id))
+        for _ in bot.session.query(models.Guild)
+        .filter(models.Guild.group_id.isnot(None))
+        .options(load_only(models.Guild.group_id))
     ]
-    generic_world = {
-        "sgid": int(Config.get("teamspeak", "generic_world_id")),
-        "name": "Generic World",
-    }
-    generic_guild = {
-        "sgid": int(Config.get("teamspeak", "generic_guild_id")),
-        "name": "Generic Guild",
-    }
+    generic_world = ServerGroup(
+        sgid=int(Config.get("teamspeak", "generic_world_id")),
+        name="Generic World",
+    )
+    generic_guild = ServerGroup(
+        sgid=int(Config.get("teamspeak", "generic_guild_id")), name="Generic Guild"
+    )
 
     # Remove user from all other known invalid groups
     invalid_groups = []

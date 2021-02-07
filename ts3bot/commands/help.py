@@ -1,7 +1,6 @@
 import typing
 
-import i18n
-
+import i18n  # type: ignore
 from ts3bot import events
 from ts3bot.bot import Bot
 from ts3bot.config import Config

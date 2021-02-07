@@ -1,13 +1,15 @@
 from pathlib import Path
 
-from alembic import command, script
-from alembic.config import Config
-from alembic.runtime import migration
+from alembic import command  # type: ignore
+from alembic import script
+from alembic.config import Config  # type: ignore
+from alembic.runtime import migration  # type: ignore
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
 from . import models
+from .models.base import Base
 
 
 def create_session(database_uri: str, is_test=False) -> Session:
@@ -42,7 +44,7 @@ def create_session(database_uri: str, is_test=False) -> Session:
 
     # Create tables if accounts does not exist
     if not engine.dialect.has_table(engine, "accounts"):
-        models.Base.metadata.create_all(engine)
+        Base.metadata.create_all(engine)
         command.stamp(alembic_cfg, "head")
 
     if not is_test:
@@ -56,7 +58,7 @@ def create_session(database_uri: str, is_test=False) -> Session:
             ), 'There are pending migrations, run them via "alembic upgrade heads"'
 
     # Bind engine and create session
-    models.Base.metadata.bind = engine
+    Base.metadata.bind = engine
     session: Session = sessionmaker(bind=engine)()
 
     return session

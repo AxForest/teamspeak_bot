@@ -6,7 +6,7 @@ and somewhat sane defaults
 import logging
 import typing
 
-import ts3
+import ts3  # type: ignore
 from pydantic import BaseModel
 
 
@@ -22,14 +22,15 @@ class Event(BaseModel):
         elif event.event == "notifyclientmoved":
             return ClientMoved.from_event(event)
 
-        raise NotImplementedError
+        logging.critical("Got unknown TS3Event: %s", event.data)
+        raise NotImplementedError(event.event)
 
 
 class ClientEnterView(Event):
-    client_type: str = "42"
-    database_id: str = None
-    id: str = None
-    uid: str = None
+    client_type: str
+    database_id: str
+    id: str
+    uid: str
 
     @staticmethod
     def from_event(event: ts3.response.TS3Event) -> typing.Optional["ClientEnterView"]:
@@ -46,7 +47,7 @@ class ClientEnterView(Event):
 
 
 class ClientLeftView(Event):
-    id: str = None
+    id: str
 
     @staticmethod
     def from_event(event: ts3.response.TS3Event) -> typing.Optional["ClientLeftView"]:
@@ -58,8 +59,8 @@ class ClientLeftView(Event):
 
 
 class ClientMoved(Event):
-    id: str = None
-    channel_id: str = None
+    id: str
+    channel_id: str
 
     @staticmethod
     def from_event(event: ts3.response.TS3Event) -> typing.Optional["ClientMoved"]:
@@ -71,10 +72,10 @@ class ClientMoved(Event):
 
 
 class TextMessage(Event):
-    message: str = None
-    id: str = None
-    uid: str = None
-    name: str = None
+    message: str
+    id: str
+    uid: str
+    name: str
 
     @staticmethod
     def from_event(event: ts3.response.TS3Event) -> typing.Optional["TextMessage"]:

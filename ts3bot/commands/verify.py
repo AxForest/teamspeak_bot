@@ -1,7 +1,7 @@
 import typing
 
 import requests
-import ts3
+import ts3  # type: ignore
 from ts3bot import ApiErrBadData, InvalidKeyException, events, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config

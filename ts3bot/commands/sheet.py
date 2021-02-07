@@ -1,8 +1,8 @@
 import datetime
 import json
 import re
-import typing
 from pathlib import Path
+from typing import ItemsView, List, Literal, Match, Optional, TypedDict, cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
@@ -12,23 +12,23 @@ MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
 USAGE = "!sheet <ebg,red,green,blue,remove> [note]"
 STATE_FILE = Path("sheet.json")
 
-COMMAND_MAPPING = {
-    "ebg": "EBG",
-    "red": "Red",
-    "green": "Green",
-    "blue": "Blue",
-    "r": "Red",
-    "g": "Green",
-    "b": "Blue",
-}
+LeadDict = TypedDict("LeadDict", {"lead": str, "note": str, "date": str})
+IterType = ItemsView[Literal["EBG", "Red", "Green", "Blue"], List[LeadDict]]
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+class CommandingDict(TypedDict):
+    EBG: List[LeadDict]
+    Red: List[LeadDict]
+    Green: List[LeadDict]
+    Blue: List[LeadDict]
+
+
+def handle(bot: Bot, event: events.TextMessage, match: Match):
     sheet_channel_id = Config.get("teamspeak", "sheet_channel_id")
     if sheet_channel_id == 0:
         return
 
-    current_state = {"EBG": [], "Red": [], "Green": [], "Blue": []}
+    current_state: CommandingDict = {"EBG": [], "Red": [], "Green": [], "Blue": []}
 
     if match.group(1) == "help" and event.uid in Config.whitelist_admin:
         bot.send_message(
@@ -42,30 +42,31 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         pass  # Don't load the current file, just use the defaults
     elif match.group(1) == "set" and event.uid in Config.whitelist_admin:
         # Force-set an entry
-        match = re.match(
+        _match = re.match(
             "!sheet set (ebg|red|green|blue|r|g|b|remove) (.*)",
             event.message.strip(),
         )
-        if not match:
+        if not _match:
             bot.send_message(event.id, "invalid_input")
             return
 
         if STATE_FILE.exists():
-            current_state = json.loads(STATE_FILE.read_text())
+            current_state = cast(CommandingDict, json.loads(STATE_FILE.read_text()))
 
-        if match.group(1) == "remove":
-            current_state = _remove_lead(current_state, name_field=match.group(2))
+        if _match.group(1) == "remove":
+            current_state = _remove_lead(current_state, name_field=_match.group(2))
         else:
             # Add new entry
-            current_state = _add_lead(
+            new_state = _add_lead(
                 current_state,
-                wvw_map=match.group(1),
+                wvw_map=_match.group(1),
                 note="",
-                name=match.group(2),
+                name=_match.group(2),
             )
-            if not current_state:
+            if not new_state:
                 bot.send_message(event.id, "sheet_map_full")
                 return
+            current_state = new_state
 
     elif match.group(1) in ["ebg", "red", "green", "blue", "r", "g", "b", "remove"]:
         if STATE_FILE.exists():
@@ -74,23 +75,24 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         if match.group(1) == "remove":
             current_state = _remove_lead(current_state, uid=event.uid)
         else:
-            current_state = _add_lead(
+            new_state = _add_lead(
                 current_state,
                 wvw_map=match.group(1),
                 note=match.group(2),
                 uid=event.uid,
                 name=event.name,
             )
-            if not current_state:
+            if not new_state:
                 bot.send_message(event.id, "sheet_map_full")
                 return
+            current_state = new_state
     else:
         bot.send_message(event.id, "invalid_input")
         return
 
     # Build new table
     desc = "[table][tr][td] | Map | [/td][td] | Lead | [/td][td] | Note | [/td][td] | Date | [/td][/tr]"
-    for _map, leads in current_state.items():
+    for _map, leads in cast(IterType, current_state.items()):
         if len(leads) == 0:
             desc += f"[tr][td]{_map}[/td][td]-[/td][td]-[/td][td]-[/td][/tr]"
             continue
@@ -121,13 +123,13 @@ def _tidy_date(date: datetime.datetime = None):
 
 
 def _add_lead(
-    maps: typing.Dict,
+    maps: CommandingDict,
     wvw_map: str,
     note: str,
     name: str,
-    uid: typing.Optional[str] = None,
-) -> typing.Optional[typing.Dict]:
-    mapping = COMMAND_MAPPING[wvw_map]
+    uid: Optional[str] = None,
+) -> Optional[CommandingDict]:
+    mapping = _get_key(wvw_map)
 
     lead = f"[URL=client://0/{uid}]{name}[/URL]" if uid else name
 
@@ -145,23 +147,34 @@ def _add_lead(
 
 
 def _remove_lead(
-    maps: typing.Dict,
-    name_field: typing.Optional[str] = None,
-    uid: typing.Optional[str] = None,
-):
+    maps: CommandingDict,
+    name_field: Optional[str] = None,
+    uid: Optional[str] = None,
+) -> CommandingDict:
     def compare(_lead):
         if uid:
             return uid not in _lead["lead"]
 
         return name_field != _lead["lead"]
 
-    new_leads: typing.Dict[str, typing.List[typing.Dict[str, str]]] = {}
-    for _map, leads in maps.items():
+    new_leads: CommandingDict = {"EBG": [], "Red": [], "Green": [], "Blue": []}
+    for _map, leads in cast(IterType, maps.items()):
         new_leads[_map] = []
         for lead in leads:
             if compare(lead):
                 new_leads[_map].append(lead)
     return new_leads
+
+
+def _get_key(input_key: str) -> Literal["EBG", "Red", "Green", "Blue"]:
+    if input_key == "ebg":
+        return "EBG"
+    elif input_key in ["red", "r"]:
+        return "Red"
+    elif input_key in ["green", "g"]:
+        return "Green"
+
+    return "Blue"  # This is filtered in handle(), it's fine this way
 
 
 def _encode(s: str):

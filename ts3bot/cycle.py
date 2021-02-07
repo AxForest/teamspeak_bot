@@ -4,11 +4,10 @@ import typing
 from operator import or_
 
 import requests
-import ts3
+import ts3  # type: ignore
+import ts3bot
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, load_only
-
-import ts3bot
 from ts3bot import Config
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models

@@ -5,13 +5,12 @@ Revises: 2b6daf0b7566
 Create Date: 2020-10-16 18:31:25.047238
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op  # type: ignore
 
 # revision identifiers, used by Alembic.
-revision = 'db168dafe179'
-down_revision = '2b6daf0b7566'
+revision = "db168dafe179"
+down_revision = "2b6daf0b7566"
 branch_labels = None
 depends_on = None
 

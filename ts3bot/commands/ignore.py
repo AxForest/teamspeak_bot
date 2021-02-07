@@ -1,8 +1,7 @@
 import logging
 import typing
-from operator import or_
 
-import ts3
+import ts3  # type: ignore
 from ts3bot import ApiErrBadData, InvalidKeyException, events, fetch_api, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config
@@ -19,13 +18,15 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     try:
         json = fetch_api("account", api_key=match.group(1))
         account = models.Account.get_by_api_info(
-            bot.session, guid=json.get("id"), name=json.get("name")
+            bot.session, guid=json.get("id", ""), name=json.get("name", "")
         )
 
         # Account does not exist
         if not account:
             logging.info("User was not registered.")
-            bot.send_message(event.id, "account_unknown", account=json.get("name"))
+            bot.send_message(
+                event.id, "account_unknown", account=json.get("name", "Unknown.0000")
+            )
             return
 
         # Get previous identity
