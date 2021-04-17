@@ -1,8 +1,10 @@
 import datetime
 import logging
-import typing
+from typing import Match, Optional, cast
 
 import requests
+from sqlalchemy.orm.dynamic import AppenderQuery
+
 from ts3bot import (
     ApiErrBadData,
     Config,
@@ -19,7 +21,7 @@ MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Guild Tag]"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
 
     # Grab user's account
@@ -35,7 +37,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     if (
         timedelta_hours(datetime.datetime.today() - account.last_check)
         >= on_join_hours_timeout
-        or account.guilds.count() == 0
+        or cast(AppenderQuery, account.guilds).count() == 0
     ):
         bot.send_message(event.id, "account_updating")
 
@@ -60,7 +62,8 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     if match.group(1) and match.group(1).lower() == "remove":
         # Get active guilds
         has_active_guilds: int = (
-            account.guilds.join(models.Guild)
+            cast(AppenderQuery, account.guilds)
+            .join(models.Guild)
             .filter(models.Guild.group_id.isnot(None))
             .filter(models.LinkAccountGuild.is_active.is_(True))
             .count()
@@ -72,9 +75,9 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             return
 
         # Remove guilds
-        account.guilds.filter(models.LinkAccountGuild.is_active.is_(True)).update(
-            {"is_active": False}
-        )
+        cast(AppenderQuery, account.guilds).filter(
+            models.LinkAccountGuild.is_active.is_(True)
+        ).update({"is_active": False})
         bot.session.commit()
 
         # Sync groups
@@ -86,8 +89,10 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
         return
 
-    available_guilds = account.guilds.join(models.Guild).filter(
-        models.Guild.group_id.isnot(None)
+    available_guilds = (
+        cast(AppenderQuery, account.guilds)
+        .join(models.Guild)
+        .filter(models.Guild.group_id.isnot(None))
     )
 
     # No guild specified
@@ -104,9 +109,9 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
     else:
         guild = match.group(1).lower()
 
-        selected_guild: typing.Optional[
-            models.LinkAccountGuild
-        ] = available_guilds.filter(models.Guild.tag.ilike(guild)).one_or_none()
+        selected_guild: Optional[models.LinkAccountGuild] = available_guilds.filter(
+            models.Guild.tag.ilike(guild)
+        ).one_or_none()
 
         # Guild not found or user not in guild
         if not selected_guild:
@@ -123,7 +128,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
             # Remove other guilds if only one is allowed
             if not Config.getboolean("guild", "allow_multiple_guilds"):
-                account.guilds.filter(
+                cast(AppenderQuery, account.guilds).filter(
                     models.LinkAccountGuild.id != selected_guild.id
                 ).update({"is_active": False})
 

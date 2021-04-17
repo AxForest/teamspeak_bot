@@ -1,15 +1,14 @@
 import datetime
 import logging
-import typing
+from typing import TYPE_CHECKING, cast
 
-import ts3bot
 from sqlalchemy import Column, types
 from sqlalchemy.orm import Session, relationship
+
+import ts3bot
 from ts3bot.database.models.base import Base
 
-if typing.TYPE_CHECKING:
-    from sqlalchemy.orm import RelationshipProperty
-
+if TYPE_CHECKING:
     from .link_account_guild import LinkAccountGuild
 
 
@@ -28,15 +27,13 @@ class Guild(Base):  # type: ignore
     # TS3 group id
     group_id = Column(types.Integer, nullable=True)
 
-    members: "RelationshipProperty[LinkAccountGuild]" = relationship(
-        "LinkAccountGuild", lazy="dynamic", back_populates="guild"
-    )
+    members = relationship("LinkAccountGuild", lazy="dynamic", back_populates="guild")
     created_at = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<Guild guid={self.guid} name={self.name} tag={self.tag}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     @staticmethod
@@ -58,10 +55,10 @@ class Guild(Base):  # type: ignore
                 instance.group_id = group_id
             session.commit()
 
-        return instance
+        return cast(Guild, instance)
 
     @staticmethod
-    def create(guid: str, group_id: int = None):
+    def create(guid: str, group_id: int = None) -> "Guild":
         """
         Retrieves guild details from the API and returns an instance or None if the guild was not found
         :exception NotFoundException
@@ -77,7 +74,7 @@ class Guild(Base):  # type: ignore
         )
 
     @staticmethod
-    def cleanup(session: Session):
+    def cleanup(session: Session) -> None:
         """
         Removes all guilds without players
         :param session:

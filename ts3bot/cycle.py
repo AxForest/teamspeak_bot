@@ -1,13 +1,13 @@
 import datetime
 import logging
-import typing
-from operator import or_
+from typing import Any, Optional
 
 import requests
 import ts3  # type: ignore
-import ts3bot
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, load_only
+
+import ts3bot
 from ts3bot import Config
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models
@@ -20,7 +20,7 @@ class Cycle:
         verify_all: bool,
         verify_linked_worlds: bool,
         verify_ts3: bool,
-        verify_world: typing.Optional[int] = None,
+        verify_world: Optional[int] = None,
     ):
         self.bot = Bot(session, is_cycle=True)
         self.session = session
@@ -29,13 +29,13 @@ class Cycle:
         self.verify_ts3 = verify_ts3
 
         if verify_world:
-            self.verify_world: typing.Optional[enums.World] = enums.World(verify_world)
+            self.verify_world: Optional[enums.World] = enums.World(verify_world)
         else:
             self.verify_world = None
 
         self.verify_begin = datetime.datetime.today()
 
-    def revoke(self, account: typing.Optional[models.Account], cldbid: str):
+    def revoke(self, account: Optional[models.Account], cldbid: str) -> None:
         if account:
             account.invalidate(self.session)
 
@@ -49,7 +49,7 @@ class Cycle:
         else:
             logging.debug("Removed no groups from user (cldbid:%s).", cldbid)
 
-    def fix_user_guilds(self):
+    def fix_user_guilds(self) -> None:
         """
         Removes duplicate selected guilds from users.
         No need to force-sync the user as that's done on join and in the
@@ -79,7 +79,7 @@ class Cycle:
                 )
             ).delete(synchronize_session="fetch")
 
-    def run(self):
+    def run(self) -> None:
         # Skip check if multiple guilds are allowed
         if not Config.getboolean("guild", "allow_multiple_guilds"):
             self.fix_user_guilds()
@@ -95,7 +95,10 @@ class Cycle:
         # Clean up "empty" guilds
         models.Guild.cleanup(self.session)
 
-    def verify_ts3_accounts(self):
+    def verify_ts3_accounts(self) -> None:
+        if not self.bot.ts3c:
+            raise ConnectionError("Not connected yet.")
+
         # Retrieve users
         users = self.bot.exec_("clientdblist", duration=200)
         start = 0
@@ -152,7 +155,7 @@ class Cycle:
                     logging.exception("Error retrieving user list")
                 users = []
 
-    def verify_accounts(self):
+    def verify_accounts(self) -> None:
         """
         Removes users from known groups if no account is known or the account is invalid
         """
@@ -167,7 +170,7 @@ class Cycle:
             )
         elif self.verify_linked_worlds:
             # Check all accounts which are on linked worlds, or on --world
-            def or_world():
+            def or_world() -> Any:
                 if self.verify_world:
                     return or_(
                         models.Account.world == self.verify_world,

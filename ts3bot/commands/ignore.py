@@ -1,7 +1,8 @@
 import logging
-import typing
+from typing import Match, Optional
 
 import ts3  # type: ignore
+
 from ts3bot import ApiErrBadData, InvalidKeyException, events, fetch_api, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config
@@ -11,7 +12,7 @@ MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API KEY>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     if event.uid not in Config.whitelist_admin:
         return
 
@@ -30,7 +31,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             return
 
         # Get previous identity
-        previous_identity: typing.Optional[
+        previous_identity: Optional[
             models.LinkAccountIdentity
         ] = account.valid_identities.one_or_none()
 

@@ -1,7 +1,8 @@
-import typing
+from typing import Match
 
 import requests
 import ts3  # type: ignore
+
 from ts3bot import ApiErrBadData, InvalidKeyException, events, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import Config
@@ -11,7 +12,7 @@ MESSAGE_REGEX = "!verify +([A-Za-z0-9+/=]+)"
 USAGE = "!verify <TS Database ID|TS Unique ID>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     if event.uid not in Config.whitelist_admin:
         return
 

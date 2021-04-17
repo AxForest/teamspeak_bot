@@ -1,8 +1,9 @@
 import logging
-import typing
+from typing import Match
 
 import ts3  # type: ignore
 from requests import RequestException
+
 from ts3bot import (
     ApiErrBadData,
     InvalidKeyException,
@@ -19,7 +20,7 @@ MESSAGE_REGEX = "!register (\\d+) (\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12
 USAGE = "!register <database-id> <api-key>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     if event.uid not in Config.whitelist_admin:
         return
 

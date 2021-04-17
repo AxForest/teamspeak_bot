@@ -1,14 +1,13 @@
 import datetime
-import typing
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Column, types
 from sqlalchemy.orm import Session, relationship
+
 from ts3bot.database.models.base import Base
 
-if typing.TYPE_CHECKING:
-    from sqlalchemy.orm import RelationshipProperty
-
-    from .link_account_identity import LinkAccountIdentity
+if TYPE_CHECKING:
+    from .link_account_identity import LinkAccountIdentity  # noqa: F401
 
 
 class Identity(Base):  # type: ignore
@@ -20,20 +19,20 @@ class Identity(Base):  # type: ignore
     id = Column(types.Integer, primary_key=True)
     guid = Column(types.String(32), unique=True, nullable=False)
 
-    accounts: "RelationshipProperty[LinkAccountIdentity]" = relationship(
+    accounts = relationship(
         "LinkAccountIdentity", lazy="dynamic", back_populates="identity"
     )
 
     created_at = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<Identity guid={self.guid}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     @staticmethod
-    def get_or_create(session: Session, guid: str):
+    def get_or_create(session: Session, guid: str) -> "Identity":
         """
         Returns an Identity instance, it is created if necessary
         """
@@ -42,4 +41,4 @@ class Identity(Base):  # type: ignore
             instance = Identity(guid=guid)
             session.add(instance)
             session.commit()
-        return instance
+        return cast("Identity", instance)

@@ -1,10 +1,11 @@
-import typing
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, types
+
 from ts3bot.database import enums
 from ts3bot.database.models.base import Base
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from . import SqlAlchemyEnum as Enum
 else:
     from sqlalchemy import Enum
@@ -23,8 +24,8 @@ class WorldGroup(Base):  # type: ignore
         doc="Whether the world shall get the generic permissions",
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<WorldGroup group_id={self.group_id} world={self.world.proper_name} is_linked={self.is_linked}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)

@@ -1,15 +1,14 @@
 import logging
-import typing
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Column, ForeignKey, and_, types
 from sqlalchemy.orm import Session, relationship
+
 from ts3bot.database.models.base import Base
 
-if typing.TYPE_CHECKING:
-    from sqlalchemy.orm import RelationshipProperty
-
-    from .account import Account
-    from .guild import Guild
+if TYPE_CHECKING:
+    from .account import Account  # noqa: F401
+    from .guild import Guild  # noqa: F401
 
 
 class LinkAccountGuild(Base):  # type: ignore
@@ -39,23 +38,19 @@ class LinkAccountGuild(Base):  # type: ignore
         doc="Whether the group should be assigned",
     )
 
-    account: "RelationshipProperty[Account]" = relationship(
-        "Account", back_populates="guilds", cascade="all, delete"
-    )
-    guild: "RelationshipProperty[Guild]" = relationship(
-        "Guild", back_populates="members", cascade="all, delete"
-    )
+    account = relationship("Account", back_populates="guilds", cascade="all, delete")
+    guild = relationship("Guild", back_populates="members", cascade="all, delete")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<LinkAccountGuild account={self.account.name} guild={self.guild.name} is_leader={self.is_leader}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     @staticmethod
     def get_or_create(
         session: Session, account: "Account", guild: "Guild", is_leader: bool
-    ):
+    ) -> "LinkAccountGuild":
         instance = (
             session.query(LinkAccountGuild)
             .filter(
@@ -67,7 +62,9 @@ class LinkAccountGuild(Base):  # type: ignore
         )
         if not instance:
             logging.debug("Linking %s to %s", account.name, guild.name)
-            instance = LinkAccountGuild(account=account, guild=guild)
+            instance = LinkAccountGuild(
+                account=account, guild=guild, is_leader=is_leader
+            )
             session.add(instance)
             session.commit()
-        return instance
+        return cast("LinkAccountGuild", instance)

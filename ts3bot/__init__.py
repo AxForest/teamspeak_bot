@@ -2,14 +2,15 @@ import logging.handlers
 import os
 import sys
 import time
-import typing
 from datetime import timedelta
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 import requests
 import ts3  # type: ignore
 from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
+
 from ts3bot import bot as ts3_bot
 from ts3bot import events
 from ts3bot.config import Config
@@ -42,18 +43,18 @@ class ApiErrBadData(Exception):
     pass
 
 
-ServerGroup = typing.TypedDict("ServerGroup", {"sgid": int, "name": str})
-SyncGroupChanges = typing.TypedDict(
-    "SyncGroupChanges", {"removed": typing.List[str], "added": typing.List[str]}
+ServerGroup = TypedDict("ServerGroup", {"sgid": int, "name": str})
+SyncGroupChanges = TypedDict(
+    "SyncGroupChanges", {"removed": List[str], "added": List[str]}
 )
 
 
 def limit_fetch_api(
     endpoint: str,
-    api_key: typing.Optional[str] = None,
+    api_key: Optional[str] = None,
     level: int = 0,
     exc: Exception = None,
-) -> typing.Dict:
+) -> Dict:
     if level >= 3:
         if isinstance(exc, RateLimitException):
             raise RateLimitException("Encountered rate limit after waiting 3 times.")
@@ -71,7 +72,7 @@ def limit_fetch_api(
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
 
 
-def fetch_api(endpoint: str, api_key: typing.Optional[str] = None) -> typing.Dict:
+def fetch_api(endpoint: str, api_key: Optional[str] = None) -> Dict[str, Any]:
     """
 
     :param endpoint: The API (v2) endpoint to request
@@ -110,7 +111,7 @@ def fetch_api(endpoint: str, api_key: typing.Optional[str] = None) -> typing.Dic
         raise ApiErrBadData()
 
     if response.status_code == 200:
-        return response.json()
+        return cast(Dict[str, Any], response.json())
     elif response.status_code == 404:
         raise NotFoundException()
     elif response.status_code == 429:  # Rate limit
@@ -121,7 +122,7 @@ def fetch_api(endpoint: str, api_key: typing.Optional[str] = None) -> typing.Dic
     raise requests.RequestException()  # API down
 
 
-def init_logger(name: str, is_test: bool = False):
+def init_logger(name: str, is_test: bool = False) -> None:
     if not Path("logs").exists():
         Path("logs").mkdir()
 
@@ -158,7 +159,7 @@ def init_logger(name: str, is_test: bool = False):
             SqlalchemyIntegration,
         )  # type: ignore
 
-        def before_send(event, hint):
+        def before_send(event: Any, hint: Any) -> Any:
             if "exc_info" in hint:
                 _, exc_value, _ = hint["exc_info"]
                 if isinstance(exc_value, KeyboardInterrupt):
@@ -190,9 +191,9 @@ def transfer_registration(
     account: models.Account,
     event: events.TextMessage,
     is_admin: bool = False,
-    target_identity: typing.Optional[models.Identity] = None,
-    target_dbid: typing.Optional[str] = None,
-):
+    target_identity: Optional[models.Identity] = None,
+    target_dbid: Optional[str] = None,
+) -> None:
     """
     Transfers a registration and server/guild groups to the sender of the event or the target_guid
     :param bot: The current bot instance
@@ -207,14 +208,14 @@ def transfer_registration(
     # Get identity from event if necessary
     if not target_identity:
         # TODO: Remove workaround once mypy gets its shit together https://github.com/python/mypy/pull/9956
-        target_identity = typing.cast(
+        target_identity = cast(
             models.Identity, models.Identity.get_or_create(bot.session, event.uid)
         )
 
     # Get database id if necessary
     if not target_dbid:
         try:
-            target_dbid = typing.cast(
+            target_dbid = cast(
                 str, bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
             )
         except ts3.TS3Error:
@@ -227,7 +228,7 @@ def transfer_registration(
     guild_groups = account.guild_groups()
 
     # Get previous identity
-    previous_identity: typing.Optional[
+    previous_identity: Optional[
         models.LinkAccountIdentity
     ] = account.valid_identities.one_or_none()
 
@@ -291,14 +292,11 @@ def transfer_registration(
 def sync_groups(
     bot: ts3_bot.Bot,
     cldbid: str,
-    account: typing.Optional[models.Account],
-    remove_all=False,
-    skip_whitelisted=False,
+    account: Optional[models.Account],
+    remove_all: bool = False,
+    skip_whitelisted: bool = False,
 ) -> SyncGroupChanges:
-    def sg_dict(_id, _name):
-        return {"sgid": _id, "name": _name}
-
-    def _add_group(group: ServerGroup):
+    def _add_group(group: ServerGroup) -> bool:
         """
         Adds a user to a group if necessary, updates `server_group_ids`.
 
@@ -314,7 +312,7 @@ def sync_groups(
             logging.info("Added user dbid:%s to group %s", cldbid, group["name"])
             server_group_ids.append(int(group["sgid"]))
             group_changes["added"].append(group["name"])
-            return True
+
         except ts3.TS3Error:
             # User most likely doesn't have the group
             logging.exception(
@@ -322,8 +320,9 @@ def sync_groups(
                 cldbid,
                 group["name"],
             )
+        return True
 
-    def _remove_group(group: ServerGroup):
+    def _remove_group(group: ServerGroup) -> bool:
         """
         Removes a user from a group if necessary, updates `server_group_ids`.
 
@@ -357,27 +356,27 @@ def sync_groups(
 
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:
-        valid_guild_groups: typing.List[
-            models.LinkAccountGuild
-        ] = account.guild_groups()
-        valid_world_group: typing.Optional[models.WorldGroup] = account.world_group(
+        valid_guild_groups: List[models.LinkAccountGuild] = account.guild_groups()
+        valid_world_group: Optional[models.WorldGroup] = account.world_group(
             bot.session
         )
     else:
         valid_guild_groups = []
         valid_world_group = None
 
-    valid_guild_group_ids = [g.guild.group_id for g in valid_guild_groups]
+    valid_guild_group_ids = cast(
+        List[int], [g.guild.group_id for g in valid_guild_groups]
+    )
     valid_guild_mapper = {g.guild.group_id: g for g in valid_guild_groups}
 
     # Get all valid groups
-    world_groups: typing.List[int] = [
+    world_groups: List[int] = [
         _.group_id
         for _ in bot.session.query(models.WorldGroup).options(
             load_only(models.WorldGroup.group_id)
         )
     ]
-    guild_groups: typing.List[int] = [
+    guild_groups: List[int] = [
         _.group_id
         for _ in bot.session.query(models.Guild)
         .filter(models.Guild.group_id.isnot(None))
@@ -452,12 +451,16 @@ def sync_groups(
     # Remove guilds that should not be applied
     if len(guild_groups) > 0:
         for group_id in left_guilds:
-            _remove_group(sg_dict(group_id, valid_guild_mapper[group_id].guild.name))
+            _remove_group(
+                ServerGroup(sgid=group_id, name=valid_guild_mapper[group_id].guild.name)
+            )
 
     # Join guilds
     if len(valid_guild_group_ids) > 0:
         for group_id in joined_guilds:
-            _add_group(sg_dict(group_id, valid_guild_mapper[group_id].guild.name))
+            _add_group(
+                ServerGroup(sgid=group_id, name=valid_guild_mapper[group_id].guild.name)
+            )
 
     # User is missing generic world
     if (
@@ -479,7 +482,10 @@ def sync_groups(
     # User is missing home world
     if valid_world_group and valid_world_group.group_id not in server_group_ids:
         _add_group(
-            sg_dict(valid_world_group.group_id, valid_world_group.world.proper_name)
+            ServerGroup(
+                sgid=valid_world_group.group_id,
+                name=valid_world_group.world.proper_name,
+            )
         )
 
     return group_changes
@@ -494,7 +500,7 @@ class User(BaseModel):
     total_connections: int
 
     @property
-    def locale(self):
+    def locale(self) -> Literal["de", "en"]:
         # TODO: Force locale
         if self.country in ["DE", "AT", "CH"]:
             return "de"

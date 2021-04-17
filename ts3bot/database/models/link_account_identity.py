@@ -1,15 +1,14 @@
 import datetime
-import typing
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, ForeignKey, UniqueConstraint, types
 from sqlalchemy.orm import relationship
+
 from ts3bot.database.models.base import Base
 
-if typing.TYPE_CHECKING:
-    from sqlalchemy.orm import RelationshipProperty
-
-    from .account import Account
-    from .identity import Identity
+if TYPE_CHECKING:
+    from .account import Account  # noqa: F401
+    from .identity import Identity  # noqa: F401
 
 
 class LinkAccountIdentity(Base):  # type: ignore
@@ -33,10 +32,10 @@ class LinkAccountIdentity(Base):  # type: ignore
         types.Integer, ForeignKey("identities.id", ondelete="CASCADE"), nullable=False
     )
 
-    account: "RelationshipProperty[Account]" = relationship(
+    account = relationship(
         "Account", back_populates="identities", cascade="all, delete"
     )
-    identity: "RelationshipProperty[Identity]" = relationship(
+    identity = relationship(
         "Identity", back_populates="accounts", cascade="all, delete"
     )
 
@@ -46,11 +45,11 @@ class LinkAccountIdentity(Base):  # type: ignore
     created_at = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
     deleted_at = Column(types.DateTime, nullable=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"<LinkAccountIdentity account={self.account.name} identity={self.identity.guid} "
             f"is_deleted={self.is_deleted}>"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)

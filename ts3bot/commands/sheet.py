@@ -23,7 +23,7 @@ class CommandingDict(TypedDict):
     Blue: List[LeadDict]
 
 
-def handle(bot: Bot, event: events.TextMessage, match: Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     sheet_channel_id = Config.get("teamspeak", "sheet_channel_id")
     if sheet_channel_id == 0:
         return
@@ -116,7 +116,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match):
     STATE_FILE.write_text(json.dumps(current_state))
 
 
-def _tidy_date(date: datetime.datetime = None):
+def _tidy_date(date: datetime.datetime = None) -> str:
     if not date:
         date = datetime.datetime.now()
     return date.strftime("%d.%m. %H:%M")
@@ -151,7 +151,7 @@ def _remove_lead(
     name_field: Optional[str] = None,
     uid: Optional[str] = None,
 ) -> CommandingDict:
-    def compare(_lead):
+    def compare(_lead: LeadDict) -> bool:
         if uid:
             return uid not in _lead["lead"]
 
@@ -177,5 +177,5 @@ def _get_key(input_key: str) -> Literal["EBG", "Red", "Green", "Blue"]:
     return "Blue"  # This is filtered in handle(), it's fine this way
 
 
-def _encode(s: str):
+def _encode(s: str) -> str:
     return s.replace("[", "\\[").replace("]", "\\]")

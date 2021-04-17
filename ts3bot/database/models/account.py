@@ -1,34 +1,32 @@
 import datetime
 import logging
-import typing
-from operator import or_
+from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
 
 import requests
-import ts3bot
-from sqlalchemy import Column, and_, types
+from sqlalchemy import Column, and_, or_, types
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.orm.dynamic import AppenderQuery
+
+import ts3bot
 from ts3bot.database import enums
 from ts3bot.database.models.base import Base
 
 from .guild import Guild
 from .identity import Identity
 from .world_group import WorldGroup
+from .link_account_guild import LinkAccountGuild
+from .link_account_identity import LinkAccountIdentity
 
-if typing.TYPE_CHECKING:
-    from sqlalchemy.orm import RelationshipProperty
-
-    from . import SqlAlchemyEnum as Enum
-    from .link_account_guild import LinkAccountGuild
-    from .link_account_identity import LinkAccountIdentity
+if TYPE_CHECKING:
+    from ts3bot.database.models import SqlAlchemyEnum as Enum
 else:
     from sqlalchemy import Enum
 
-AccountUpdateDict = typing.TypedDict(
+AccountUpdateDict = TypedDict(
     "AccountUpdateDict",
     {
-        "transfer": typing.List[enums.World],
-        "guilds": typing.Tuple[typing.List[str], typing.List[str]],
+        "transfer": List[enums.World],
+        "guilds": Tuple[List[str], List[str]],
     },
 )
 
@@ -47,12 +45,12 @@ class Account(Base):  # type: ignore
     world = Column(Enum(enums.World), nullable=False)
     api_key = Column(types.String(72), nullable=False)
 
-    guilds: "RelationshipProperty[LinkAccountGuild]" = relationship(
-        "LinkAccountGuild", lazy="dynamic", back_populates="account"
+    guilds = relationship(
+        "LinkAccountGuild", lazy="dynamic", back_populates="account", uselist=True
     )
 
-    identities: "RelationshipProperty[LinkAccountGuild]" = relationship(
-        "LinkAccountIdentity", lazy="dynamic", back_populates="account"
+    identities = relationship(
+        "LinkAccountIdentity", lazy="dynamic", back_populates="account", uselist=True
     )
 
     is_valid = Column(types.Boolean, default=True, nullable=False)
@@ -61,43 +59,44 @@ class Account(Base):  # type: ignore
     last_check = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
     created_at = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<Account name={self.name} world={self.world}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
-    def world_group(self, session: Session) -> typing.Optional["WorldGroup"]:
+    def world_group(self, session: Session) -> Optional["WorldGroup"]:
         return (
             session.query(WorldGroup)
             .filter(WorldGroup.world == self.world)
             .one_or_none()
         )
 
-    def guild_groups(self) -> typing.List["LinkAccountGuild"]:
-        return (
-            self.guilds.join(Guild)
+    def guild_groups(self) -> List["LinkAccountGuild"]:
+        return cast(
+            List["LinkAccountGuild"],
+            cast(AppenderQuery, self.guilds)
+            .join(Guild)
             .filter(
                 and_(Guild.group_id.isnot(None), LinkAccountGuild.is_active.is_(True))
             )
-            .all()
+            .all(),
         )
 
     @staticmethod
-    def get_by_identity(session: Session, guid: str) -> typing.Optional["Account"]:
-        return (
+    def get_by_identity(session: Session, guid: str) -> Optional["Account"]:
+        return cast(
+            Optional["Account"],
             session.query(Account)
             .join(LinkAccountIdentity)
             .join(Identity)
             .filter(LinkAccountIdentity.is_deleted.is_(False))
             .filter(Identity.guid == guid)
-            .one_or_none()
+            .one_or_none(),
         )
 
     @staticmethod
-    def get_by_api_info(
-        session: Session, guid: str, name: str
-    ) -> typing.Optional["Account"]:
+    def get_by_api_info(session: Session, guid: str, name: str) -> Optional["Account"]:
         # TODO: Remove name after GUID migration
         return (
             session.query(Account)
@@ -106,7 +105,7 @@ class Account(Base):  # type: ignore
         )
 
     @staticmethod
-    def get_or_create(session: Session, account_info: dict, api_key: str):
+    def get_or_create(session: Session, account_info: dict, api_key: str) -> "Account":
         """
         Returns an Account instance, the account is created if necessary
         """
@@ -115,7 +114,7 @@ class Account(Base):  # type: ignore
             session, guid=account_info.get("id", ""), name=account_info.get("name", "")
         )
         if not instance:
-            instance = typing.cast(Account, Account.create(account_info, api_key))
+            instance = cast(Account, Account.create(account_info, api_key))
             session.add(instance)
 
             # Create guilds if necessary
@@ -135,17 +134,19 @@ class Account(Base):  # type: ignore
         Returns an instance based on given information
         """
         return Account(
-            guid=account_info.get("id"),
-            name=account_info.get("name"),
+            guid=account_info.get("id", ""),
+            name=account_info.get("name", ""),
             world=enums.World(account_info.get("world")),
             api_key=api_key,
         )
 
     @property
     def valid_identities(self) -> AppenderQuery:
-        return self.identities.filter(LinkAccountIdentity.is_deleted.is_(False))
+        return cast(AppenderQuery, self.identities).filter(
+            LinkAccountIdentity.is_deleted.is_(False)
+        )
 
-    def invalidate(self, session: Session):
+    def invalidate(self, session: Session) -> None:
         """
         Removes identity associations and resets guild group
         :param session:
@@ -154,7 +155,7 @@ class Account(Base):  # type: ignore
         self.valid_identities.update(
             {"deleted_at": datetime.datetime.now(), "is_deleted": True}
         )
-        self.guilds.update({"is_active": False})
+        cast(AppenderQuery, self.guilds).update({"is_active": False})
 
         session.commit()
 
@@ -177,7 +178,7 @@ class Account(Base):  # type: ignore
                 self.guid = account_info.get("id", "UNKNOWN")
 
             # Update world
-            new_world = typing.cast(enums.World, enums.World(account_info.get("world")))
+            new_world = cast(enums.World, enums.World(account_info.get("world")))
             if new_world != self.world:
                 result["transfer"] = [self.world, new_world]
 
@@ -196,14 +197,14 @@ class Account(Base):  # type: ignore
 
             # Update guilds
             account_guilds = account_info.get("guilds", [])
-            guids_joined: typing.List[str] = []
-            links_left: typing.List[int] = []
-            guilds_left: typing.List[str] = []
-            old_guilds: typing.List[str] = []
+            guids_joined: List[str] = []
+            links_left: List[int] = []
+            guilds_left: List[str] = []
+            old_guilds: List[str] = []
 
             # Collect left guilds
             link_guild: LinkAccountGuild
-            for link_guild in self.guilds:
+            for link_guild in cast(AppenderQuery, self.guilds):
                 old_guilds.append(link_guild.guild.guid)
 
                 if link_guild.guild.guid not in account_guilds:

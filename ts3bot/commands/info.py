@@ -1,8 +1,9 @@
 import logging
-import typing
+from typing import Match
 
 import requests
 from sqlalchemy.orm import load_only
+
 from ts3bot import (
     ApiErrBadData,
     InvalidKeyException,
@@ -17,7 +18,7 @@ MESSAGE_REGEX = "!info \\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "!info <API-Key>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     try:
         account = fetch_api("account", api_key=match.group(1))
         server = enums.World(account.get("world"))

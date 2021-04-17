@@ -4,15 +4,17 @@ and somewhat sane defaults
 """
 
 import logging
-import typing
+from typing import Optional
 
 import ts3  # type: ignore
 from pydantic import BaseModel
 
 
 class Event(BaseModel):
+    valid: bool = True
+
     @staticmethod
-    def from_event(event: ts3.response.TS3Event) -> typing.Optional["Event"]:
+    def from_event(event: ts3.response.TS3Event) -> Optional["Event"]:
         if event.event == "notifytextmessage":
             return TextMessage.from_event(event)
         elif event.event == "notifycliententerview":
@@ -27,13 +29,13 @@ class Event(BaseModel):
 
 
 class ClientEnterView(Event):
-    client_type: str
-    database_id: str
-    id: str
-    uid: str
+    client_type: str = ""
+    database_id: str = ""
+    id: str = ""
+    uid: str = ""
 
     @staticmethod
-    def from_event(event: ts3.response.TS3Event) -> typing.Optional["ClientEnterView"]:
+    def from_event(event: ts3.response.TS3Event) -> Optional["ClientEnterView"]:
         try:
             return ClientEnterView(
                 id=event[0]["clid"],
@@ -43,42 +45,42 @@ class ClientEnterView(Event):
             )
         except KeyError:
             logging.warning("Partial event from TS: %s", event.data)
-            return ClientEnterView()
+            return ClientEnterView(valid=False)
 
 
 class ClientLeftView(Event):
-    id: str
+    id: str = ""
 
     @staticmethod
-    def from_event(event: ts3.response.TS3Event) -> typing.Optional["ClientLeftView"]:
+    def from_event(event: ts3.response.TS3Event) -> Optional["ClientLeftView"]:
         try:
             return ClientLeftView(id=event[0]["clid"])
         except KeyError:
             logging.warning("Partial event from TS: %s", event.data)
-            return ClientLeftView()
+            return ClientLeftView(valid=False)
 
 
 class ClientMoved(Event):
-    id: str
-    channel_id: str
+    id: str = ""
+    channel_id: str = ""
 
     @staticmethod
-    def from_event(event: ts3.response.TS3Event) -> typing.Optional["ClientMoved"]:
+    def from_event(event: ts3.response.TS3Event) -> Optional["ClientMoved"]:
         try:
             return ClientMoved(id=event[0]["clid"], channel_id=event[0].get("ctid", -1))
         except KeyError:
             logging.warning("Partial event from TS: %s", event.data)
-        return ClientMoved()
+        return ClientMoved(valid=False)
 
 
 class TextMessage(Event):
-    message: str
-    id: str
-    uid: str
-    name: str
+    message: str = ""
+    id: str = ""
+    uid: str = ""
+    name: str = ""
 
     @staticmethod
-    def from_event(event: ts3.response.TS3Event) -> typing.Optional["TextMessage"]:
+    def from_event(event: ts3.response.TS3Event) -> Optional["TextMessage"]:
         try:
             return TextMessage(
                 id=event[0]["invokerid"],
@@ -88,4 +90,4 @@ class TextMessage(Event):
             )
         except KeyError:
             logging.warning("Partial event from TS: %s", event.data)
-            return TextMessage()
+            return TextMessage(valid=False)

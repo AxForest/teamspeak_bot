@@ -115,5 +115,5 @@ class World(enum.Enum):
     BARUCH_BAY: int = 2301
 
     @property
-    def proper_name(self):
+    def proper_name(self) -> str:
         return WORLDS[self.value]

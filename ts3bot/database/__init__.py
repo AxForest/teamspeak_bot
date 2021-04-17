@@ -12,7 +12,7 @@ from . import models
 from .models.base import Base
 
 
-def create_session(database_uri: str, is_test=False) -> Session:
+def create_session(database_uri: str, is_test: bool = False) -> Session:
     if database_uri.startswith("sqlite"):
         engine = create_engine(
             database_uri, echo=False, connect_args={"check_same_thread": False}
@@ -42,10 +42,9 @@ def create_session(database_uri: str, is_test=False) -> Session:
             "alembic", "script_location", str(Path(__file__).parent / "migrations")
         )
 
-    # Create tables if accounts does not exist
-    if not engine.dialect.has_table(engine, "accounts"):
-        Base.metadata.create_all(engine)
-        command.stamp(alembic_cfg, "head")
+    # Create tables
+    Base.metadata.create_all(engine)
+    command.stamp(alembic_cfg, "head")
 
     if not is_test:
         # Check if there are any pending migrations

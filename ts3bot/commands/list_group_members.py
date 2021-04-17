@@ -1,4 +1,4 @@
-import typing
+from typing import Match, cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
@@ -8,7 +8,7 @@ MESSAGE_REGEX = "!list +([\\w\\- ]+)"
 USAGE = "!list <TS Group>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
     user_groups = bot.exec_("servergroupsbyclientid", cldbid=cldbid)
     allowed = False
@@ -43,7 +43,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
 
     members = bot.exec_("servergroupclientlist", "names", sgid=group["sgid"])
 
-    members = sorted(members, key=lambda _: _["client_nickname"])
+    members = sorted(members, key=lambda x: cast(str, _.get("client_nickname", "")))
 
     if len(members) >= 50:
         bot.send_message(event.id, "list_50_users")

@@ -1,4 +1,4 @@
-import typing
+from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 from sqlalchemy.sql.type_api import TypeEngine
 
@@ -9,10 +9,10 @@ from .link_account_guild import LinkAccountGuild
 from .link_account_identity import LinkAccountIdentity
 from .world_group import WorldGroup
 
-if typing.TYPE_CHECKING:
-    T = typing.TypeVar("T")
+if TYPE_CHECKING:
+    T = TypeVar("T")
 
     class SqlAlchemyEnum(TypeEngine[T]):
         # https://github.com/dropbox/sqlalchemy-stubs/issues/114
-        def __init__(self, enum: typing.Type[T], **kwargs: typing.Any) -> None:
+        def __init__(self, enum: Type[T], **kwargs: Any) -> None:
             ...

@@ -2,16 +2,18 @@ import datetime
 import logging
 import re
 import types
-import typing
 from importlib import import_module
 from pathlib import Path
+from typing import Any, AnyStr, Dict, List, Match, Optional, Union, cast
 
 import i18n  # type: ignore
 import requests
 import ts3  # type: ignore
-import ts3bot
 from sqlalchemy import exc
 from sqlalchemy.orm import Session, load_only
+from ts3.response import TS3QueryResponse  # type: ignore
+
+import ts3bot
 from ts3bot import commands, events
 from ts3bot.config import Config
 from ts3bot.database import models
@@ -23,13 +25,15 @@ class Command(types.ModuleType):
     USAGE: str
 
     @staticmethod
-    def handle(bot: "Bot", event: events.TextMessage, match: typing.Match):
+    def handle(bot: "Bot", event: events.TextMessage, match: Match) -> None:
         pass
 
 
 class Bot:
-    def __init__(self, session: Session, connect=True, is_cycle: bool = False):
-        self.users: typing.Dict[str, ts3bot.User] = {}
+    def __init__(
+        self, session: Session, connect: bool = True, is_cycle: bool = False
+    ) -> None:
+        self.users: Dict[str, ts3bot.User] = {}
         self.session = session
         self.is_cycle = is_cycle
 
@@ -38,7 +42,7 @@ class Bot:
             self.channel_id = None
         else:
             # Register commands
-            self.commands: typing.List[Command] = []
+            self.commands: List[Command] = []
             for _ in commands.__commands__:
                 if Config.has_option("commands", _) and not Config.getboolean(
                     "commands", _
@@ -46,7 +50,7 @@ class Bot:
                     logging.info("Skipping command.%s", _)
                     continue
 
-                mod = typing.cast(Command, import_module(f"ts3bot.commands.{_}"))
+                mod = cast(Command, import_module(f"ts3bot.commands.{_}"))
                 mod.REGEX = re.compile(mod.MESSAGE_REGEX)
                 logging.info("Registered command.%s", _)
                 self.commands.append(mod)
@@ -61,14 +65,14 @@ class Bot:
             self.client_nick = Config.get("bot_login", "nickname")
 
         self.channel_id = Config.get("teamspeak", "channel_id")
-        self.ts3c: typing.Optional[ts3.query.TS3ServerConnection] = None
+        self.ts3c: Optional[ts3.query.TS3ServerConnection] = None
         self.own_id: int = 0
         self.own_uid: str = ""
 
         if connect:
             self.connect()
 
-    def connect(self):
+    def connect(self) -> None:
         if self.is_cycle:
             username = Config.get("cycle_login", "username")
             password = Config.get("cycle_login", "password")
@@ -94,7 +98,7 @@ class Bot:
             self.exec_("clientupdate", client_nickname=self.client_nick)
 
         # TODO: Replace clientfind/clientinfo with info from whoami
-        self.own_id: int = self.exec_("clientfind", pattern=self.client_nick)[0]["clid"]
+        self.own_id = self.exec_("clientfind", pattern=self.client_nick)[0]["clid"]
         self.own_uid = self.exec_("clientinfo", clid=self.own_id)[0][
             "client_unique_identifier"
         ]
@@ -109,13 +113,16 @@ class Bot:
             if current_nick[0]["client_channel_id"] != self.channel_id:
                 self.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
 
-    def exec_(self, cmd: str, *options, **params):
+    def exec_(self, cmd: str, *options: Any, **params: Any) -> TS3QueryResponse:
         if not self.ts3c:
             raise ConnectionError("Not connected yet.")
 
         return self.ts3c.exec_(cmd, *options, **params)
 
-    def loop(self):
+    def loop(self) -> None:
+        if not self.ts3c:
+            raise ConnectionError("Not connected yet.")
+
         while True:
             self.ts3c.send_keepalive()
             try:
@@ -134,8 +141,13 @@ class Bot:
 
                 self.handle_event(event)
 
-    def handle_event(self, event: ts3.response.TS3Event):
+    def handle_event(self, event: ts3.response.TS3Event) -> None:
         evt = events.Event.from_event(event)
+
+        # Drop event silently if invalid
+        if not evt or not evt.valid:
+            return
+
         # Got an event where the DB is relevant
         if event.event in ["notifycliententerview", "notifytextmessage"]:
             try:
@@ -156,9 +168,6 @@ class Bot:
             if evt.client_type != "0":
                 return
 
-            if not evt.id:
-                return
-
             was_created = self.create_user(evt.id)
             is_known = self.verify_user(evt.uid, evt.database_id, evt.id)
 
@@ -176,7 +185,7 @@ class Bot:
                 self.send_message(evt.id, "welcome_greet", con_limit=annoy_limit)
 
         elif isinstance(evt, events.ClientLeftView):
-            if evt.id and evt.id in self.users:
+            if evt.id in self.users:
                 del self.users[evt.id]
         elif isinstance(evt, events.ClientMoved):
             if evt.channel_id == str(self.channel_id):
@@ -244,8 +253,8 @@ class Bot:
         recipient: str,
         msg: str,
         is_translation: bool = True,
-        **i18n_kwargs: typing.Union[typing.AnyStr, typing.List, int, float],
-    ):
+        **i18n_kwargs: Union[AnyStr, List, int, float],
+    ) -> None:
         if not recipient:
             logging.error("Got invalid recipient %s", recipient)
             return
@@ -280,8 +289,8 @@ class Bot:
         :return: True if the user has/had a known group and False if the user is new
         """
 
-        def revoked(response: str):
-            l_account = typing.cast(typing.Optional[models.Account], account)
+        def revoked(response: str) -> None:
+            l_account = cast(Optional[models.Account], account)
             if l_account:
                 l_account.invalidate(self.session)
 
@@ -306,7 +315,7 @@ class Bot:
         # Get all current groups
         server_groups = self.exec_("servergroupsbyclientid", cldbid=client_database_id)
 
-        known_groups: typing.List[int] = (
+        known_groups: List[int] = (
             [
                 _.group_id
                 for _ in self.session.query(ts3bot.database.models.WorldGroup).options(

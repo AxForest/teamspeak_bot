@@ -1,10 +1,12 @@
 import datetime
 import logging
-import typing
+from typing import Match, Optional, cast
 
 import ts3  # type: ignore
-import ts3bot
 from requests import RequestException
+from sqlalchemy.orm.dynamic import AppenderQuery
+
+import ts3bot
 from ts3bot import (
     ApiErrBadData,
     Config,
@@ -21,7 +23,7 @@ MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API KEY>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     key = match.group(1)
 
     # Check with ArenaNet's API
@@ -29,7 +31,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
         account_info = fetch_api("account", api_key=key)
 
         # Grab server info from database
-        server_group: typing.Optional[models.WorldGroup] = (
+        server_group: Optional[models.WorldGroup] = (
             bot.session.query(models.WorldGroup)
             .filter(models.WorldGroup.world == enums.World(account_info.get("world")))
             .one_or_none()
@@ -45,7 +47,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
             )
 
             # Check if account is registered to anyone
-            linked_identity: typing.Optional[
+            linked_identity: Optional[
                 models.LinkAccountIdentity
             ] = account.valid_identities.one_or_none()
 
@@ -156,7 +158,7 @@ def handle(bot: Bot, event: events.TextMessage, match: typing.Match):
                 if Config.getboolean(
                     "guild", "assign_on_register"
                 ) and Config.getboolean("guild", "allow_multiple_guilds"):
-                    account.guilds.filter(
+                    cast(AppenderQuery, account.guilds).filter(
                         models.LinkAccountGuild.id.in_(
                             bot.session.query(models.LinkAccountGuild.id)
                             .join(models.Guild)

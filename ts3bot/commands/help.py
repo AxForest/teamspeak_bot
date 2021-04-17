@@ -1,6 +1,7 @@
-import typing
+from typing import Match
 
 import i18n  # type: ignore
+
 from ts3bot import events
 from ts3bot.bot import Bot
 from ts3bot.config import Config
@@ -9,7 +10,7 @@ MESSAGE_REGEX = "!help\\s*"
 USAGE = "!help"
 
 
-def handle(bot: Bot, event: events.TextMessage, _match: typing.Match):
+def handle(bot: Bot, event: events.TextMessage, _match: Match) -> None:
     if event.uid not in Config.whitelist_admin:
         return
 
