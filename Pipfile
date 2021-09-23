@@ -4,18 +4,18 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-mypy = "==0.812"
 requests-mock = "==1.8.*"
 sqlalchemy-stubs = "==0.4"
+coverage = "*"
 
 [packages]
-alembic = "==1.5.*"
+alembic = "==1.7.*"
 pydantic = "==1.8.*"
 python-i18n = "==0.3.*"
-requests = "==2.25.*"
-sentry-sdk = "==1.0.*"
+requests = "==2.26.*"
+sentry-sdk = "*"
 sqlalchemy = "==1.4.*"
-ts3 = "==2.0.0b2"
+ts3 = "==2.0.0b3"
 
 [requires]
 python_version = "3.8"
