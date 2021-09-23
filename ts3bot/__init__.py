@@ -11,8 +11,7 @@ import ts3  # type: ignore
 from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
 
-from ts3bot import bot as ts3_bot
-from ts3bot import events
+from ts3bot import bot as ts3_bot, events
 from ts3bot.config import Config
 from ts3bot.database import models
 
@@ -25,6 +24,8 @@ except pkg_resources.DistributionNotFound:
     VERSION = "unknown"
 # Global session
 session = requests.Session()
+
+LOG = logging.getLogger("ts3bot")
 
 
 class NotFoundException(Exception):
@@ -64,10 +65,10 @@ def limit_fetch_api(
     try:
         return fetch_api(endpoint, api_key)
     except ApiErrBadData as e:
-        logging.warning("Got ErrBadData from API, retrying.")
+        LOG.warning("Got ErrBadData from API, retrying.")
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
     except RateLimitException as e:
-        logging.warning("Got rate-limited, waiting 1 minute.")
+        LOG.warning("Got rate-limited, waiting 1 minute.")
         time.sleep(60)
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
 
@@ -117,8 +118,8 @@ def fetch_api(endpoint: str, api_key: Optional[str] = None) -> Dict[str, Any]:
     elif response.status_code == 429:  # Rate limit
         raise RateLimitException()
 
-    logging.warning(response.text)
-    logging.exception("Failed to fetch API")
+    LOG.warning(response.text)
+    LOG.exception("Failed to fetch API")
     raise requests.RequestException()  # API down
 
 
@@ -141,7 +142,7 @@ def init_logger(name: str, is_test: bool = False) -> None:
     # Only write to file outside of tests
     if not is_test:
         hldr = logging.handlers.TimedRotatingFileHandler(
-            "logs/{}.log".format(name), when="W0", encoding="utf-8", backupCount=16
+            f"logs/{name}.log", when="W0", encoding="utf-8", backupCount=16
         )
 
         hldr.setFormatter(fmt)
@@ -208,9 +209,7 @@ def transfer_registration(
     # Get identity from event if necessary
     if not target_identity:
         # TODO: Remove workaround once mypy gets its shit together https://github.com/python/mypy/pull/9956
-        target_identity = cast(
-            models.Identity, models.Identity.get_or_create(bot.session, event.uid)
-        )
+        target_identity = models.Identity.get_or_create(bot.session, event.uid)
 
     # Get database id if necessary
     if not target_dbid:
@@ -220,7 +219,7 @@ def transfer_registration(
             )
         except ts3.TS3Error:
             # User might not exist in the db
-            logging.exception("Failed to get database id from event's user")
+            LOG.exception("Failed to get database id from event's user")
             bot.send_message(event.id, "error_critical")
             return
 
@@ -245,7 +244,7 @@ def transfer_registration(
 
             result = sync_groups(bot, cldbid, account, remove_all=True)
 
-            logging.info(
+            LOG.info(
                 "Removed previous links of %s as ignored during transfer to %s",
                 account.name,
                 target_identity.guid,
@@ -257,7 +256,7 @@ def transfer_registration(
                 )
         except ts3.TS3Error:
             # User might not exist in the db
-            logging.info("Failed to remove groups from user", exc_info=True)
+            LOG.info("Failed to remove groups from user", exc_info=True)
 
     # Invalidate target identity's link, if it exists
     other_account = models.Account.get_by_identity(bot.session, target_identity.guid)
@@ -280,7 +279,7 @@ def transfer_registration(
     # Sync group
     sync_groups(bot, target_dbid, account)
 
-    logging.info("Transferred groups of %s to cldbid:%s", account.name, target_dbid)
+    LOG.info("Transferred groups of %s to cldbid:%s", account.name, target_dbid)
 
     bot.send_message(
         event.id,
@@ -309,13 +308,13 @@ def sync_groups(
 
         try:
             bot.exec_("servergroupaddclient", sgid=str(group["sgid"]), cldbid=cldbid)
-            logging.info("Added user dbid:%s to group %s", cldbid, group["name"])
+            LOG.info("Added user dbid:%s to group %s", cldbid, group["name"])
             server_group_ids.append(int(group["sgid"]))
             group_changes["added"].append(group["name"])
 
         except ts3.TS3Error:
             # User most likely doesn't have the group
-            logging.exception(
+            LOG.exception(
                 "Failed to add cldbid:%s to group %s for some reason.",
                 cldbid,
                 group["name"],
@@ -334,15 +333,13 @@ def sync_groups(
                 bot.exec_(
                     "servergroupdelclient", sgid=str(group["sgid"]), cldbid=cldbid
                 )
-                logging.info(
-                    "Removed user dbid:%s from group %s", cldbid, group["name"]
-                )
+                LOG.info("Removed user dbid:%s from group %s", cldbid, group["name"])
                 server_group_ids.remove(int(group["sgid"]))
                 group_changes["removed"].append(group["name"])
                 return True
             except ts3.TS3Error:
                 # User most likely doesn't have the group
-                logging.exception(
+                LOG.exception(
                     "Failed to remove cldbid:%s from group %s for some reason.",
                     cldbid,
                     group["name"],
@@ -357,12 +354,10 @@ def sync_groups(
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:
         valid_guild_groups: List[models.LinkAccountGuild] = account.guild_groups()
-        valid_world_group: Optional[models.WorldGroup] = account.world_group(
-            bot.session
-        )
+        is_part_of_alliance = account.is_in_alliance()
     else:
         valid_guild_groups = []
-        valid_world_group = None
+        is_part_of_alliance = False
 
     valid_guild_group_ids = cast(
         List[int], [g.guild.group_id for g in valid_guild_groups]
@@ -370,21 +365,15 @@ def sync_groups(
     valid_guild_mapper = {g.guild.group_id: g for g in valid_guild_groups}
 
     # Get all valid groups
-    world_groups: List[int] = [
-        _.group_id
-        for _ in bot.session.query(models.WorldGroup).options(
-            load_only(models.WorldGroup.group_id)
-        )
-    ]
     guild_groups: List[int] = [
         _.group_id
         for _ in bot.session.query(models.Guild)
         .filter(models.Guild.group_id.isnot(None))
         .options(load_only(models.Guild.group_id))
     ]
-    generic_world = ServerGroup(
-        sgid=int(Config.get("teamspeak", "generic_world_id")),
-        name="Generic World",
+    generic_alliance_group = ServerGroup(
+        sgid=int(Config.get("teamspeak", "generic_alliance_id")),
+        name="Generic Alliance Group",
     )
     generic_guild = ServerGroup(
         sgid=int(Config.get("teamspeak", "generic_guild_id")), name="Generic Guild"
@@ -397,16 +386,16 @@ def sync_groups(
         # Skip known valid groups
         if (
             server_group["name"] == "Guest"
-            or sgid == generic_world
+            or sgid == generic_alliance_group
             or sgid == generic_guild
             or (len(valid_guild_groups) > 0 and sgid in valid_guild_group_ids)
-            or (valid_world_group and sgid == valid_world_group.group_id)
+            or sgid == generic_alliance_group["sgid"]
         ):
             continue
 
         # Skip users with whitelisted group
         if skip_whitelisted and server_group.get("name") in Config.whitelist_groups:
-            logging.info(
+            LOG.info(
                 "Skipping cldbid:%s due to whitelisted group: %s",
                 cldbid,
                 server_group.get("name"),
@@ -414,7 +403,7 @@ def sync_groups(
             return group_changes
 
         # Skip unknown groups
-        if sgid not in guild_groups and sgid not in world_groups:
+        if sgid not in guild_groups:
             continue
 
         invalid_groups.append(server_group)
@@ -462,31 +451,13 @@ def sync_groups(
                 ServerGroup(sgid=group_id, name=valid_guild_mapper[group_id].guild.name)
             )
 
-    # User is missing generic world
-    if (
-        valid_world_group
-        and valid_world_group.is_linked
-        and generic_world["sgid"] not in server_group_ids
-        and len(valid_guild_group_ids) == 0
-    ):
-        _add_group(generic_world)
+    # User is missing alliance group
+    if is_part_of_alliance and generic_alliance_group["sgid"] not in server_group_ids:
+        _add_group(generic_alliance_group)
 
-    # User has generic world but shouldn't
-    if generic_world["sgid"] in server_group_ids and (
-        not valid_world_group
-        or not valid_world_group.is_linked
-        or len(valid_guild_group_ids) > 0
-    ):
-        _remove_group(generic_world)
-
-    # User is missing home world
-    if valid_world_group and valid_world_group.group_id not in server_group_ids:
-        _add_group(
-            ServerGroup(
-                sgid=valid_world_group.group_id,
-                name=valid_world_group.world.proper_name,
-            )
-        )
+    # User has alliance group but shouldn't
+    if not is_part_of_alliance and generic_alliance_group["sgid"] in server_group_ids:
+        _remove_group(generic_alliance_group)
 
     return group_changes
 

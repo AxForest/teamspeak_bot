@@ -20,9 +20,7 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 
 ### Usage of `cycle`
 Cycle has additional switches, which allow you to
-- only verify users on linked worlds (`--relink`*),
 - verify everyone (`--all`*),
-- only/also verify users on a certain world (`--world id`**),
 - and also include all users currently known to TS3 (`--ts3`**).  
 
 The last option is part of the default behaviour, where first everyone known to 

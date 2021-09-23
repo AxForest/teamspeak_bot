@@ -52,8 +52,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     text_groups = [""]
     index = 0
     for member in members:
-        member_text = "\n- [URL=client://0/{}]{}[/URL]".format(
-            member["client_unique_identifier"], member["client_nickname"]
+        member_text = (
+            f"\n- [URL=client://0/{member['client_unique_identifier']}]"
+            f"{member['client_nickname']}[/URL]"
         )
         if len(text_groups[index]) + len(bytes(member_text, "utf-8")) >= 1024:
             index += 1

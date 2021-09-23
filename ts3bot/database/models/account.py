@@ -13,7 +13,6 @@ from ts3bot.database.models.base import Base
 
 from .guild import Guild
 from .identity import Identity
-from .world_group import WorldGroup
 from .link_account_guild import LinkAccountGuild
 from .link_account_identity import LinkAccountIdentity
 
@@ -29,6 +28,7 @@ AccountUpdateDict = TypedDict(
         "guilds": Tuple[List[str], List[str]],
     },
 )
+LOG = logging.getLogger("ts3bot.models.account")
 
 
 class Account(Base):  # type: ignore
@@ -65,11 +65,20 @@ class Account(Base):  # type: ignore
     def __repr__(self) -> str:
         return str(self)
 
-    def world_group(self, session: Session) -> Optional["WorldGroup"]:
-        return (
-            session.query(WorldGroup)
-            .filter(WorldGroup.world == self.world)
-            .one_or_none()
+    def is_in_alliance(self) -> bool:
+        """
+        Account is in one of the alliance guilds
+        """
+
+        # TODO: People without guilds should be allowed inside too, obviously
+
+        return cast(
+            bool,
+            cast(AppenderQuery, self.guilds)
+            .join(Guild)
+            .filter(Guild.is_part_of_alliance.is_(True))
+            .count()
+            > 0,
         )
 
     def guild_groups(self) -> List["LinkAccountGuild"]:
@@ -124,7 +133,7 @@ class Account(Base):  # type: ignore
                     is_leader = guid in account_info.get("guild_leader", [])
                     LinkAccountGuild.get_or_create(session, instance, guild, is_leader)
                 except (ts3bot.RateLimitException, requests.RequestException):
-                    logging.warning("Failed to request guild info", exc_info=True)
+                    LOG.warning("Failed to request guild info", exc_info=True)
             session.commit()
         return instance
 
@@ -166,7 +175,7 @@ class Account(Base):  # type: ignore
         :raises RateLimitException
         :raises RequestException
         """
-        logging.info("Updating account record for %s", self.name)
+        LOG.info("Updating account record for %s", self.name)
 
         result: AccountUpdateDict = AccountUpdateDict(transfer=[], guilds=([], []))
 
@@ -182,7 +191,7 @@ class Account(Base):  # type: ignore
             if new_world != self.world:
                 result["transfer"] = [self.world, new_world]
 
-                logging.info(
+                LOG.info(
                     "%s transferred from %s to %s",
                     self.name,
                     self.world.proper_name,
@@ -193,7 +202,7 @@ class Account(Base):  # type: ignore
             # Update name, changes rarely
             new_name = account_info.get("name")
             if new_name != self.name:
-                logging.info("%s got renamed to %s", self.name, new_name)
+                LOG.info("%s got renamed to %s", self.name, new_name)
 
             # Update guilds
             account_guilds = account_info.get("guilds", [])
@@ -245,26 +254,26 @@ class Account(Base):  # type: ignore
             result["guilds"] = (guilds_joined, guilds_left)
 
             if len(guilds_joined) > 0:
-                logging.info("%s joined new guilds: %s", self.name, guilds_joined)
+                LOG.info("%s joined new guilds: %s", self.name, guilds_joined)
             if len(guilds_left) > 0:
-                logging.info("%s left guilds: %s", self.name, guilds_left)
+                LOG.info("%s left guilds: %s", self.name, guilds_left)
 
             self.last_check = datetime.datetime.now()
             self.is_valid = True
             if self.retries > 0:
-                logging.info(
+                LOG.info(
                     "%s was valid again after %s retries.", self.name, self.retries
                 )
                 self.retries = 0
         except ts3bot.InvalidKeyException:
             if self.retries >= 3:
                 self.is_valid = False
-                logging.info(
+                LOG.info(
                     "%s was invalid after 3 retries, marking as invalid.", self.name
                 )
                 raise
             else:
-                logging.info(
+                LOG.info(
                     "%s was invalid in this attempt, increasing counter to %s",
                     self.name,
                     self.retries + 1,

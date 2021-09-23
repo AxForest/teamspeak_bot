@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from ts3bot import init_logger
 from ts3bot.bot import Bot
@@ -40,9 +41,7 @@ if __name__ == "__main__":
         Cycle(
             create_session(Config.get("database", "uri")),
             verify_all=args.all,
-            verify_linked_worlds=args.relink,
             verify_ts3=args.ts3,
-            verify_world=args.world,
         ).run()
     else:
         parser.print_help()

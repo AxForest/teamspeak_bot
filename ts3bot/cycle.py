@@ -1,16 +1,18 @@
 import datetime
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 import requests
 import ts3  # type: ignore
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, load_only
 
 import ts3bot
 from ts3bot import Config
 from ts3bot.bot import Bot
-from ts3bot.database import enums, models
+from ts3bot.database import models
+
+LOG = logging.getLogger("ts3bot.cycle")
 
 
 class Cycle:
@@ -18,20 +20,12 @@ class Cycle:
         self,
         session: Session,
         verify_all: bool,
-        verify_linked_worlds: bool,
         verify_ts3: bool,
-        verify_world: Optional[int] = None,
     ):
         self.bot = Bot(session, is_cycle=True)
         self.session = session
         self.verify_all = verify_all
-        self.verify_linked_worlds = verify_linked_worlds
         self.verify_ts3 = verify_ts3
-
-        if verify_world:
-            self.verify_world: Optional[enums.World] = enums.World(verify_world)
-        else:
-            self.verify_world = None
 
         self.verify_begin = datetime.datetime.today()
 
@@ -43,11 +37,11 @@ class Cycle:
             self.bot, cldbid, account, remove_all=True, skip_whitelisted=True
         )
         if len(changes["removed"]) > 0:
-            logging.info(
+            LOG.info(
                 "Revoked user's (cldbid:%s) groups (%s).", cldbid, changes["removed"]
             )
         else:
-            logging.debug("Removed no groups from user (cldbid:%s).", cldbid)
+            LOG.debug("Removed no groups from user (cldbid:%s).", cldbid)
 
     def fix_user_guilds(self) -> None:
         """
@@ -63,7 +57,7 @@ class Cycle:
             .having(func.count(models.LinkAccountGuild.guild_id) > 1)
         )
         for row in duplicate_guilds:
-            logging.warning(f"{row.account} has multiple guilds.")
+            LOG.warning(f"{row.account} has multiple guilds.")
 
             # Delete duplicates
             self.session.query(models.LinkAccountGuild).filter(
@@ -85,9 +79,7 @@ class Cycle:
             self.fix_user_guilds()
 
         # Run if --ts3 is set or nothing was passed
-        if self.verify_ts3 or not (
-            self.verify_all or self.verify_linked_worlds or self.verify_world
-        ):
+        if self.verify_ts3 or not (self.verify_all):
             self.verify_ts3_accounts()
 
         self.verify_accounts()
@@ -129,7 +121,7 @@ class Cycle:
                     ):
                         continue
 
-                    logging.info("Checking %s/%s", account, uid)
+                    LOG.info("Checking %s/%s", account, uid)
 
                     try:
                         account.update(self.session)
@@ -138,11 +130,11 @@ class Cycle:
                     except ts3bot.InvalidKeyException:
                         self.revoke(account, cldbid)
                     except ts3bot.ApiErrBadData:
-                        logging.warning(
+                        LOG.warning(
                             "Got ErrBadData for this account after multiple attempts."
                         )
                     except requests.RequestException:
-                        logging.exception("Error during API call")
+                        LOG.exception("Error during API call")
                         raise
 
             # Skip to next user block
@@ -152,7 +144,7 @@ class Cycle:
             except ts3.query.TS3QueryError as e:
                 # Fetching users failed, most likely at end
                 if e.args[0].error["id"] != "1281":
-                    logging.exception("Error retrieving user list")
+                    LOG.exception("Error retrieving user list")
                 users = []
 
     def verify_accounts(self) -> None:
@@ -166,45 +158,6 @@ class Cycle:
                 and_(
                     models.Account.last_check <= self.verify_begin,
                     models.Account.is_valid.is_(True),
-                )
-            )
-        elif self.verify_linked_worlds:
-            # Check all accounts which are on linked worlds, or on --world
-            def or_world() -> Any:
-                if self.verify_world:
-                    return or_(
-                        models.Account.world == self.verify_world,
-                        models.WorldGroup.is_linked.is_(True),
-                    )
-                else:
-                    return models.WorldGroup.is_linked.is_(True)
-
-            accounts = (
-                self.session.query(models.Account)
-                .join(
-                    models.WorldGroup,
-                    models.Account.world == models.WorldGroup.world,
-                    isouter=True,
-                )
-                .filter(
-                    and_(
-                        models.Account.last_check <= self.verify_begin,
-                        or_world(),
-                        models.Account.is_valid.is_(True),
-                    )
-                )
-            )
-        elif self.verify_world:
-            # Only check accounts of this world
-            accounts = self.session.query(models.Account).filter(
-                and_(
-                    models.Account.last_check
-                    <= datetime.datetime.today()
-                    - datetime.timedelta(
-                        hours=Config.getfloat("verify", "cycle_hours")
-                    ),
-                    models.Account.is_valid.is_(True),
-                    models.Account.world == self.verify_world,
                 )
             )
         else:
@@ -224,16 +177,16 @@ class Cycle:
 
         for idx, account in enumerate(accounts):
             if idx % 100 == 0 or idx - 1 == num_accounts:
-                logging.info("%s/%s: Checking %s", idx + 1, num_accounts, account.name)
+                LOG.info("%s/%s: Checking %s", idx + 1, num_accounts, account.name)
 
             try:
                 account.update(self.session)
             except ts3bot.InvalidKeyException:
                 pass
             except ts3bot.ApiErrBadData:
-                logging.warning(
+                LOG.warning(
                     "Got ErrBadData for this account after multiple attempts, ignoring for now."
                 )
             except requests.RequestException:
-                logging.exception("Error during API call")
+                LOG.exception("Error during API call")
                 raise

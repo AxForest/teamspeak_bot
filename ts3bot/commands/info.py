@@ -16,6 +16,7 @@ from ts3bot.database import enums, models
 
 MESSAGE_REGEX = "!info \\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "!info <API-Key>"
+LOG = logging.getLogger("ts3bot.info")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -38,8 +39,8 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             guilds=", ".join([_.name for _ in guilds]),
         )
     except InvalidKeyException:
-        logging.info("This seems to be an invalid API key.")
+        LOG.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
     except (requests.RequestException, RateLimitException, ApiErrBadData):
-        logging.exception("Error during API call")
+        LOG.exception("Error during API call")
         bot.send_message(event.id, "error_api")

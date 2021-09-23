@@ -19,6 +19,7 @@ from ts3bot.database import models
 
 MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Guild Tag]"
+LOG = logging.getLogger("ts3bot.guild")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -51,11 +52,11 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             account.invalidate(bot.session)
             sync_groups(bot, cldbid, account, remove_all=True)
 
-            logging.info("Revoked user's permissions.")
+            LOG.info("Revoked user's permissions.")
             bot.send_message(event.id, "invalid_token_admin")
             return
         except (requests.RequestException, RateLimitException, ApiErrBadData):
-            logging.exception("Error during API call")
+            LOG.exception("Error during API call")
             bot.send_message(event.id, "error_api")
 
     # User requested guild removal

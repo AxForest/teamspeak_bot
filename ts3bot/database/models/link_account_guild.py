@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from .account import Account  # noqa: F401
     from .guild import Guild  # noqa: F401
 
+LOG = logging.getLogger("ts3bot.models.lag")
+
 
 class LinkAccountGuild(Base):  # type: ignore
     """
@@ -61,7 +63,7 @@ class LinkAccountGuild(Base):  # type: ignore
             .one_or_none()
         )
         if not instance:
-            logging.debug("Linking %s to %s", account.name, guild.name)
+            LOG.debug("Linking %s to %s", account.name, guild.name)
             instance = LinkAccountGuild(
                 account=account, guild=guild, is_leader=is_leader
             )

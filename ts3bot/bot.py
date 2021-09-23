@@ -18,6 +18,8 @@ from ts3bot import commands, events
 from ts3bot.config import Config
 from ts3bot.database import models
 
+LOG = logging.getLogger("ts3bot")
+
 
 class Command(types.ModuleType):
     MESSAGE_REGEX: str
@@ -47,12 +49,12 @@ class Bot:
                 if Config.has_option("commands", _) and not Config.getboolean(
                     "commands", _
                 ):
-                    logging.info("Skipping command.%s", _)
+                    LOG.info("Skipping command.%s", _)
                     continue
 
                 mod = cast(Command, import_module(f"ts3bot.commands.{_}"))
                 mod.REGEX = re.compile(mod.MESSAGE_REGEX)
-                logging.info("Registered command.%s", _)
+                LOG.info("Registered command.%s", _)
                 self.commands.append(mod)
 
             # Register translation settings
@@ -82,12 +84,8 @@ class Bot:
 
         # Connect to TS3
         self.ts3c = ts3.query.TS3ServerConnection(
-            "{}://{}:{}@{}".format(
-                Config.get("teamspeak", "protocol"),
-                username,
-                password,
-                Config.get("teamspeak", "hostname"),
-            )
+            f"{Config.get('teamspeak', 'protocol')}://{username}:{password}@"
+            f"{Config.get('teamspeak', 'hostname')}"
         )
 
         # Select server and change nick
@@ -156,7 +154,7 @@ class Bot:
                     self.session.execute("SELECT VERSION()")
             except exc.DBAPIError as e:
                 if e.connection_invalidated:
-                    logging.debug("Database connection was invalidated")
+                    LOG.debug("Database connection was invalidated")
                 else:
                     raise
             finally:
@@ -189,10 +187,10 @@ class Bot:
                 del self.users[evt.id]
         elif isinstance(evt, events.ClientMoved):
             if evt.channel_id == str(self.channel_id):
-                logging.info("User id:%s joined channel", evt.id)
+                LOG.info("User id:%s joined channel", evt.id)
                 self.send_message(evt.id, "welcome")
             else:
-                logging.info("User id:%s left channel", evt.id)
+                LOG.info("User id:%s left channel", evt.id)
         elif isinstance(evt, events.TextMessage):
             if not evt.id:
                 invoker_id = event[0].get("invokerid")
@@ -200,7 +198,7 @@ class Bot:
                     self.send_message(invoker_id, "parsing_error")
                 return
 
-            logging.info("Message from %s (%s): %s", evt.name, evt.uid, evt.message)
+            LOG.critical("Message from %s (%s): %s", evt.name, evt.uid, evt.message)
 
             valid_command = False
             for command in self.commands:
@@ -210,15 +208,13 @@ class Bot:
                     try:
                         command.handle(self, evt, match)
                     except ts3.query.TS3QueryError:
-                        logging.exception(
-                            "Unexpected TS3QueryError in command handler."
-                        )
+                        LOG.exception("Unexpected TS3QueryError in command handler.")
                     break
 
             if not valid_command:
                 self.send_message(evt.id, "invalid_input")
         else:
-            logging.warning("Unexpected event: %s", event.data)
+            LOG.warning("Unexpected event: %s", event.data)
 
     def create_user(self, client_id: str) -> bool:
         """
@@ -242,9 +238,9 @@ class Bot:
                 # User went away, just ignore
                 pass
             else:
-                logging.exception("Failed to get client info for user")
+                LOG.exception("Failed to get client info for user")
         except KeyError:
-            logging.exception("Failed to get client info for user")
+            LOG.exception("Failed to get client info for user")
 
         return False
 
@@ -256,7 +252,7 @@ class Bot:
         **i18n_kwargs: Union[AnyStr, List, int, float],
     ) -> None:
         if not recipient:
-            logging.error("Got invalid recipient %s", recipient)
+            LOG.error("Got invalid recipient %s", recipient)
             return
 
         if is_translation:
@@ -269,10 +265,10 @@ class Bot:
             msg = i18n.t(msg, **i18n_kwargs)
 
         try:
-            logging.info("Message to %s: %s", recipient, msg)
+            LOG.info("Message to %s: %s", recipient, msg)
             self.exec_("sendtextmessage", targetmode=1, target=recipient, msg=msg)
         except ts3.query.TS3Error:
-            logging.exception(
+            LOG.exception(
                 "Seems like the user I tried to message vanished into thin air"
             )
 
@@ -304,7 +300,7 @@ class Bot:
             elif response == "groups_revoked_invalid_key":
                 reason = "invalid API key"
 
-            logging.info(
+            LOG.info(
                 "Revoked user's (cldbid:%s) groups (%s) due to %s.",
                 client_database_id,
                 changes["removed"],
@@ -315,24 +311,15 @@ class Bot:
         # Get all current groups
         server_groups = self.exec_("servergroupsbyclientid", cldbid=client_database_id)
 
-        known_groups: List[int] = (
-            [
-                _.group_id
-                for _ in self.session.query(ts3bot.database.models.WorldGroup).options(
-                    load_only(ts3bot.database.models.WorldGroup.group_id)
-                )
-            ]
-            + [
-                _.group_id
-                for _ in self.session.query(ts3bot.database.models.Guild)
-                .filter(ts3bot.database.models.Guild.group_id.isnot(None))
-                .options(load_only(ts3bot.database.models.Guild.group_id))
-            ]
-            + [
-                int(Config.get("teamspeak", "generic_world_id")),
-                int(Config.get("teamspeak", "generic_guild_id")),
-            ]
-        )
+        known_groups: List[int] = [
+            _.group_id
+            for _ in self.session.query(ts3bot.database.models.Guild)
+            .filter(ts3bot.database.models.Guild.group_id.isnot(None))
+            .options(load_only(ts3bot.database.models.Guild.group_id))
+        ] + [
+            int(Config.get("teamspeak", "generic_alliance_id")),
+            int(Config.get("teamspeak", "generic_guild_id")),
+        ]
 
         # Check if user has any known groups
         has_group = False
@@ -366,7 +353,7 @@ class Bot:
         ) < Config.getfloat("verify", "on_join_hours"):
             return True
 
-        logging.debug("Checking %s/%s", account, client_unique_id)
+        LOG.debug("Checking %s/%s", account, client_unique_id)
 
         try:
             account.update(self.session)
@@ -379,6 +366,6 @@ class Bot:
             ts3bot.RateLimitException,
             ts3bot.ApiErrBadData,
         ):
-            logging.exception("Error during API call")
+            LOG.exception("Error during API call")
 
         return True

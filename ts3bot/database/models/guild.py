@@ -4,12 +4,15 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Column, types
 from sqlalchemy.orm import Session, relationship
+from sqlalchemy.sql import expression
 
 import ts3bot
 from ts3bot.database.models.base import Base
 
 if TYPE_CHECKING:
     from .link_account_guild import LinkAccountGuild
+
+LOG = logging.getLogger("ts3bot.models.guild")
 
 
 class Guild(Base):  # type: ignore
@@ -26,6 +29,9 @@ class Guild(Base):  # type: ignore
 
     # TS3 group id
     group_id = Column(types.Integer, nullable=True)
+    is_part_of_alliance = Column(
+        types.Boolean, server_default=expression.false(), nullable=False
+    )
 
     members = relationship("LinkAccountGuild", lazy="dynamic", back_populates="guild")
     created_at = Column(types.DateTime, default=datetime.datetime.now, nullable=False)
@@ -46,7 +52,7 @@ class Guild(Base):  # type: ignore
         """
         instance = session.query(Guild).filter_by(guid=guid).one_or_none()
         if not instance:
-            logging.debug("Creating guild %s", guid)
+            LOG.debug("Creating guild %s", guid)
             instance = Guild.create(guid, group_id=group_id)
             session.add(instance)
             session.commit()
@@ -93,4 +99,4 @@ class Guild(Base):  # type: ignore
         )
         session.commit()
 
-        logging.info(f"Deleted {deleted} empty guilds")
+        LOG.info(f"Deleted {deleted} empty guilds")

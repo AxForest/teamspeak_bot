@@ -9,6 +9,8 @@ from typing import Optional
 import ts3  # type: ignore
 from pydantic import BaseModel
 
+LOG = logging.getLogger("ts3bot.events")
+
 
 class Event(BaseModel):
     valid: bool = True
@@ -24,7 +26,7 @@ class Event(BaseModel):
         elif event.event == "notifyclientmoved":
             return ClientMoved.from_event(event)
 
-        logging.critical("Got unknown TS3Event: %s", event.data)
+        LOG.critical("Got unknown TS3Event: %s", event.data)
         raise NotImplementedError(event.event)
 
 
@@ -44,7 +46,7 @@ class ClientEnterView(Event):
                 client_type=event[0].get("client_type", "42"),
             )
         except KeyError:
-            logging.warning("Partial event from TS: %s", event.data)
+            LOG.warning("Partial event from TS: %s", event.data)
             return ClientEnterView(valid=False)
 
 
@@ -56,7 +58,7 @@ class ClientLeftView(Event):
         try:
             return ClientLeftView(id=event[0]["clid"])
         except KeyError:
-            logging.warning("Partial event from TS: %s", event.data)
+            LOG.warning("Partial event from TS: %s", event.data)
             return ClientLeftView(valid=False)
 
 
@@ -69,7 +71,7 @@ class ClientMoved(Event):
         try:
             return ClientMoved(id=event[0]["clid"], channel_id=event[0].get("ctid", -1))
         except KeyError:
-            logging.warning("Partial event from TS: %s", event.data)
+            LOG.warning("Partial event from TS: %s", event.data)
         return ClientMoved(valid=False)
 
 
@@ -89,5 +91,5 @@ class TextMessage(Event):
                 message=event[0]["msg"].strip(),
             )
         except KeyError:
-            logging.warning("Partial event from TS: %s", event.data)
+            LOG.warning("Partial event from TS: %s", event.data)
             return TextMessage(valid=False)

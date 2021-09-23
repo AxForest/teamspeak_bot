@@ -21,6 +21,7 @@ from ts3bot.database import enums, models
 
 MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API KEY>"
+LOG = logging.getLogger("ts3bot.api_key")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -30,15 +31,17 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     try:
         account_info = fetch_api("account", api_key=key)
 
-        # Grab server info from database
-        server_group: Optional[models.WorldGroup] = (
-            bot.session.query(models.WorldGroup)
-            .filter(models.WorldGroup.world == enums.World(account_info.get("world")))
-            .one_or_none()
+        # Check if one of the guilds is in the alliance
+        is_part_of_alliance = (
+            bot.session.query(models.Guild)
+            .filter(models.Guild.guid.in_(account_info.get("guilds", [])))
+            .filter(models.Guild.is_part_of_alliance.is_(True))
+            .count()
+            > 0
         )
 
-        # World is linked to a group
-        if server_group:
+        # One of the guilds is in the alliance
+        if is_part_of_alliance:
             account: models.Account = models.Account.get_or_create(
                 bot.session, account_info, key
             )
@@ -61,7 +64,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                             "clientgetdbidfromuid", cluid=event.uid
                         )[0]["cldbid"]
                     except ts3.TS3Error:
-                        logging.error("Failed to get user's dbid", exc_info=True)
+                        LOG.error("Failed to get user's dbid", exc_info=True)
                         bot.send_message(event.id, "error_critical")
                         return
 
@@ -74,7 +77,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                     if token_info.get("name", "") == force_key_name:
                         ts3bot.transfer_registration(bot, account, event)
 
-                        logging.info(
+                        LOG.info(
                             "%s (%s) transferred permissions of %s onto themselves.",
                             event.name,
                             event.uid,
@@ -82,7 +85,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                         )
                         return
 
-                    logging.warning(
+                    LOG.warning(
                         "%s (%s) tried to use an already registered API key/account. (%s)",
                         event.name,
                         event.uid,
@@ -90,12 +93,11 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                     )
                     bot.send_message(event.id, "token_in_use", api_name=force_key_name)
                 else:  # Account is linked to current guid
-                    logging.info(
-                        "User {} ({}) tried to register a second time for whatever reason using {}".format(
-                            event.name,
-                            event.uid,
-                            account_info.get("name", "Unknown account"),
-                        )
+                    LOG.info(
+                        "User %s (%s) tried to register a second time for whatever reason using %s",
+                        event.name,
+                        event.uid,
+                        account_info.get("name", "Unknown account"),
                     )
 
                     # Save new API key
@@ -126,7 +128,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                             bot.send_message(event.id, "registration_details_updated")
                         except ts3.TS3Error:
                             # User might not exist in the db
-                            logging.error("Failed to sync user", exc_info=True)
+                            LOG.error("Failed to sync user", exc_info=True)
                     else:
                         # Too early
                         bot.send_message(event.id, "registration_too_early")
@@ -145,7 +147,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                 # Unlink previous account from identity
                 current_account = models.Account.get_by_identity(bot.session, event.uid)
                 if current_account:
-                    logging.info("Delinking %s from cldbid:%s", current_account, cldbid)
+                    LOG.info("Delinking %s from cldbid:%s", current_account, cldbid)
                     current_account.invalidate(bot.session)
 
                 # Register link between models
@@ -171,9 +173,8 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                 # Sync groups
                 sync_groups(bot, cldbid, account)
 
-                logging.info(
-                    "Assigned world %s to %s (%s) using %s",
-                    server_group.world.name,
+                LOG.info(
+                    "Assigned alliance permissions to %s (%s) using %s",
                     event.name,
                     event.uid,
                     account_info.get("name", "Unknown account"),
@@ -204,7 +205,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             )
 
     except InvalidKeyException:
-        logging.info("This seems to be an invalid API key.")
+        LOG.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token_retry")
     except (RateLimitException, RequestException, ApiErrBadData):
         bot.send_message(event.id, "error_api")

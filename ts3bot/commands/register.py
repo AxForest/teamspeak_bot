@@ -18,6 +18,7 @@ from ts3bot.database import models
 
 MESSAGE_REGEX = "!register (\\d+) (\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "!register <database-id> <api-key>"
+LOG = logging.getLogger("ts3bot.register")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -53,7 +54,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             target_dbid=match.group(1),
         )
     except InvalidKeyException:
-        logging.info("This seems to be an invalid API key.")
+        LOG.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
         return
     except (RateLimitException, RequestException, ApiErrBadData):

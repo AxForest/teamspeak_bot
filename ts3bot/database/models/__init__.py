@@ -7,7 +7,6 @@ from .guild import Guild
 from .identity import Identity
 from .link_account_guild import LinkAccountGuild
 from .link_account_identity import LinkAccountIdentity
-from .world_group import WorldGroup
 
 if TYPE_CHECKING:
     T = TypeVar("T")
@@ -16,3 +15,6 @@ if TYPE_CHECKING:
         # https://github.com/dropbox/sqlalchemy-stubs/issues/114
         def __init__(self, enum: Type[T], **kwargs: Any) -> None:
             ...
+
+
+# Creating migrations: alembic revision --autogenerate -m "Comment"

@@ -10,6 +10,7 @@ from ts3bot.database import models
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
 USAGE = "!ignore <API KEY>"
+LOG = logging.getLogger("ts3bot.ignore")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -24,7 +25,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
         # Account does not exist
         if not account:
-            logging.info("User was not registered.")
+            LOG.info("User was not registered.")
             bot.send_message(
                 event.id, "account_unknown", account=json.get("name", "Unknown.0000")
             )
@@ -47,7 +48,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
                 result = sync_groups(bot, cldbid, account, remove_all=True)
 
-                logging.info(
+                LOG.info(
                     "%s (%s) marked previous links of %s as ignored",
                     event.name,
                     event.uid,
@@ -62,12 +63,12 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                 )
             except ts3.TS3Error:
                 # User might not exist in the db
-                logging.info("Failed to remove groups from user", exc_info=True)
+                LOG.info("Failed to remove groups from user", exc_info=True)
 
         else:
             bot.send_message(event.id, "groups_revoked", amount="0", groups=[])
     except InvalidKeyException:
-        logging.info("This seems to be an invalid API key.")
+        LOG.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
     except ApiErrBadData:
         bot.send_message(event.id, "error_api")
