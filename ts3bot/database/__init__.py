@@ -4,7 +4,7 @@ from alembic import command  # type: ignore
 from alembic import script
 from alembic.config import Config  # type: ignore
 from alembic.runtime import migration  # type: ignore
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
@@ -42,9 +42,10 @@ def create_session(database_uri: str, is_test: bool = False) -> Session:
             "alembic", "script_location", str(Path(__file__).parent / "migrations")
         )
 
-    # Create tables
-    Base.metadata.create_all(engine)
-    command.stamp(alembic_cfg, "head")
+    # Create tables if accounts does not exist
+    if not inspect(engine).has_table("accounts"):
+        Base.metadata.create_all(engine)
+        command.stamp(alembic_cfg, "head")
 
     if not is_test:
         # Check if there are any pending migrations
