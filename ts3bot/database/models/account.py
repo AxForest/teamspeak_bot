@@ -13,9 +13,9 @@ from ts3bot.database.models.base import Base
 
 from .guild import Guild
 from .identity import Identity
-from .world_group import WorldGroup
 from .link_account_guild import LinkAccountGuild
 from .link_account_identity import LinkAccountIdentity
+from .world_group import WorldGroup
 
 if TYPE_CHECKING:
     from ts3bot.database.models import SqlAlchemyEnum as Enum
