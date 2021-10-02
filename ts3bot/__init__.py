@@ -227,6 +227,23 @@ def transfer_registration(
     )
 
 
+def set_client_description(bot: ts3_bot.Bot, clid: str, description: str) -> None:
+    """
+    Updates client's description to whatever text is specified (limited to 200
+    characters)
+    """
+
+    try:
+        bot.exec_("clientedit", clid=clid, client_description=description[:200])
+        logging.info("Set client description of %s to %s", clid, description)
+    except ts3.TS3Error:
+        # We most likely lack the permission to do that
+        logging.exception(
+            "Failed to set client_description of %s.",
+            clid,
+        )
+
+
 def sync_groups(
     bot: ts3_bot.Bot,
     cldbid: str,

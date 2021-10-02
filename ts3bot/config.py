@@ -63,6 +63,8 @@ class Config:
                 "generic_guild_id": 98,
                 "# How many times users should be told to register on connect": None,
                 "annoy_total_connections": 5,
+                "# Whether to put account name in the client description": None,
+                "set_client_description_to_ign": False,
             },
         )
         config["bot_login"] = cast(

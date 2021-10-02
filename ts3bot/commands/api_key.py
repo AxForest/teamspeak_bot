@@ -131,6 +131,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                         # Too early
                         bot.send_message(event.id, "registration_too_early")
 
+                    # Set description to IGN
+                    if Config.getboolean("teamspeak", "set_client_description_to_ign"):
+                        ts3bot.set_client_description(bot, event.id, account.name)
+
             else:
                 # Otherwise account is not yet linked and can be used
 
@@ -196,6 +200,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                         else:
                             bot.send_message(event.id, "welcome_registered_2")
 
+                # Set description to IGN
+                if Config.getboolean("teamspeak", "set_client_description_to_ign"):
+                    ts3bot.set_client_description(bot, event.id, account.name)
         else:
             bot.send_message(
                 event.id,
