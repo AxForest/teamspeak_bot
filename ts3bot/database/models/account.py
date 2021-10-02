@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, relationship
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 import ts3bot
+from ts3bot.config import Config
 from ts3bot.database import enums
 from ts3bot.database.models.base import Base
 
@@ -229,7 +230,20 @@ class Account(Base):  # type: ignore
                 guild = Guild.get_or_create(session, guild_guid)
                 guilds_joined.append(guild.name)
                 is_leader = guild.guid in account_info.get("guild_leader", [])
-                LinkAccountGuild.get_or_create(session, self, guild, is_leader)
+
+                # Set LAGs to active automatically if newly joined
+                if Config.getboolean("guild", "allow_multiple_guilds"):
+                    is_active = guild.group_id is not None
+                else:
+                    is_active = False
+
+                LinkAccountGuild.get_or_create(
+                    session,
+                    self,
+                    guild,
+                    is_leader,
+                    is_active=is_active,
+                )
 
             # Process all current guilds for leader status
             for link_guild in self.guilds:

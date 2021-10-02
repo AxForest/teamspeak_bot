@@ -49,7 +49,11 @@ class LinkAccountGuild(Base):  # type: ignore
 
     @staticmethod
     def get_or_create(
-        session: Session, account: "Account", guild: "Guild", is_leader: bool
+        session: Session,
+        account: "Account",
+        guild: "Guild",
+        is_leader: bool,
+        is_active: bool = False,
     ) -> "LinkAccountGuild":
         instance = (
             session.query(LinkAccountGuild)
@@ -63,7 +67,7 @@ class LinkAccountGuild(Base):  # type: ignore
         if not instance:
             logging.debug("Linking %s to %s", account.name, guild.name)
             instance = LinkAccountGuild(
-                account=account, guild=guild, is_leader=is_leader
+                account=account, guild=guild, is_leader=is_leader, is_active=is_active
             )
             session.add(instance)
             session.commit()
