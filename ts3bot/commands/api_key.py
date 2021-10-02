@@ -168,6 +168,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                             .join(models.Guild)
                             .filter(models.Guild.group_id.isnot(None))
                             .subquery()
+                            .select()
                         )
                     ).update({"is_active": True}, synchronize_session="fetch")
                     bot.session.commit()
