@@ -1,16 +1,16 @@
 import datetime
 import json
 import re
-from pathlib import Path
 from typing import ItemsView, List, Literal, Match, Optional, TypedDict, cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
 from ts3bot.config import Config
+from ts3bot.utils import data_path
 
 MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
 USAGE = "!sheet <ebg,red,green,blue,remove> [note]"
-STATE_FILE = Path("sheet.json")
+STATE_FILE = data_path("sheet.json")
 
 LeadDict = TypedDict("LeadDict", {"lead": str, "note": str, "date": str})
 IterType = ItemsView[Literal["EBG", "Red", "Green", "Blue"], List[LeadDict]]

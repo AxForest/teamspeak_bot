@@ -1,9 +1,6 @@
 import logging.handlers
-import os
-import sys
 import time
 from datetime import timedelta
-from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 import requests
@@ -15,14 +12,8 @@ from ts3bot import bot as ts3_bot
 from ts3bot import events
 from ts3bot.config import Config
 from ts3bot.database import models
+from ts3bot.utils import VERSION, data_path
 
-try:
-    # Init version number
-    import pkg_resources
-
-    VERSION = pkg_resources.get_distribution("ts3bot").version
-except pkg_resources.DistributionNotFound:
-    VERSION = "unknown"
 # Global session
 session = requests.Session()
 
@@ -120,59 +111,6 @@ def fetch_api(endpoint: str, api_key: Optional[str] = None) -> Dict[str, Any]:
     logging.warning(response.text)
     logging.exception("Failed to fetch API")
     raise requests.RequestException()  # API down
-
-
-def init_logger(name: str, is_test: bool = False) -> None:
-    if not Path("logs").exists():
-        Path("logs").mkdir()
-
-    logger = logging.getLogger()
-
-    if os.environ.get("ENV", "") == "dev":
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-
-    logger.setLevel(level)
-    fmt = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
-    )
-
-    # Only write to file outside of tests
-    if not is_test:
-        hldr = logging.handlers.TimedRotatingFileHandler(
-            "logs/{}.log".format(name), when="W0", encoding="utf-8", backupCount=16
-        )
-
-        hldr.setFormatter(fmt)
-        logger.addHandler(hldr)
-
-    stream = logging.StreamHandler(sys.stdout)
-    stream.setFormatter(fmt)
-    stream.setLevel(level)
-    logger.addHandler(stream)
-
-    sentry_dsn = Config.get("sentry", "dsn")
-    if sentry_dsn:
-        import sentry_sdk  # type: ignore
-        from sentry_sdk.integrations.sqlalchemy import (
-            SqlalchemyIntegration,
-        )  # type: ignore
-
-        def before_send(event: Any, hint: Any) -> Any:
-            if "exc_info" in hint:
-                _, exc_value, _ = hint["exc_info"]
-                if isinstance(exc_value, KeyboardInterrupt):
-                    return None
-            return event
-
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            before_send=before_send,
-            release=VERSION,
-            send_default_pii=True,
-            integrations=[SqlalchemyIntegration()],
-        )
 
 
 def timedelta_hours(td: timedelta) -> float:
@@ -501,7 +439,6 @@ class User(BaseModel):
 
     @property
     def locale(self) -> Literal["de", "en"]:
-        # TODO: Force locale
         if self.country in ["DE", "AT", "CH"]:
             return "de"
         return "en"

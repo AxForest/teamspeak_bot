@@ -1,10 +1,10 @@
 import argparse
 
-from ts3bot import init_logger
 from ts3bot.bot import Bot
 from ts3bot.config import Config
 from ts3bot.cycle import Cycle
 from ts3bot.database import create_session
+from ts3bot.utils import init_logger
 
 if __name__ == "__main__":
     Config.load()

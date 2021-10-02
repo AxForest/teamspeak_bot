@@ -1,8 +1,10 @@
 import configparser
-from pathlib import Path
+import logging
 from typing import Dict, List, cast
 
-FILE_PATH = (Path(".") / "config.ini").absolute()
+from ts3bot.utils import data_path
+
+FILE_PATH = data_path("config.ini")
 
 
 class Config:
@@ -42,7 +44,7 @@ class Config:
 
         # The casts are fun workarounds for invalid typings.
         config["sentry"] = {"dsn": ""}
-        config["database"] = {"uri": "sqlite:///db.sqlite3"}
+        config["database"] = {"uri": f"sqlite:///{str(data_path('db.sqlite3'))}"}
         config["teamspeak"] = cast(
             Dict[str, str],
             {
@@ -154,6 +156,9 @@ class Config:
                 # Write config
                 with FILE_PATH.open("w") as f:
                     config.write(f)
+
+                logging.info("Config was initialized, please edit it.")
+                exit(0)
             else:
                 # Read config, will use defaults if value is not found
                 config = Config._create()
