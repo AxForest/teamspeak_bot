@@ -1,15 +1,12 @@
 import datetime
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from sqlalchemy import Column, types
 from sqlalchemy.orm import Session, relationship
 
 import ts3bot
 from ts3bot.database.models.base import Base
-
-if TYPE_CHECKING:
-    from .link_account_guild import LinkAccountGuild
 
 
 class Guild(Base):  # type: ignore
@@ -80,6 +77,8 @@ class Guild(Base):  # type: ignore
         :param session:
         :return:
         """
+        from .link_account_guild import LinkAccountGuild
+
         deleted = (
             session.query(Guild)
             .filter(
