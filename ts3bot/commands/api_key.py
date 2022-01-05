@@ -71,7 +71,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                     token_info = fetch_api("tokeninfo", api_key=key)
 
                     # Override registration, same as !register
-                    if token_info.get("name", "") == force_key_name:
+                    if token_info.get("name", "").strip() == force_key_name:
                         ts3bot.transfer_registration(bot, account, event)
 
                         logging.info(

@@ -86,6 +86,7 @@ class Guild(Base):  # type: ignore
                     session.query(LinkAccountGuild.guild_id)
                     .group_by(LinkAccountGuild.guild_id)
                     .subquery()
+                    .select()
                 )
             )
             .delete(synchronize_session="fetch")
