@@ -10,7 +10,7 @@ coverage = "*"
 
 [packages]
 alembic = "==1.7.*"
-pydantic = "==1.8.*"
+pydantic = "==1.9.*"
 python-i18n = "==0.3.*"
 requests = "==2.26.*"
 sentry-sdk = "*"
