@@ -116,4 +116,6 @@ class World(enum.Enum):
 
     @property
     def proper_name(self) -> str:
+        """Returns English world name"""
+
         return WORLDS[self.value]

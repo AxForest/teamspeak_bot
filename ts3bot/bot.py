@@ -4,13 +4,13 @@ import re
 import types
 from importlib import import_module
 from pathlib import Path
-from typing import Any, AnyStr, Dict, List, Match, Optional, Union, cast
+from typing import Any, AnyStr, cast, Dict, List, Match, Optional, Union
 
 import i18n  # type: ignore
 import requests
 import ts3  # type: ignore
 from sqlalchemy import exc
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import load_only, Session
 from ts3.response import TS3QueryResponse  # type: ignore
 
 import ts3bot
@@ -44,6 +44,7 @@ class Bot:
             # Register commands
             self.commands: List[Command] = []
             for _ in commands.__commands__:
+                # Command is explicitly set to False
                 if Config.has_option("commands", _) and not Config.getboolean(
                     "commands", _
                 ):

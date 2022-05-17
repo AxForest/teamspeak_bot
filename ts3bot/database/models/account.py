@@ -1,10 +1,10 @@
 import datetime
 import logging
-from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
+from typing import cast, Iterable, List, Optional, Tuple, TYPE_CHECKING, TypedDict
 
 import requests
-from sqlalchemy import Column, and_, or_, types
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy import and_, Column, or_, types
+from sqlalchemy.orm import relationship, Session
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 import ts3bot
@@ -163,6 +163,7 @@ class Account(Base):  # type: ignore
     def update(self, session: Session) -> AccountUpdateDict:
         """
         Updates and saves an accounts's detail
+
         :raises InvalidKeyException
         :raises RateLimitException
         :raises RequestException
@@ -246,7 +247,7 @@ class Account(Base):  # type: ignore
                 )
 
             # Process all current guilds for leader status
-            for link_guild in self.guilds:
+            for link_guild in cast(Iterable[LinkAccountGuild], self.guilds):
                 # Skip new guilds
                 if link_guild.guild.guid in guids_joined:
                     continue

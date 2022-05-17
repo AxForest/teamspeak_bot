@@ -1,7 +1,7 @@
 import logging.handlers
 import time
 from datetime import timedelta
-from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
+from typing import Any, cast, Dict, List, Literal, Optional, TypedDict
 
 import requests
 import ts3  # type: ignore
@@ -12,7 +12,7 @@ from ts3bot import bot as ts3_bot
 from ts3bot import events
 from ts3bot.config import Config
 from ts3bot.database import models
-from ts3bot.utils import VERSION, data_path
+from ts3bot.utils import data_path, VERSION
 
 # Global session
 session = requests.Session()

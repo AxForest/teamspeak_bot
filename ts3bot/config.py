@@ -1,10 +1,12 @@
 import configparser
 import logging
-from typing import Dict, List, cast
+from typing import cast, Dict, List
 
 from ts3bot.utils import data_path
 
 FILE_PATH = data_path("config.ini")
+
+# TODO: Switch to pydantic.BaseSettings
 
 
 class Config:
@@ -89,6 +91,8 @@ class Config:
             Dict[str, str],
             {
                 "# Enable/disable commands here": None,
+                "api_key": True,
+                "admin": True,
                 "guild": True,
                 "ignore": True,
                 "info": True,
@@ -143,6 +147,8 @@ class Config:
                 "allow_multiple_guilds": True,
                 "# Assign guild tags automatically on register, only available if allow_multiple_guilds is enabled": None,
                 "assign_on_register": True,
+                "# Guild group template ID, used for creation of new guild groups": None,
+                "guild_group_template": None,
             },
         )
 

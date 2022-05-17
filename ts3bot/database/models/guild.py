@@ -1,9 +1,9 @@
 import datetime
 import logging
-from typing import cast
+from typing import cast, Optional
 
 from sqlalchemy import Column, types
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import relationship, Session
 
 import ts3bot
 from ts3bot.database.models.base import Base
@@ -57,11 +57,14 @@ class Guild(Base):  # type: ignore
     @staticmethod
     def create(guid: str, group_id: int = None) -> "Guild":
         """
-        Retrieves guild details from the API and returns an instance or None if the guild was not found
-        :exception NotFoundException
-        :exception RateLimitException
-        :exception requests.RequestException
+        Retrieves guild details from the API and returns an instance or
+        None if the guild was not found
+
+        :raises NotFoundException:
+        :raises RateLimitException:
+        :raises requests.RequestException:
         """
+
         data = ts3bot.fetch_api(f"guild/{guid}")
         return Guild(
             guid=guid,
@@ -74,9 +77,8 @@ class Guild(Base):  # type: ignore
     def cleanup(session: Session) -> None:
         """
         Removes all guilds without players
-        :param session:
-        :return:
         """
+
         from .link_account_guild import LinkAccountGuild
 
         deleted = (
@@ -94,3 +96,21 @@ class Guild(Base):  # type: ignore
         session.commit()
 
         logging.info(f"Deleted {deleted} empty guilds")
+
+    def update(self, session: Session) -> None:
+        """
+        Updates and saves the guild's data
+
+        :raises NotFoundException:
+        :raises RateLimitException:
+        :raises requests.RequestException:
+        """
+
+        logging.info("Updating guild record for %s [%s]", self.name, self.tag)
+
+        data = ts3bot.fetch_api(f"guild/{self.guid}")
+
+        self.name = data.get("name", self.name)
+        self.tag = data.get("tag", self.tag)
+
+        session.commit()
