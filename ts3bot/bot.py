@@ -4,18 +4,18 @@ import re
 import types
 from importlib import import_module
 from pathlib import Path
-from typing import Any, AnyStr, Dict, List, Match, Optional, Union, cast
+from typing import Any, AnyStr, cast, Dict, List, Match, Optional, Union
 
 import i18n  # type: ignore
 import requests
 import ts3  # type: ignore
 from sqlalchemy import exc
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import load_only, Session
 from ts3.response import TS3QueryResponse  # type: ignore
 
 import ts3bot
 from ts3bot import commands, events
-from ts3bot.config import Config
+from ts3bot.config import env
 from ts3bot.database import models
 
 LOG = logging.getLogger("ts3bot")
@@ -40,16 +40,14 @@ class Bot:
         self.is_cycle = is_cycle
 
         if is_cycle:
-            self.client_nick = Config.get("cycle_login", "nickname")
-            self.channel_id = None
+            self.client_nick = env.cycle_nickname
         else:
             # Register commands
             self.commands: List[Command] = []
             for _ in commands.__commands__:
-                if Config.has_option("commands", _) and not Config.getboolean(
-                    "commands", _
-                ):
-                    LOG.info("Skipping command.%s", _)
+                # Check if command is *not* in our list
+                if _ not in env.commands:
+                    logging.info("Skipping command.%s", _)
                     continue
 
                 mod = cast(Command, import_module(f"ts3bot.commands.{_}"))
@@ -64,9 +62,8 @@ class Bot:
             i18n.set("skip_locale_root_data", True)
             i18n.set("locale", "de")
 
-            self.client_nick = Config.get("bot_login", "nickname")
+            self.client_nick = env.bot_nickname
 
-        self.channel_id = Config.get("teamspeak", "channel_id")
         self.ts3c: Optional[ts3.query.TS3ServerConnection] = None
         self.own_id: int = 0
         self.own_uid: str = ""
@@ -76,20 +73,24 @@ class Bot:
 
     def connect(self) -> None:
         if self.is_cycle:
-            username = Config.get("cycle_login", "username")
-            password = Config.get("cycle_login", "password")
+            username = env.cycle_username
+            password = env.cycle_password
         else:
-            username = Config.get("bot_login", "username")
-            password = Config.get("bot_login", "password")
+            username = env.bot_username
+            password = env.bot_password
 
         # Connect to TS3
         self.ts3c = ts3.query.TS3ServerConnection(
-            f"{Config.get('teamspeak', 'protocol')}://{username}:{password}@"
-            f"{Config.get('teamspeak', 'hostname')}"
+            "{}://{}:{}@{}".format(
+                env.protocol,
+                username,
+                password,
+                env.host,
+            )
         )
 
         # Select server and change nick
-        self.exec_("use", sid=Config.get("teamspeak", "server_id"))
+        self.exec_("use", sid=env.server_id)
 
         current_nick = self.exec_("whoami")
         if current_nick[0]["client_nickname"] != self.client_nick:
@@ -103,13 +104,13 @@ class Bot:
 
         if not self.is_cycle:
             # Subscribe to events
-            self.exec_("servernotifyregister", event="channel", id=self.channel_id)
+            self.exec_("servernotifyregister", event="channel", id=env.channel_id)
             self.exec_("servernotifyregister", event="textprivate")
             self.exec_("servernotifyregister", event="server")
 
             # Move to target channel
-            if current_nick[0]["client_channel_id"] != self.channel_id:
-                self.exec_("clientmove", clid=self.own_id, cid=self.channel_id)
+            if current_nick[0]["client_channel_id"] != env.channel_id:
+                self.exec_("clientmove", clid=self.own_id, cid=env.channel_id)
 
     def exec_(self, cmd: str, *options: Any, **params: Any) -> TS3QueryResponse:
         if not self.ts3c:
@@ -174,20 +175,23 @@ class Bot:
                 return
 
             # Message user if total_connections is below n and user is new
-            annoy_limit = Config.getint("teamspeak", "annoy_total_connections")
             if (
                 not is_known
                 and evt.id in self.users
-                and -1 < self.users[evt.id].total_connections <= annoy_limit
+                and -1
+                < self.users[evt.id].total_connections
+                <= env.annoy_total_connections
             ):
-                self.send_message(evt.id, "welcome_greet", con_limit=annoy_limit)
+                self.send_message(
+                    evt.id, "welcome_greet", con_limit=env.annoy_total_connections
+                )
 
         elif isinstance(evt, events.ClientLeftView):
             if evt.id in self.users:
                 del self.users[evt.id]
         elif isinstance(evt, events.ClientMoved):
-            if evt.channel_id == str(self.channel_id):
-                LOG.info("User id:%s joined channel", evt.id)
+            if evt.channel_id == str(env.channel_id):
+                logging.info("User id:%s joined channel", evt.id)
                 self.send_message(evt.id, "welcome")
             else:
                 LOG.info("User id:%s left channel", evt.id)
@@ -316,18 +320,18 @@ class Bot:
             for _ in self.session.query(ts3bot.database.models.Guild)
             .filter(ts3bot.database.models.Guild.group_id.isnot(None))
             .options(load_only(ts3bot.database.models.Guild.group_id))
-        ] + [
-            int(Config.get("teamspeak", "generic_alliance_id")),
-            int(Config.get("teamspeak", "generic_guild_id")),
-        ]
+        ] + [env.generic_alliance_id, env.generic_guild_id]
 
         # Check if user has any known groups
         has_group = False
         has_skip_group = False
         for server_group in server_groups:
+            # Has a known server group
             if int(server_group.get("sgid", -1)) in known_groups:
                 has_group = True
-            if server_group.get("name") in Config.whitelist_groups:
+
+            # Has a server group that causes the user to be ignored
+            if server_group.get("name") in env.join_verification_ignore:
                 has_skip_group = True
 
         # Skip users without any known groups
@@ -348,9 +352,10 @@ class Bot:
             return True
 
         # User was checked, don't check again
-        if ts3bot.timedelta_hours(
-            datetime.datetime.today() - account.last_check
-        ) < Config.getfloat("verify", "on_join_hours"):
+        if (
+            ts3bot.timedelta_hours(datetime.datetime.today() - account.last_check)
+            < env.on_join_hours
+        ):
             return True
 
         LOG.debug("Checking %s/%s", account, client_unique_id)

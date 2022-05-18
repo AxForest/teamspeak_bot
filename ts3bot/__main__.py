@@ -1,15 +1,13 @@
 import argparse
 import logging
 
-from ts3bot import init_logger
 from ts3bot.bot import Bot
-from ts3bot.config import Config
+from ts3bot.config import env
 from ts3bot.cycle import Cycle
 from ts3bot.database import create_session
+from ts3bot.utils import init_logger
 
 if __name__ == "__main__":
-    Config.load()
-
     parser = argparse.ArgumentParser("ts3bot")
     sub = parser.add_subparsers(dest="mode")
     sub_cycle = sub.add_parser("cycle", help="Verifies/updates all known accounts")
@@ -35,11 +33,11 @@ if __name__ == "__main__":
 
     if args.mode == "bot":
         init_logger("bot")
-        Bot(create_session(Config.get("database", "uri"))).loop()
+        Bot(create_session(env.database_uri)).loop()
     elif args.mode == "cycle":
         init_logger("cycle")
         Cycle(
-            create_session(Config.get("database", "uri")),
+            create_session(env.database_uri),
             verify_all=args.all,
             verify_ts3=args.ts3,
         ).run()

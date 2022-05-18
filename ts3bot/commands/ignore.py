@@ -3,9 +3,9 @@ from typing import Match, Optional
 
 import ts3  # type: ignore
 
-from ts3bot import ApiErrBadData, InvalidKeyException, events, fetch_api, sync_groups
+from ts3bot import ApiErrBadData, events, fetch_api, InvalidKeyException, sync_groups
 from ts3bot.bot import Bot
-from ts3bot.config import Config
+from ts3bot.config import env
 from ts3bot.database import models
 
 MESSAGE_REGEX = "!ignore +([A-Z0-9\\-]+)"
@@ -14,7 +14,7 @@ LOG = logging.getLogger("ts3bot.ignore")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
-    if event.uid not in Config.whitelist_admin:
+    if event.uid not in env.admin_whitelist:
         return
 
     try:

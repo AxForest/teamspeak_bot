@@ -13,3 +13,4 @@ logs/
 *.sqlite3
 config.ini
 sheet.json
+ts3bot.env

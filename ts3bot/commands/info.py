@@ -6,10 +6,10 @@ from sqlalchemy.orm import load_only
 
 from ts3bot import (
     ApiErrBadData,
-    InvalidKeyException,
-    RateLimitException,
     events,
     fetch_api,
+    InvalidKeyException,
+    RateLimitException,
 )
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models

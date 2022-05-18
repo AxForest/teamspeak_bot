@@ -4,14 +4,13 @@ from typing import Optional
 
 import requests
 import ts3  # type: ignore
-from sqlalchemy import and_, func
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import load_only, Session
 
 import ts3bot
-from ts3bot import Config
 from ts3bot.bot import Bot
-from ts3bot.database import models
-
+from ts3bot.config import env
+from ts3bot.database import enums, models
 LOG = logging.getLogger("ts3bot.cycle")
 
 
@@ -22,6 +21,12 @@ class Cycle:
         verify_all: bool,
         verify_ts3: bool,
     ):
+        if any(
+            x is None
+            for x in [env.cycle_nickname, env.cycle_username, env.cycle_password]
+        ):
+            raise Exception("Cycle credentials are not set correctly.")
+
         self.bot = Bot(session, is_cycle=True)
         self.session = session
         self.verify_all = verify_all
@@ -75,7 +80,7 @@ class Cycle:
 
     def run(self) -> None:
         # Skip check if multiple guilds are allowed
-        if not Config.getboolean("guild", "allow_multiple_guilds"):
+        if not env.allow_multiple_guilds:
             self.fix_user_guilds()
 
         # Run if --ts3 is set or nothing was passed
@@ -114,10 +119,12 @@ class Cycle:
                     self.revoke(None, cldbid)
                 else:
                     # User was checked, don't check again
-                    if ts3bot.timedelta_hours(
-                        datetime.datetime.today() - account.last_check
-                    ) < Config.getfloat("verify", "cycle_hours") and not (
-                        self.verify_all
+                    if (
+                        ts3bot.timedelta_hours(
+                            datetime.datetime.today() - account.last_check
+                        )
+                        < env.cycle_hours
+                        and not self.verify_all
                     ):
                         continue
 
@@ -166,9 +173,7 @@ class Cycle:
                 and_(
                     models.Account.last_check
                     <= datetime.datetime.today()
-                    - datetime.timedelta(
-                        hours=Config.getfloat("verify", "cycle_hours")
-                    ),
+                    - datetime.timedelta(hours=env.cycle_hours),
                     models.Account.is_valid.is_(True),
                 )
             )

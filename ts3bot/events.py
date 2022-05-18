@@ -26,8 +26,8 @@ class Event(BaseModel):
         elif event.event == "notifyclientmoved":
             return ClientMoved.from_event(event)
 
-        LOG.critical("Got unknown TS3Event: %s", event.data)
-        raise NotImplementedError(event.event)
+        logging.critical("Got unknown TS3Event: %s", event.data)
+        return None
 
 
 class ClientEnterView(Event):

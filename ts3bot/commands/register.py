@@ -6,14 +6,14 @@ from requests import RequestException
 
 from ts3bot import (
     ApiErrBadData,
-    InvalidKeyException,
-    RateLimitException,
     events,
     fetch_api,
+    InvalidKeyException,
+    RateLimitException,
     transfer_registration,
 )
 from ts3bot.bot import Bot
-from ts3bot.config import Config
+from ts3bot.config import env
 from ts3bot.database import models
 
 MESSAGE_REGEX = "!register (\\d+) (\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
@@ -22,7 +22,7 @@ LOG = logging.getLogger("ts3bot.register")
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
-    if event.uid not in Config.whitelist_admin:
+    if event.uid not in env.admin_whitelist:
         return
 
     # Grab client_uid

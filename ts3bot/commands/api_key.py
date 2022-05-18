@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Match, Optional, cast
+from typing import cast, Match, Optional
 
 import ts3  # type: ignore
 from requests import RequestException
@@ -9,14 +9,14 @@ from sqlalchemy.orm.dynamic import AppenderQuery
 import ts3bot
 from ts3bot import (
     ApiErrBadData,
-    Config,
-    InvalidKeyException,
-    RateLimitException,
     events,
     fetch_api,
+    InvalidKeyException,
+    RateLimitException,
     sync_groups,
 )
 from ts3bot.bot import Bot
+from ts3bot.config import env
 from ts3bot.database import enums, models
 
 MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
@@ -74,7 +74,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                     token_info = fetch_api("tokeninfo", api_key=key)
 
                     # Override registration, same as !register
-                    if token_info.get("name", "") == force_key_name:
+                    if token_info.get("name", "").strip() == force_key_name:
                         ts3bot.transfer_registration(bot, account, event)
 
                         LOG.info(
@@ -133,6 +133,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                         # Too early
                         bot.send_message(event.id, "registration_too_early")
 
+                    # Set description to IGN
+                    if env.set_client_description_to_ign:
+                        ts3bot.set_client_description(bot, event.id, account.name)
+
             else:
                 # Otherwise account is not yet linked and can be used
 
@@ -157,15 +161,14 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                 bot.session.commit()
 
                 # Add all known guilds to user if enabled
-                if Config.getboolean(
-                    "guild", "assign_on_register"
-                ) and Config.getboolean("guild", "allow_multiple_guilds"):
+                if env.assign_guild_on_register and env.allow_multiple_guilds:
                     cast(AppenderQuery, account.guilds).filter(
                         models.LinkAccountGuild.id.in_(
                             bot.session.query(models.LinkAccountGuild.id)
                             .join(models.Guild)
                             .filter(models.Guild.group_id.isnot(None))
                             .subquery()
+                            .select()
                         )
                     ).update({"is_active": True}, synchronize_session="fetch")
                     bot.session.commit()
@@ -189,14 +192,15 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                     bot.send_message(event.id, "welcome_registered")
 
                     # Tell user about !guild if it's enabled
-                    if Config.getboolean("commands", "guild"):
-                        if Config.getboolean(
-                            "guild", "assign_on_register"
-                        ) and Config.getboolean("guild", "allow_multiple_guilds"):
+                    if "guild" in env.commands:
+                        if env.assign_guild_on_register and env.allow_multiple_guilds:
                             bot.send_message(event.id, "welcome_registered_3")
                         else:
                             bot.send_message(event.id, "welcome_registered_2")
 
+                # Set description to IGN
+                if env.set_client_description_to_ign:
+                    ts3bot.set_client_description(bot, event.id, account.name)
         else:
             bot.send_message(
                 event.id,

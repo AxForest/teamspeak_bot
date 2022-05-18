@@ -1,8 +1,8 @@
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import cast, TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, and_, types
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy import and_, Column, ForeignKey, types
+from sqlalchemy.orm import relationship, Session
 
 from ts3bot.database.models.base import Base
 
@@ -51,7 +51,11 @@ class LinkAccountGuild(Base):  # type: ignore
 
     @staticmethod
     def get_or_create(
-        session: Session, account: "Account", guild: "Guild", is_leader: bool
+        session: Session,
+        account: "Account",
+        guild: "Guild",
+        is_leader: bool,
+        is_active: bool = False,
     ) -> "LinkAccountGuild":
         instance = (
             session.query(LinkAccountGuild)
@@ -65,7 +69,7 @@ class LinkAccountGuild(Base):  # type: ignore
         if not instance:
             LOG.debug("Linking %s to %s", account.name, guild.name)
             instance = LinkAccountGuild(
-                account=account, guild=guild, is_leader=is_leader
+                account=account, guild=guild, is_leader=is_leader, is_active=is_active
             )
             session.add(instance)
             session.commit()

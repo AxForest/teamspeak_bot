@@ -1,20 +1,20 @@
 import datetime
 import logging
-from typing import Match, Optional, cast
+from typing import cast, Match, Optional
 
 import requests
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from ts3bot import (
     ApiErrBadData,
-    Config,
+    events,
     InvalidKeyException,
     RateLimitException,
-    events,
     sync_groups,
     timedelta_hours,
 )
 from ts3bot.bot import Bot
+from ts3bot.config import env
 from ts3bot.database import models
 
 MESSAGE_REGEX = "!guild *([\\w ]+)?"
@@ -32,12 +32,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         bot.send_message(event.id, "missing_token")
         return
 
-    on_join_hours_timeout = Config.getfloat("verify", "on_join_hours")
-
     # Saved account is older than x hours or has no guilds
     if (
         timedelta_hours(datetime.datetime.today() - account.last_check)
-        >= on_join_hours_timeout
+        >= env.on_join_hours
         or cast(AppenderQuery, account.guilds).count() == 0
     ):
         bot.send_message(event.id, "account_updating")
@@ -117,7 +115,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         # Guild not found or user not in guild
         if not selected_guild:
             bot.send_message(
-                event.id, "guild_invalid_selection", timeout=on_join_hours_timeout
+                event.id, "guild_invalid_selection", timeout=env.on_join_hours
             )
             return
 
@@ -128,7 +126,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             selected_guild.is_active = True
 
             # Remove other guilds if only one is allowed
-            if not Config.getboolean("guild", "allow_multiple_guilds"):
+            if not env.allow_multiple_guilds:
                 cast(AppenderQuery, account.guilds).filter(
                     models.LinkAccountGuild.id != selected_guild.id
                 ).update({"is_active": False})

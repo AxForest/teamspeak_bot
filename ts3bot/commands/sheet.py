@@ -1,16 +1,16 @@
 import datetime
 import json
 import re
-from pathlib import Path
-from typing import ItemsView, List, Literal, Match, Optional, TypedDict, cast
+from typing import cast, ItemsView, List, Literal, Match, Optional, TypedDict
 
 from ts3bot import events
 from ts3bot.bot import Bot
-from ts3bot.config import Config
+from ts3bot.config import env
+from ts3bot.utils import data_path
 
 MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
 USAGE = "!sheet <ebg,red,green,blue,remove> [note]"
-STATE_FILE = Path("sheet.json")
+STATE_FILE = data_path("sheet.json")
 
 LeadDict = TypedDict("LeadDict", {"lead": str, "note": str, "date": str})
 IterType = ItemsView[Literal["EBG", "Red", "Green", "Blue"], List[LeadDict]]
@@ -24,13 +24,12 @@ class CommandingDict(TypedDict):
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
-    sheet_channel_id = Config.get("teamspeak", "sheet_channel_id")
-    if sheet_channel_id == 0:
+    if not env.sheet_channel_id:
         return
 
     current_state: CommandingDict = {"EBG": [], "Red": [], "Green": [], "Blue": []}
 
-    if match.group(1) == "help" and event.uid in Config.whitelist_admin:
+    if match.group(1) == "help" and event.uid in env.admin_whitelist:
         bot.send_message(
             event.id,
             "!sheet <ebg,red,green,blue,remove,reset>\n!sheet set <ebg,red,green,blue,remove> <name>",
@@ -38,9 +37,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         )
         return
 
-    if match.group(1) == "reset" and event.uid in Config.whitelist_admin:
+    if match.group(1) == "reset" and event.uid in env.admin_whitelist:
         pass  # Don't load the current file, just use the defaults
-    elif match.group(1) == "set" and event.uid in Config.whitelist_admin:
+    elif match.group(1) == "set" and event.uid in env.admin_whitelist:
         # Force-set an entry
         _match = re.match(
             "!sheet set (ebg|red|green|blue|r|g|b|remove) (.*)",
@@ -105,12 +104,12 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
     desc += (
         f"[/table]\n[hr]Last change: {_tidy_date()}\n\n"
-        f"Link to bot: [URL=client://0/{bot.own_uid}]{Config.get('bot_login', 'nickname')}[/URL]\n"  # Add link to self
+        f"Link to bot: [URL=client://0/{bot.own_uid}]{env.bot_nickname}[/URL]\n"  # Add link to self
         "Usage:\n"
         "- !sheet red/green/blue (note)\t—\tRegister your lead with an optional note (20 characters).\n"
         "- !sheet remove\t—\tRemove the lead"
     )
-    bot.exec_("channeledit", cid=sheet_channel_id, channel_description=desc)
+    bot.exec_("channeledit", cid=env.sheet_channel_id, channel_description=desc)
     bot.send_message(event.id, "sheet_changed")
 
     STATE_FILE.write_text(json.dumps(current_state))

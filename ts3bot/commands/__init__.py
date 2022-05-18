@@ -1,5 +1,6 @@
 __commands__ = [
     "api_key",
+    "admin",
     "guild",
     "help",
     "ignore",

@@ -1,7 +1,7 @@
 import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, UniqueConstraint, types
+from sqlalchemy import Column, ForeignKey, types, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from ts3bot.database.models.base import Base

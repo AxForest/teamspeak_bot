@@ -1,10 +1,7 @@
 import logging.handlers
-import os
-import sys
 import time
 from datetime import timedelta
-from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
+from typing import Any, cast, Dict, List, Literal, Optional, TypedDict
 
 import requests
 import ts3  # type: ignore
@@ -12,16 +9,9 @@ from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
 
 from ts3bot import bot as ts3_bot, events
-from ts3bot.config import Config
 from ts3bot.database import models
+from ts3bot.utils import data_path, VERSION
 
-try:
-    # Init version number
-    import pkg_resources
-
-    VERSION = pkg_resources.get_distribution("ts3bot").version
-except pkg_resources.DistributionNotFound:
-    VERSION = "unknown"
 # Global session
 session = requests.Session()
 
@@ -121,59 +111,6 @@ def fetch_api(endpoint: str, api_key: Optional[str] = None) -> Dict[str, Any]:
     LOG.warning(response.text)
     LOG.exception("Failed to fetch API")
     raise requests.RequestException()  # API down
-
-
-def init_logger(name: str, is_test: bool = False) -> None:
-    if not Path("logs").exists():
-        Path("logs").mkdir()
-
-    logger = logging.getLogger()
-
-    if os.environ.get("ENV", "") == "dev":
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-
-    logger.setLevel(level)
-    fmt = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
-    )
-
-    # Only write to file outside of tests
-    if not is_test:
-        hldr = logging.handlers.TimedRotatingFileHandler(
-            f"logs/{name}.log", when="W0", encoding="utf-8", backupCount=16
-        )
-
-        hldr.setFormatter(fmt)
-        logger.addHandler(hldr)
-
-    stream = logging.StreamHandler(sys.stdout)
-    stream.setFormatter(fmt)
-    stream.setLevel(level)
-    logger.addHandler(stream)
-
-    sentry_dsn = Config.get("sentry", "dsn")
-    if sentry_dsn:
-        import sentry_sdk  # type: ignore
-        from sentry_sdk.integrations.sqlalchemy import (
-            SqlalchemyIntegration,
-        )  # type: ignore
-
-        def before_send(event: Any, hint: Any) -> Any:
-            if "exc_info" in hint:
-                _, exc_value, _ = hint["exc_info"]
-                if isinstance(exc_value, KeyboardInterrupt):
-                    return None
-            return event
-
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            before_send=before_send,
-            release=VERSION,
-            send_default_pii=True,
-            integrations=[SqlalchemyIntegration()],
-        )
 
 
 def timedelta_hours(td: timedelta) -> float:
@@ -288,6 +225,23 @@ def transfer_registration(
     )
 
 
+def set_client_description(bot: ts3_bot.Bot, clid: str, description: str) -> None:
+    """
+    Updates client's description to whatever text is specified (limited to 200
+    characters)
+    """
+
+    try:
+        bot.exec_("clientedit", clid=clid, client_description=description[:200])
+        logging.info("Set client description of %s to %s", clid, description)
+    except ts3.TS3Error:
+        # We most likely lack the permission to do that
+        logging.exception(
+            "Failed to set client_description of %s.",
+            clid,
+        )
+
+
 def sync_groups(
     bot: ts3_bot.Bot,
     cldbid: str,
@@ -295,6 +249,8 @@ def sync_groups(
     remove_all: bool = False,
     skip_whitelisted: bool = False,
 ) -> SyncGroupChanges:
+    from ts3bot.config import env
+
     def _add_group(group: ServerGroup) -> bool:
         """
         Adds a user to a group if necessary, updates `server_group_ids`.
@@ -373,11 +329,10 @@ def sync_groups(
     ]
     generic_alliance_group = ServerGroup(
         sgid=int(Config.get("teamspeak", "generic_alliance_id")),
+        sgid=env.generic_alliance_id,
         name="Generic Alliance Group",
     )
-    generic_guild = ServerGroup(
-        sgid=int(Config.get("teamspeak", "generic_guild_id")), name="Generic Guild"
-    )
+    generic_guild = ServerGroup(sgid=env.generic_guild_id, name="Generic Guild")
 
     # Remove user from all other known invalid groups
     invalid_groups = []
@@ -394,7 +349,10 @@ def sync_groups(
             continue
 
         # Skip users with whitelisted group
-        if skip_whitelisted and server_group.get("name") in Config.whitelist_groups:
+        if (
+            skip_whitelisted
+            and server_group.get("name") in env.join_verification_ignore
+        ):
             LOG.info(
                 "Skipping cldbid:%s due to whitelisted group: %s",
                 cldbid,
@@ -413,7 +371,7 @@ def sync_groups(
 
     # User has additional guild groups but shouldn't
     if len(valid_guild_group_ids) == 0:
-        for _group in Config.additional_guild_groups:
+        for _group in env.additional_guild_groups:
             for server_group in server_groups:
                 if server_group["name"] == _group:
                     _remove_group(server_group)
@@ -472,7 +430,6 @@ class User(BaseModel):
 
     @property
     def locale(self) -> Literal["de", "en"]:
-        # TODO: Force locale
         if self.country in ["DE", "AT", "CH"]:
             return "de"
         return "en"

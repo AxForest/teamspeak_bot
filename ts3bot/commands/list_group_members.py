@@ -1,8 +1,8 @@
-from typing import Match, cast
+from typing import cast, Match
 
 from ts3bot import events
 from ts3bot.bot import Bot
-from ts3bot.config import Config
+from ts3bot.config import env
 
 MESSAGE_REGEX = "!list +([\\w\\- ]+)"
 USAGE = "!list <TS Group>"
@@ -13,11 +13,11 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     user_groups = bot.exec_("servergroupsbyclientid", cldbid=cldbid)
     allowed = False
 
-    if event.uid in Config.whitelist_admin:
+    if event.uid in env.admin_whitelist:
         allowed = True
     else:
         for group in user_groups:
-            if group["name"] in Config.whitelist_group_list:
+            if group["name"] in env.list_whitelist:
                 allowed = True
                 break
 

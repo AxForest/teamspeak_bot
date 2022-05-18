@@ -10,11 +10,8 @@ sys.path.insert(
     0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 )
 
-from ts3bot.config import Config
+from ts3bot.config import env
 from ts3bot.database.models.base import Base
-
-# Load custom config
-Config.load()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -48,9 +45,9 @@ def run_migrations_offline():
     script output.
 
     """
-    url = Config.get("database", "uri")
+
     context.configure(
-        url=url,
+        url=env.database_uri,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -67,21 +64,21 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    database_uri = Config.get("database", "uri")
-    if database_uri.startswith("sqlite"):
+
+    if env.database_uri.startswith("sqlite"):
         connectable = create_engine(
-            database_uri,
+            env.database_uri,
             connect_args={"check_same_thread": False},
             poolclass=pool.NullPool,
         )
     else:
-        connectable = create_engine(database_uri, poolclass=pool.NullPool)
+        connectable = create_engine(env.database_uri, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=database_uri.startswith("sqlite"),
+            render_as_batch=env.database_uri.startswith("sqlite"),
         )
 
         with context.begin_transaction():

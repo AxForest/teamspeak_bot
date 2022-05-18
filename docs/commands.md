@@ -6,6 +6,15 @@ If the same key is posted and the last check was over 12 minutes ago, the user's
 If a different key is posted for the same account, the new key is saved.  
 Overriding a previous registration of the GW2 account is possible by creating a new key named `ts3bot-{dbid}`.
 
+## !admin <link|guild>
+- `!admin link` shows the current linking and existing world groups
+- `!admin link create <world_id> <group_id>` will create a new world group mapping
+- `!admin link add <world_id>` adds the world to the current linking
+- `!admin link remove <world_id>` removes the world from the current linking
+- `!admin guild add <name>` adds a new guild (TS3) group (with the tag as name) and sets the emblem
+- `!admin guild update <name>` fetches the guild's name/tag and emblem from the API and updates the saved data.
+- `!admin guild remove <name>` removes the guild (TS3) group. Emblem icons have to be removed manually currently.
+
 ## !guild (guild-tag)
 `!guild` will respond with a list of currently available guilds, or tell the user that none of their guilds are available as server group.  
 `!guild guild-tag` will apply the guild group, if it exists, and replace the current world permissions.

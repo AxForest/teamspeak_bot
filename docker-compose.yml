@@ -1,0 +1,8 @@
+version: "2"
+
+services:
+  bot:
+    build: .
+    volumes:
+      - ./data:/data
+      - ./ts3bot.env:/app/ts3bot.env:ro
