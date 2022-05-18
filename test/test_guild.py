@@ -1,13 +1,14 @@
 import datetime
 import re
-from typing import Any, Match, cast
+from typing import Any, cast, Match
 
 from _base import BaseTest  # type: ignore
 from _base import sample_data
 from ts3.response import TS3Event  # type: ignore
 
-from ts3bot import Config, events
-from ts3bot.commands.guild import MESSAGE_REGEX, handle
+from ts3bot import events
+from ts3bot.commands.guild import handle, MESSAGE_REGEX
+from ts3bot.config import env
 from ts3bot.database import enums, models
 
 
@@ -71,7 +72,7 @@ class GuildTest(BaseTest):
         self.bot.send_message.assert_any_call(
             "1",
             "guild_invalid_selection",
-            timeout=Config.getfloat("verify", "on_join_hours"),
+            timeout=env.on_join_hours,
         )
 
     def test_list_guilds(self) -> None:

@@ -10,7 +10,6 @@ from sqlalchemy.orm import load_only
 
 from ts3bot import bot as ts3_bot
 from ts3bot import events
-from ts3bot.config import Config
 from ts3bot.database import models
 from ts3bot.utils import data_path, VERSION
 
@@ -251,6 +250,8 @@ def sync_groups(
     remove_all: bool = False,
     skip_whitelisted: bool = False,
 ) -> SyncGroupChanges:
+    from ts3bot.config import env
+
     def _add_group(group: ServerGroup) -> bool:
         """
         Adds a user to a group if necessary, updates `server_group_ids`.
@@ -337,13 +338,8 @@ def sync_groups(
         .filter(models.Guild.group_id.isnot(None))
         .options(load_only(models.Guild.group_id))
     ]
-    generic_world = ServerGroup(
-        sgid=int(Config.get("teamspeak", "generic_world_id")),
-        name="Generic World",
-    )
-    generic_guild = ServerGroup(
-        sgid=int(Config.get("teamspeak", "generic_guild_id")), name="Generic Guild"
-    )
+    generic_world = ServerGroup(sgid=env.generic_world_id, name="Generic World")
+    generic_guild = ServerGroup(sgid=env.generic_guild_id, name="Generic Guild")
 
     # Remove user from all other known invalid groups
     invalid_groups = []
@@ -360,7 +356,10 @@ def sync_groups(
             continue
 
         # Skip users with whitelisted group
-        if skip_whitelisted and server_group.get("name") in Config.whitelist_groups:
+        if (
+            skip_whitelisted
+            and server_group.get("name") in env.join_verification_ignore
+        ):
             logging.info(
                 "Skipping cldbid:%s due to whitelisted group: %s",
                 cldbid,
@@ -379,7 +378,7 @@ def sync_groups(
 
     # User has additional guild groups but shouldn't
     if len(valid_guild_group_ids) == 0:
-        for _group in Config.additional_guild_groups:
+        for _group in env.additional_guild_groups:
             for server_group in server_groups:
                 if server_group["name"] == _group:
                     _remove_group(server_group)

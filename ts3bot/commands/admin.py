@@ -5,15 +5,17 @@ from io import BytesIO
 from typing import cast, Match, Optional
 
 import requests
-import ts3
+import ts3  # type: ignore
 from sqlalchemy import func
 from sqlalchemy.exc import MultipleResultsFound
-from ts3.filetransfer import TS3FileTransfer, TS3FileTransferError
-from ts3.query import TS3ServerConnection
+from ts3.filetransfer import TS3FileTransfer  # type: ignore
+from ts3.filetransfer import TS3FileTransferError
+from ts3.query import TS3ServerConnection  # type: ignore
 
 import ts3bot
-from ts3bot import cmdparse, Config, events
+from ts3bot import cmdparse, events
 from ts3bot.bot import Bot
+from ts3bot.config import env
 from ts3bot.database import enums, models
 
 MESSAGE_REGEX = "!admin\\s* *(\\w+)?"
@@ -80,7 +82,7 @@ class Parser(cmdparse.ArgParse):
 
 
 def handle(bot: Bot, event: events.TextMessage, _match: Match) -> None:
-    if event.uid not in Config.whitelist_admin:
+    if event.uid not in env.admin_whitelist:
         return
 
     parser = Parser(prog="!admin")
@@ -293,9 +295,7 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
         return
 
     # Check if guild group template is set
-    try:
-        server_group = Config.getint("guild", "guild_group_template")
-    except (TypeError, ValueError):
+    if not env.guild_group_template:
         bot.send_message(
             event.id,
             "The guild_group_template isn't set correctly in the guild section of the config.",
@@ -307,7 +307,11 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
     if args.choice == "add":
         try:
             response = bot.exec_(
-                "servergroupcopy", ssgid=server_group, tsgid=0, name=guild.tag, type=1
+                "servergroupcopy",
+                ssgid=env.guild_group_template,
+                tsgid=0,
+                name=guild.tag,
+                type=1,
             )
         except ts3.query.TS3QueryError as e:
             # Probably duplicate entry

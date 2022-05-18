@@ -1,193 +1,148 @@
 import configparser
-import logging
-from typing import cast, Dict, List
+import re
+from typing import Any, List, Literal, Optional, TYPE_CHECKING, TypeVar
+
+import pydantic
+from pydantic.validators import list_validator
 
 from ts3bot.utils import data_path
 
 FILE_PATH = data_path("config.ini")
 
-# TODO: Switch to pydantic.BaseSettings
+T = TypeVar("T")
+
+if TYPE_CHECKING:
+    from pydantic.typing import CallableGenerator
 
 
-class Config:
-    config: configparser.RawConfigParser
-    additional_guild_groups: List[str]
-    whitelist_admin: List[str]
-    whitelist_group_list: List[str]
-    whitelist_groups: List[str]
+class _CSVStripped(str):
+    """
+    Dirty hack until issue 1458 is closed
+    https://github.com/samuelcolvin/pydantic/issues/1458
 
-    @staticmethod
-    def get(section: str, option: str) -> str:
-        return Config.config.get(section, option)
+    Adapted from: https://github.com/samuelcolvin/pydantic/pull/1848
+    Original author: Sebastián Ramírez (https://github.com/tiangolo)
+    """
 
-    @staticmethod
-    def getint(section: str, option: str) -> int:
-        return int(Config.config.get(section, option))
+    @classmethod
+    def __get_validators__(cls) -> "CallableGenerator":
+        yield cls.split_str_validator
 
-    @staticmethod
-    def getfloat(section: str, option: str) -> float:
-        return float(Config.config.get(section, option))
+    @classmethod
+    def split_str_validator(cls, v: Any) -> "Optional[List[str]]":
+        if v is None:
+            return None
 
-    @staticmethod
-    def has_option(section: str, option: str) -> bool:
-        return Config.config.has_option(section, option)
-
-    @staticmethod
-    def getboolean(section: str, option: str) -> bool:
-        return Config.config.getboolean(section, option)
-
-    # noinspection PyTypeChecker
-    @staticmethod
-    def _create() -> configparser.RawConfigParser:
-        config = configparser.RawConfigParser(allow_no_value=True)
-
-        # Don't convert values to lowercase
-        config.optionxform = lambda o: o  # type: ignore
-
-        # The casts are fun workarounds for invalid typings.
-        config["sentry"] = {"dsn": ""}
-        config["database"] = {"uri": f"sqlite:///{str(data_path('db.sqlite3'))}"}
-        config["teamspeak"] = cast(
-            Dict[str, str],
-            {
-                "# The API bot's default TS3 channel": None,
-                "channel_id": 1,
-                "# The virtual server": None,
-                "server_id": 2,
-                "# Connection details": None,
-                "hostname": "localhost:10011",
-                "protocol": "telnet",
-                "# Channel for the reset sheet": None,
-                "sheet_channel_id": 97,
-                "# Generic world group (holds the permissions)": None,
-                "generic_world_id": 99,
-                "# Generic guild group": None,
-                "generic_guild_id": 98,
-                "# How many times users should be told to register on connect": None,
-                "annoy_total_connections": 5,
-                "# Whether to put account name in the client description": None,
-                "set_client_description_to_ign": False,
-            },
-        )
-        config["bot_login"] = cast(
-            Dict[str, str],
-            {
-                "# User account for regular bot": None,
-                "nickname": "Hallo_Welt",
-                "username": "API-Bot",
-                "password": "abc",
-            },
-        )
-        config["cycle_login"] = cast(
-            Dict[str, str],
-            {
-                "# User account for re-verification": None,
-                "nickname": "Cycle",
-                "username": "Cycle",
-                "password": "abc",
-            },
-        )
-        config["commands"] = cast(
-            Dict[str, str],
-            {
-                "# Enable/disable commands here": None,
-                "api_key": True,
-                "admin": True,
-                "guild": True,
-                "ignore": True,
-                "info": True,
-                "list_group_members": True,
-                "register": True,
-                "sheet": True,
-                "verify": True,
-            },
-        )
-        config["additional_guild_groups"] = cast(
-            Dict[str, str],
-            {
-                "# Groups which be removed when guild is changed": None,
-                "Gilden-Leader": None,
-                "Gilden-Officer": None,
-            },
-        )
-        config["whitelist_admin"] = cast(
-            Dict[str, str],
-            {
-                "# List of admins/mods, can use !help/!ignore etc": None,
-                "# Separated by comma, spaces will be ignored": None,
-                "uids": "V2h5IGhlbGxvIHRoZXJlIQ==, R28gc2V0IHlvdXIgYWRtaW4gdWlkcyBoZXJl",
-            },
-        )
-        config["whitelist_group_list"] = cast(
-            Dict[str, str],
-            {
-                "# List of groups who are able to use !list": None,
-                "Gilden-Admin": None,
-            },
-        )
-        config["whitelist_groups"] = cast(
-            Dict[str, str],
-            {
-                "# List of groups whose members should be ignored during join verification": None,
-                "Guest": None,
-            },
-        )
-        config["verify"] = cast(
-            Dict[str, str],
-            {
-                "# How long users should not be checked again in cycle and on join": None,
-                "cycle_hours": 48,
-                "on_join_hours": 24,
-            },
-        )
-        config["guild"] = cast(
-            Dict[str, str],
-            {
-                "# Whether to allow multiple guilds on a user": None,
-                "allow_multiple_guilds": True,
-                "# Assign guild tags automatically on register, only available if allow_multiple_guilds is enabled": None,
-                "assign_on_register": True,
-                "# Guild group template ID, used for creation of new guild groups": None,
-                "guild_group_template": None,
-            },
-        )
-
-        return config
-
-    @staticmethod
-    def load(is_test: bool = False) -> None:
-        if is_test:
-            config = Config._create()
+        if isinstance(v, str):
+            use_v: List[Any] = [sub_v.strip() for sub_v in v.split(",")]
         else:
-            if not FILE_PATH.exists():
-                config = Config._create()
-                # Write config
-                with FILE_PATH.open("w") as f:
-                    config.write(f)
+            use_v = list_validator(v)
+        return use_v
 
-                logging.info("Config was initialized, please edit it.")
-                exit(0)
-            else:
-                # Read config, will use defaults if value is not found
-                config = Config._create()
-                config.read(FILE_PATH)
 
-                # Clean up items and remove comments
-                for section in config.sections():
-                    for item_key, _ in config.items(section):
-                        if item_key.startswith("#") or item_key.startswith(";"):
-                            config.remove_option(section, item_key)
+class _TS3Address(str):
+    """
+    Partial UK postcode validation. Note: this is just an example, and is not
+    intended for use in production; in particular this does NOT guarantee
+    a postcode exists, just that it has a valid format.
+    """
 
-        Config.config = config
-        Config.additional_guild_groups = [
-            _[0].strip() for _ in config.items("additional_guild_groups")
-        ]
-        Config.whitelist_admin = [
-            _.strip() for _ in config.get("whitelist_admin", "uids").split(",")
-        ]
-        Config.whitelist_group_list = [
-            _[0].strip() for _ in config.items("whitelist_group_list")
-        ]
-        Config.whitelist_groups = [
-            _[0].strip() for _ in config.items("whitelist_groups")
-        ]
+    @classmethod
+    def __get_validators__(cls) -> "CallableGenerator":
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: Any) -> "_TS3Address":
+        if not isinstance(v, str):
+            raise TypeError("String required")
+
+        # Only do dumb validation with one expected colon and a port
+        m = re.fullmatch(r"^[\w\d.]+:\d+$", v)
+        if not m:
+            raise ValueError(
+                "Invalid format, expected a domain/IP and a port separated by a colon."
+            )
+
+        return cls(v)
+
+    def __repr__(self) -> str:
+        return f"TS3Address({super().__repr__()})"
+
+
+class Environment(pydantic.BaseSettings):
+    class Config:
+        env_file = "ts3bot.env"
+        env_file_encoding = "utf-8"
+
+    sentry_dsn: Optional[str] = None
+    database_uri: str
+
+    # Teamspeak connection settings
+    # Default channel, joined automatically
+    channel_id: int
+    server_id: int
+    host: _TS3Address
+    protocol: Literal["telnet", "ssh"] = "telnet"
+
+    # Channel for the reset sheet
+    sheet_channel_id: Optional[int]
+
+    # Generic World/Guild groups
+    generic_world_id: int
+    generic_guild_id: int
+
+    # Amount of times users should be told to register on connect
+    annoy_total_connections: int = 5
+
+    # Whether to put account name in the client description
+    set_client_description_to_ign: bool = False
+
+    # Normal bot credentials
+    bot_nickname: str
+    bot_username: str
+    bot_password: str
+
+    # Verfication cronjob credentials
+    cycle_nickname: Optional[str]
+    cycle_username: Optional[str]
+    cycle_password: Optional[str]
+
+    # List of commands that should be loaded
+    commands: _CSVStripped = [  # type: ignore
+        "api_key",
+        "admin",
+        "guild",
+        "ignore",
+        "info",
+        "list_group_members",
+        "register",
+        "sheet",
+        "verify",
+    ]
+
+    # List of groups that should be removed when the guild group is changed by the user
+    additional_guild_groups: _CSVStripped = []  # type: ignore
+
+    # List of admins that are able to use !help/!ignore etc
+    admin_whitelist: _CSVStripped = []  # type: ignore
+
+    # List of user groups that are able to use !list
+    list_whitelist: _CSVStripped = []  # type: ignore
+
+    # List of groups whose member should be ignored during join verification
+    join_verification_ignore: _CSVStripped = ["Guest"]  # type: ignore
+
+    # How long users should not be checked again in the cronjob or on join
+    cycle_hours: float = 48
+    on_join_hours: float = 24
+
+    # Allow users to have multiple guilds
+    allow_multiple_guilds: bool = False
+    # Assign guild tags automatically on register, requires allow_multiple_guilds
+    assign_guild_on_register: bool = False
+
+    # Guild group template for !admin guild add
+    guild_group_template: Optional[int]
+
+
+env = Environment()

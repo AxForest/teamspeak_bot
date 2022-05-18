@@ -1,10 +1,10 @@
 import datetime
 
-from _base import MOCK_RESPONSES  # type: ignore
-from _base import BaseTest, sample_data
+from _base import BaseTest  # type: ignore
+from _base import MOCK_RESPONSES, sample_data
 
-from ts3bot import User, sync_groups
-from ts3bot.config import Config
+from ts3bot import sync_groups, User
+from ts3bot.config import env
 from ts3bot.database import enums, models
 
 
@@ -81,7 +81,7 @@ class CommonTest(BaseTest):
         self.assertEqual(len(self.mock_exec_calls["servergroupaddclient"]), 2)
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][0]["params"],
-            {"sgid": Config.get("teamspeak", "generic_world_id"), "cldbid": "1"},
+            {"sgid": env.generic_world_id, "cldbid": "1"},
         )
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][1]["params"],
@@ -112,7 +112,7 @@ class CommonTest(BaseTest):
         )
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][0]["params"],
-            {"sgid": Config.get("teamspeak", "generic_world_id"), "cldbid": "1"},
+            {"sgid": env.generic_world_id, "cldbid": "1"},
         )
 
     def test_sync_invalid_world(self) -> None:
@@ -129,7 +129,7 @@ class CommonTest(BaseTest):
         MOCK_RESPONSES["servergroupsbyclientid"] = [
             {
                 "name": "Generic World",
-                "sgid": Config.get("teamspeak", "generic_world_id"),
+                "sgid": env.generic_world_id,
             },
             {"name": "Kodash", "sgid": "2201"},
         ]
@@ -144,7 +144,7 @@ class CommonTest(BaseTest):
         )
         self.assertEqual(
             self.mock_exec_calls["servergroupdelclient"][1]["params"],
-            {"sgid": Config.get("teamspeak", "generic_world_id"), "cldbid": "1"},
+            {"sgid": env.generic_world_id, "cldbid": "1"},
         )
 
         # World group should've been added

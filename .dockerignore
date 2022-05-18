@@ -3,3 +3,6 @@ docs/
 logs/
 data/
 test/
+
+ts3bot.env
+config.ini

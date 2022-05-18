@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+from typing import Any, Type, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.sql.type_api import TypeEngine
 

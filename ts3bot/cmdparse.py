@@ -1,6 +1,6 @@
 import argparse
 import enum
-from typing import Any, NoReturn, Optional, Sequence, TYPE_CHECKING
+from typing import Any, NoReturn, Optional, TYPE_CHECKING
 
 from ts3bot import events
 
