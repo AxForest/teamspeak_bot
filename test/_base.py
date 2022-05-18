@@ -1,16 +1,15 @@
 import logging
 import unittest
-from typing import Any, Dict, List, cast
+from typing import Any, cast, Dict, List
 from unittest.mock import MagicMock
 
 import requests_mock  # type: ignore
 import sample_data  # type: ignore
 
 import ts3bot
-from ts3bot import init_logger
 from ts3bot.bot import Bot
-from ts3bot.config import Config
 from ts3bot.database import create_session, enums, models
+from ts3bot.utils import init_logger
 
 TEST_DATABASE = "sqlite:///:memory:"
 # TEST_DATABASE = "sqlite:///test.sqlite3"
@@ -92,8 +91,6 @@ class BaseTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        Config.load(is_test=True)
-
         # Set up logger
         init_logger("test", is_test=True)
 

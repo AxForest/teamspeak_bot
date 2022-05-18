@@ -1,8 +1,8 @@
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import cast, TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, and_, types
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy import and_, Column, ForeignKey, types
+from sqlalchemy.orm import relationship, Session
 
 from ts3bot.database.models.base import Base
 

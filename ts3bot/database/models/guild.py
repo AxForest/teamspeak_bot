@@ -1,12 +1,15 @@
 import datetime
 import logging
-from typing import cast, Optional
+from typing import cast, TYPE_CHECKING
 
 from sqlalchemy import Column, types
 from sqlalchemy.orm import relationship, Session
 
 import ts3bot
 from ts3bot.database.models.base import Base
+
+if TYPE_CHECKING:
+    from .link_account_guild import LinkAccountGuild
 
 
 class Guild(Base):  # type: ignore

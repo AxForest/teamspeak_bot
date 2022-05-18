@@ -1,7 +1,6 @@
 from pathlib import Path
 
-from alembic import command  # type: ignore
-from alembic import script
+from alembic import command, script  # type: ignore
 from alembic.config import Config  # type: ignore
 from alembic.runtime import migration  # type: ignore
 from sqlalchemy import create_engine, inspect

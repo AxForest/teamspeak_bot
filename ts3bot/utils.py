@@ -6,8 +6,10 @@ from typing import Any, Union
 
 import ts3  # type: ignore
 
+from ts3bot.config import env
+
+# Init version number
 try:
-    # Init version number
     import pkg_resources
 
     VERSION = pkg_resources.get_distribution("ts3bot").version
@@ -21,7 +23,7 @@ def data_path(path: Union[Path, str], is_folder: bool = False) -> Path:
     if os.environ.get("RUNNING_IN_DOCKER", False):
         _path = Path("/data") / path
     else:
-        _path = Path.cwd() / "data" / path
+        _path = Path("./data") / path
 
     folder = _path
     if not is_folder:
@@ -35,8 +37,6 @@ def data_path(path: Union[Path, str], is_folder: bool = False) -> Path:
 
 
 def init_logger(name: str, is_test: bool = False) -> None:
-    from ts3bot.config import Config
-
     log_folder = data_path("logs", is_folder=True)
 
     logger = logging.getLogger()
@@ -65,8 +65,7 @@ def init_logger(name: str, is_test: bool = False) -> None:
     stream.setLevel(level)
     logger.addHandler(stream)
 
-    sentry_dsn = Config.get("sentry", "dsn")
-    if sentry_dsn:
+    if env.sentry_dsn:
         import sentry_sdk  # type: ignore
         from sentry_sdk.integrations.sqlalchemy import (
             SqlalchemyIntegration,
@@ -80,7 +79,7 @@ def init_logger(name: str, is_test: bool = False) -> None:
             return event
 
         sentry_sdk.init(
-            dsn=sentry_dsn,
+            dsn=env.sentry_dsn,
             before_send=before_send,
             release=VERSION,
             send_default_pii=True,

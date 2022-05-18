@@ -5,3 +5,4 @@ services:
     build: .
     volumes:
       - ./data:/data
+      - ./ts3bot.env:/app/ts3bot.env:ro

@@ -1,12 +1,13 @@
 import re
 from test._base import BaseTest, sample_data
-from typing import Any, Match, cast
+from typing import Any, cast, Match
 
 import requests_mock  # type: ignore
 from ts3.response import TS3Event  # type: ignore
 
-from ts3bot import Config, events
-from ts3bot.commands.api_key import MESSAGE_REGEX, handle
+from ts3bot import events
+from ts3bot.commands.api_key import handle, MESSAGE_REGEX
+from ts3bot.config import env
 from ts3bot.database import models
 
 
@@ -67,7 +68,7 @@ class ApiKeyTest(BaseTest):
 
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][0]["params"],
-            {"sgid": Config.get("teamspeak", "generic_world_id"), "cldbid": 1},
+            {"sgid": env.generic_world_id, "cldbid": 1},
             "Generic World was not assigned",
         )
         self.assertEqual(

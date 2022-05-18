@@ -8,10 +8,9 @@ from sqlalchemy.orm import relationship, Session
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 import ts3bot
-from ts3bot.config import Config
+from ts3bot.config import env
 from ts3bot.database import enums
 from ts3bot.database.models.base import Base
-
 from .guild import Guild
 from .identity import Identity
 from .link_account_guild import LinkAccountGuild
@@ -67,10 +66,11 @@ class Account(Base):  # type: ignore
         return str(self)
 
     def world_group(self, session: Session) -> Optional["WorldGroup"]:
-        return (
+        return cast(
+            Optional[WorldGroup],
             session.query(WorldGroup)
             .filter(WorldGroup.world == self.world)
-            .one_or_none()
+            .one_or_none(),
         )
 
     def guild_groups(self) -> List["LinkAccountGuild"]:
@@ -99,10 +99,11 @@ class Account(Base):  # type: ignore
     @staticmethod
     def get_by_api_info(session: Session, guid: str, name: str) -> Optional["Account"]:
         # TODO: Remove name after GUID migration
-        return (
+        return cast(
+            Optional[Account],
             session.query(Account)
             .filter(or_(Account.guid == guid, Account.name == name))
-            .one_or_none()
+            .one_or_none(),
         )
 
     @staticmethod
@@ -233,7 +234,7 @@ class Account(Base):  # type: ignore
                 is_leader = guild.guid in account_info.get("guild_leader", [])
 
                 # Set LAGs to active automatically if newly joined
-                if Config.getboolean("guild", "allow_multiple_guilds"):
+                if env.allow_multiple_guilds:
                     is_active = guild.group_id is not None
                 else:
                     is_active = False
