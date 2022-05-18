@@ -1,15 +1,8 @@
-import configparser
 import re
-from typing import Any, List, Literal, Optional, TYPE_CHECKING, TypeVar
+from typing import Any, List, Literal, Optional, TYPE_CHECKING
 
 import pydantic
 from pydantic.validators import list_validator
-
-from ts3bot.utils import data_path
-
-FILE_PATH = data_path("config.ini")
-
-T = TypeVar("T")
 
 if TYPE_CHECKING:
     from pydantic.typing import CallableGenerator
