@@ -52,6 +52,12 @@ RUN poetry install --no-dev
 
 # `production` image used for runtime
 FROM python-base as production
+
+# Install runtime dependencies
+RUN apt-get update \
+    && apt-get install -yq --no-install-recommends libmariadb3 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder $PYSETUP_PATH $PYSETUP_PATH
 
 # App's env
