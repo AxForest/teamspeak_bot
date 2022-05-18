@@ -2,8 +2,8 @@ import datetime
 import re
 from typing import Any, cast, Match
 
-from _base import BaseTest  # type: ignore
-from _base import sample_data
+from ._base import BaseTest  # type: ignore
+from ._base import sample_data
 from ts3.response import TS3Event  # type: ignore
 
 from ts3bot import events

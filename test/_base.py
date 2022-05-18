@@ -4,7 +4,7 @@ from typing import Any, cast, Dict, List
 from unittest.mock import MagicMock
 
 import requests_mock  # type: ignore
-import sample_data  # type: ignore
+from . import sample_data
 
 import ts3bot
 from ts3bot.bot import Bot

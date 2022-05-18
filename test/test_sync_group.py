@@ -1,7 +1,7 @@
 import datetime
 
-from _base import BaseTest  # type: ignore
-from _base import MOCK_RESPONSES, sample_data
+from ._base import BaseTest  # type: ignore
+from ._base import MOCK_RESPONSES, sample_data
 
 from ts3bot import sync_groups, User
 from ts3bot.config import env
@@ -81,7 +81,7 @@ class CommonTest(BaseTest):
         self.assertEqual(len(self.mock_exec_calls["servergroupaddclient"]), 2)
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][0]["params"],
-            {"sgid": env.generic_world_id, "cldbid": "1"},
+            {"sgid": str(env.generic_world_id), "cldbid": "1"},
         )
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][1]["params"],
@@ -112,7 +112,7 @@ class CommonTest(BaseTest):
         )
         self.assertEqual(
             self.mock_exec_calls["servergroupaddclient"][0]["params"],
-            {"sgid": env.generic_world_id, "cldbid": "1"},
+            {"sgid": str(env.generic_world_id), "cldbid": "1"},
         )
 
     def test_sync_invalid_world(self) -> None:
@@ -129,7 +129,7 @@ class CommonTest(BaseTest):
         MOCK_RESPONSES["servergroupsbyclientid"] = [
             {
                 "name": "Generic World",
-                "sgid": env.generic_world_id,
+                "sgid": str(env.generic_world_id),
             },
             {"name": "Kodash", "sgid": "2201"},
         ]
@@ -144,7 +144,7 @@ class CommonTest(BaseTest):
         )
         self.assertEqual(
             self.mock_exec_calls["servergroupdelclient"][1]["params"],
-            {"sgid": env.generic_world_id, "cldbid": "1"},
+            {"sgid": str(env.generic_world_id), "cldbid": "1"},
         )
 
         # World group should've been added
