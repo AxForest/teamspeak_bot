@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Optional
+from typing import Any, cast, Iterable, Optional
 
 import requests
 import ts3  # type: ignore
@@ -71,19 +71,13 @@ class Cycle:
         for row in duplicate_guilds:
             logging.warning(f"{row.account} has multiple guilds.")
 
-            # Delete duplicates
+            # Unset duplicates
             self.session.query(models.LinkAccountGuild).filter(
-                models.LinkAccountGuild.id
-                != (
-                    self.session.query(models.LinkAccountGuild)
-                    .filter(models.LinkAccountGuild.account_id == row.account_id)
-                    .filter(models.LinkAccountGuild.is_active.is_(True))
-                    .order_by(models.LinkAccountGuild.id.desc())
-                    .options(load_only(models.LinkAccountGuild.id))
-                    .limit(1)
-                    .subquery()
-                )
-            ).delete(synchronize_session="fetch")
+                models.LinkAccountGuild.account_id == row.account_id,
+                models.LinkAccountGuild.id != row.id,
+            ).update({"is_active": False})
+
+        self.session.commit()
 
     def run(self) -> None:
         # Skip check if multiple guilds are allowed
@@ -226,7 +220,7 @@ class Cycle:
 
         num_accounts = accounts.count()
 
-        for idx, account in enumerate(accounts):
+        for idx, account in enumerate(cast(Iterable[models.Account], accounts)):
             if idx % 100 == 0 or idx - 1 == num_accounts:
                 logging.info("%s/%s: Checking %s", idx + 1, num_accounts, account.name)
 

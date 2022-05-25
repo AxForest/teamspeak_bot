@@ -6,7 +6,7 @@ If the same key is posted and the last check was over 12 minutes ago, the user's
 If a different key is posted for the same account, the new key is saved.  
 Overriding a previous registration of the GW2 account is possible by creating a new key named `ts3bot-{dbid}`.
 
-## !admin <link|guild>
+## !admin <link, guild>
 - `!admin link` shows the current linking and existing world groups
 - `!admin link create <world_id> <group_id>` will create a new world group mapping
 - `!admin link add <world_id>` adds the world to the current linking
