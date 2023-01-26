@@ -273,7 +273,7 @@ class Account(Base):  # type: ignore
                 )
                 self.retries = 0
         except ts3bot.InvalidKeyException:
-            if self.retries >= 3:
+            if self.retries >= env.retry_invalid_api_key:
                 self.is_valid = False
                 logging.info(
                     "%s was invalid after 3 retries, marking as invalid.", self.name

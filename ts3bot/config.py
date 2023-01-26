@@ -1,36 +1,10 @@
 import re
-from typing import Any, List, Literal, Optional, TYPE_CHECKING
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 import pydantic
-from pydantic.validators import list_validator
 
 if TYPE_CHECKING:
     from pydantic.typing import CallableGenerator
-
-
-class _CSVStripped(str):
-    """
-    Dirty hack until issue 1458 is closed
-    https://github.com/samuelcolvin/pydantic/issues/1458
-
-    Adapted from: https://github.com/samuelcolvin/pydantic/pull/1848
-    Original author: Sebastián Ramírez (https://github.com/tiangolo)
-    """
-
-    @classmethod
-    def __get_validators__(cls) -> "CallableGenerator":
-        yield cls.split_str_validator
-
-    @classmethod
-    def split_str_validator(cls, v: Any) -> "Optional[List[str]]":
-        if v is None:
-            return None
-
-        if isinstance(v, str):
-            use_v: List[Any] = [sub_v.strip() for sub_v in v.split(",")]
-        else:
-            use_v = list_validator(v)
-        return use_v
 
 
 class _TS3Address(str):
@@ -67,6 +41,21 @@ class Environment(pydantic.BaseSettings):
         env_file = "ts3bot.env"
         env_file_encoding = "utf-8"
 
+        @classmethod
+        def parse_env_var(cls, field_name: str, raw_val: str) -> Any:
+            if field_name in [
+                "commands",
+                "additional_guild_groups",
+                "admin_whitelist",
+                "list_whitelist",
+                "join_verification_ignore",
+            ]:
+                if raw_val in ["", None]:
+                    return []
+                return [v.strip() for v in raw_val.split(",") if v.strip()]
+
+            return cls.json_loads(raw_val)  # type: ignore
+
     sentry_dsn: Optional[str] = None
     database_uri: str
 
@@ -101,7 +90,7 @@ class Environment(pydantic.BaseSettings):
     cycle_password: Optional[str]
 
     # List of commands that should be loaded
-    commands: _CSVStripped = [  # type: ignore
+    commands: list[str] = [
         "api_key",
         "admin",
         "guild",
@@ -114,16 +103,16 @@ class Environment(pydantic.BaseSettings):
     ]
 
     # List of groups that should be removed when the guild group is changed by the user
-    additional_guild_groups: _CSVStripped = []  # type: ignore
+    additional_guild_groups: list[str] = []
 
     # List of admins that are able to use !help/!ignore etc
-    admin_whitelist: _CSVStripped = []  # type: ignore
+    admin_whitelist: list[str] = []
 
     # List of user groups that are able to use !list
-    list_whitelist: _CSVStripped = []  # type: ignore
+    list_whitelist: list[str] = []
 
     # List of groups whose member should be ignored during join verification
-    join_verification_ignore: _CSVStripped = ["Guest"]  # type: ignore
+    join_verification_ignore: list[str] = ["Guest"]
 
     # How long users should not be checked again in the cronjob or on join
     cycle_hours: float = 48
@@ -136,6 +125,9 @@ class Environment(pydantic.BaseSettings):
 
     # Guild group template for !admin guild add
     guild_group_template: Optional[int]
+
+    # Invalid API retry amount
+    retry_invalid_api_key: int = 5
 
 
 env = Environment()
