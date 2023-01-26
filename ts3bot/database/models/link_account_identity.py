@@ -1,7 +1,7 @@
 import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, types, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, types
 from sqlalchemy.orm import relationship
 
 from ts3bot.database.models.base import Base
@@ -47,7 +47,8 @@ class LinkAccountIdentity(Base):  # type: ignore
 
     def __str__(self) -> str:
         return (
-            f"<LinkAccountIdentity account={self.account.name} identity={self.identity.guid} "
+            f"<LinkAccountIdentity account={self.account.name} "
+            f"identity={self.identity.guid} "
             f"is_deleted={self.is_deleted}>"
         )
 

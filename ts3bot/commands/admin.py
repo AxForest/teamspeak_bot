@@ -2,7 +2,7 @@ import argparse
 import binascii
 import logging
 from io import BytesIO
-from typing import cast, Match, Optional
+from typing import Match, Optional, cast
 
 import requests
 import ts3  # type: ignore
@@ -138,7 +138,10 @@ def _linking(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> N
         ) is not None:
             bot.send_message(
                 event.id,
-                f"This TS3 group ID is already taken by {wg_instance.world.proper_name}.",
+                (
+                    "This TS3 group ID is already taken "
+                    f"by {wg_instance.world.proper_name}."
+                ),
                 is_translation=False,
             )
             return
@@ -162,7 +165,10 @@ def _linking(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> N
         )
         bot.send_message(
             event.id,
-            f"World group successfully updated/created for {args.world_id.proper_name} ({args.group_id}).",
+            (
+                "World group successfully updated/created for "
+                f"{args.world_id.proper_name} ({args.group_id})."
+            ),
         )
 
     # Add/remove a server to/from our linking
@@ -297,7 +303,10 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
     if not env.guild_group_template:
         bot.send_message(
             event.id,
-            "The guild_group_template isn't set correctly in the guild section of the config.",
+            (
+                "The guild_group_template isn't set correctly "
+                "in the guild section of the config."
+            ),
             is_translation=False,
         )
         return
@@ -389,14 +398,14 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
         # Update guild data
         try:
             guild.update(bot.session)
-        except ts3bot.NotFoundException:
+        except ts3bot.NotFoundError:
             bot.send_message(
                 event.id,
                 "The API is reporting that this guild vanished, please remove it.",
                 is_translation=False,
             )
             return
-        except (ts3bot.RateLimitException, requests.RequestException):
+        except (ts3bot.RateLimitError, requests.RequestException):
             logging.exception("Failed to retrieve guild data")
             bot.send_message(
                 event.id, "Failed to retrieve guild data, try again later."
@@ -434,7 +443,10 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
                 )
                 bot.send_message(
                     event.id,
-                    f"Failed to rename guild group, please do so manually.\nGroup {guild.group_id}: {guild.tag}",
+                    (
+                        "Failed to rename guild group, please do so manually.\n"
+                        f"Group {guild.group_id}: {guild.tag}"
+                    ),
                     is_translation=False,
                 )
                 return
@@ -447,7 +459,7 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
         else:
             bot.send_message(
                 event.id,
-                f"The guild's name hasn't changed, nothing else to do here.",
+                "The guild's name hasn't changed, nothing else to do here.",
                 is_translation=False,
             )
 
@@ -481,7 +493,7 @@ def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> Non
         )
 
 
-def _download_emblem(guild_id: str) -> Optional[BytesIO]:
+def _download_emblem(guild_id: str) -> BytesIO | None:
     """Downloads the guild emblem"""
 
     logging.debug("Fetching guild emblem of %s", guild_id)
@@ -490,7 +502,7 @@ def _download_emblem(guild_id: str) -> Optional[BytesIO]:
         response = sess.get(f"https://emblem.werdes.net/emblem/{guild_id}/64")
 
         # Request was unsuccessful
-        if response.status_code != 200:
+        if response.status_code != 200:  # noqa: PLR2004
             logging.warning(
                 "Failed to download emblem for %s, response was %s",
                 guild_id,
@@ -509,7 +521,7 @@ def _download_emblem(guild_id: str) -> Optional[BytesIO]:
 
 def _upload_file(
     ts3c: TS3ServerConnection, icon_file: BytesIO, guild_id: str
-) -> Optional[int]:
+) -> int | None:
     """Uploads an image file to the TS3 server, returning the file's hash"""
 
     icon_hash = binascii.crc32(guild_id.encode("utf-8"))

@@ -5,11 +5,11 @@ import requests
 from sqlalchemy.orm import load_only
 
 from ts3bot import (
-    ApiErrBadData,
+    ApiErrBadDataError,
+    InvalidKeyError,
+    RateLimitError,
     events,
     fetch_api,
-    InvalidKeyException,
-    RateLimitException,
 )
 from ts3bot.bot import Bot
 from ts3bot.database import enums, models
@@ -37,9 +37,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             world=server.proper_name,
             guilds=", ".join([_.name for _ in guilds]),
         )
-    except InvalidKeyException:
+    except InvalidKeyError:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
-    except (requests.RequestException, RateLimitException, ApiErrBadData):
+    except (requests.RequestException, RateLimitError, ApiErrBadDataError):
         logging.exception("Error during API call")
         bot.send_message(event.id, "error_api")

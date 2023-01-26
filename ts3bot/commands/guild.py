@@ -1,15 +1,15 @@
 import datetime
 import logging
-from typing import cast, Match, Optional
+from typing import Match, cast
 
 import requests
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from ts3bot import (
-    ApiErrBadData,
+    ApiErrBadDataError,
+    InvalidKeyError,
+    RateLimitError,
     events,
-    InvalidKeyException,
-    RateLimitException,
     sync_groups,
     timedelta_hours,
 )
@@ -44,7 +44,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
             # Sync groups in case the user has left a guild or similar changes
             sync_groups(bot, cldbid, account)
-        except InvalidKeyException:
+        except InvalidKeyError:
             # Invalidate link
             account.invalidate(bot.session)
             sync_groups(bot, cldbid, account, remove_all=True)
@@ -52,7 +52,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             logging.info("Revoked user's permissions.")
             bot.send_message(event.id, "invalid_token_admin")
             return
-        except (requests.RequestException, RateLimitException, ApiErrBadData):
+        except (requests.RequestException, RateLimitError, ApiErrBadDataError):
             logging.exception("Error during API call")
             bot.send_message(event.id, "error_api")
 
@@ -107,7 +107,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     else:
         guild = match.group(1).lower()
 
-        selected_guild: Optional[models.LinkAccountGuild] = available_guilds.filter(
+        selected_guild: models.LinkAccountGuild | None = available_guilds.filter(
             models.Guild.tag.ilike(guild)
         ).one_or_none()
 

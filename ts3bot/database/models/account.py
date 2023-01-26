@@ -1,16 +1,17 @@
 import datetime
 import logging
-from typing import cast, Iterable, List, Optional, Tuple, TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Iterable, Optional, TypedDict, cast
 
 import requests
-from sqlalchemy import and_, Column, or_, types
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy import Column, and_, or_, types
+from sqlalchemy.orm import Session, relationship
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 import ts3bot
 from ts3bot.config import env
 from ts3bot.database import enums
 from ts3bot.database.models.base import Base
+
 from .guild import Guild
 from .identity import Identity
 from .link_account_guild import LinkAccountGuild
@@ -22,13 +23,10 @@ if TYPE_CHECKING:
 else:
     from sqlalchemy import Enum
 
-AccountUpdateDict = TypedDict(
-    "AccountUpdateDict",
-    {
-        "transfer": List[enums.World],
-        "guilds": Tuple[List[str], List[str]],
-    },
-)
+
+class AccountUpdateDict(TypedDict):
+    transfer: list[enums.World]
+    guilds: tuple[list[str], list[str]]
 
 
 class Account(Base):  # type: ignore
@@ -73,9 +71,9 @@ class Account(Base):  # type: ignore
             .one_or_none(),
         )
 
-    def guild_groups(self) -> List["LinkAccountGuild"]:
+    def guild_groups(self) -> list["LinkAccountGuild"]:
         return cast(
-            List["LinkAccountGuild"],
+            list["LinkAccountGuild"],
             cast(AppenderQuery, self.guilds)
             .join(Guild)
             .filter(
@@ -125,7 +123,7 @@ class Account(Base):  # type: ignore
                     guild = Guild.get_or_create(session, guid)
                     is_leader = guid in account_info.get("guild_leader", [])
                     LinkAccountGuild.get_or_create(session, instance, guild, is_leader)
-                except (ts3bot.RateLimitException, requests.RequestException):
+                except (ts3bot.RateLimitError, requests.RequestException):
                     logging.warning("Failed to request guild info", exc_info=True)
             session.commit()
         return instance
@@ -165,8 +163,8 @@ class Account(Base):  # type: ignore
         """
         Updates and saves an accounts's detail
 
-        :raises InvalidKeyException
-        :raises RateLimitException
+        :raises InvalidKeyError
+        :raises RateLimitError
         :raises RequestException
         """
         logging.info("Updating account record for %s", self.name)
@@ -200,10 +198,10 @@ class Account(Base):  # type: ignore
 
             # Update guilds
             account_guilds = account_info.get("guilds", [])
-            guids_joined: List[str] = []
-            links_left: List[int] = []
-            guilds_left: List[str] = []
-            old_guilds: List[str] = []
+            guids_joined: list[str] = []
+            links_left: list[int] = []
+            guilds_left: list[str] = []
+            old_guilds: list[str] = []
 
             # Collect left guilds
             link_guild: LinkAccountGuild
@@ -272,7 +270,7 @@ class Account(Base):  # type: ignore
                     "%s was valid again after %s retries.", self.name, self.retries
                 )
                 self.retries = 0
-        except ts3bot.InvalidKeyException:
+        except ts3bot.InvalidKeyError:
             if self.retries >= env.retry_invalid_api_key:
                 self.is_valid = False
                 logging.info(

@@ -18,6 +18,6 @@ def handle(bot: Bot, event: events.TextMessage, _match: Match) -> None:
     message = i18n.t("available_commands")
     for _ in bot.commands:
         if _.USAGE != USAGE:
-            message += "\n - {}".format(_.USAGE)
+            message += f"\n - {_.USAGE}"
 
     bot.send_message(event.id, message, is_translation=False)

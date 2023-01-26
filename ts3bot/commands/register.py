@@ -5,11 +5,11 @@ import ts3  # type: ignore
 from requests import RequestException
 
 from ts3bot import (
-    ApiErrBadData,
+    ApiErrBadDataError,
+    InvalidKeyError,
+    RateLimitError,
     events,
     fetch_api,
-    InvalidKeyException,
-    RateLimitException,
     transfer_registration,
 )
 from ts3bot.bot import Bot
@@ -52,9 +52,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             target_identity=identity,
             target_dbid=match.group(1),
         )
-    except InvalidKeyException:
+    except InvalidKeyError:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
         return
-    except (RateLimitException, RequestException, ApiErrBadData):
+    except (RateLimitError, RequestException, ApiErrBadDataError):
         bot.send_message(event.id, "error_api")

@@ -25,7 +25,11 @@ class WorldGroup(Base):  # type: ignore
     )
 
     def __str__(self) -> str:
-        return f"<WorldGroup group_id={self.group_id} world={self.world.proper_name} is_linked={self.is_linked}>"
+        return (
+            f"<WorldGroup group_id={self.group_id} "
+            f"world={self.world.proper_name} "
+            f"is_linked={self.is_linked}>"
+        )
 
     def __repr__(self) -> str:
         return str(self)

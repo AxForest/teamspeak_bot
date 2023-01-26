@@ -1,25 +1,26 @@
 import logging
 import unittest
-from typing import Any, cast, Dict, List
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import requests_mock  # type: ignore
-from . import sample_data
 
 import ts3bot
 from ts3bot.bot import Bot
 from ts3bot.database import create_session, enums, models
 from ts3bot.utils import init_logger
 
+from . import sample_data
+
 TEST_DATABASE = "sqlite:///:memory:"
 # TEST_DATABASE = "sqlite:///test.sqlite3"
 
-MOCK_RESPONSES: Dict[str, List[dict]] = {}
+MOCK_RESPONSES: dict[str, list[dict]] = {}
 
 
 def mock_exec_(
-    mock_exec_calls: Dict[str, List[dict]], cmd: str, *options: Any, **params: Any
-) -> List[Dict]:
+    mock_exec_calls: dict[str, list[dict]], cmd: str, *options: Any, **params: Any
+) -> list[dict]:
     logging.debug("mock_exec_: %s [%s] {%s}", cmd, options, params)
 
     # Log calls
@@ -82,9 +83,9 @@ class BaseTest(unittest.TestCase):
         )
 
         # Log ts3 query calls
-        self.mock_exec_calls: Dict[str, List[Dict[str, Any]]] = {}
+        self.mock_exec_calls: dict[str, list[dict[str, Any]]] = {}
 
-        def mocker(cmd: str, *options: Any, **params: Any) -> List[dict]:
+        def mocker(cmd: str, *options: Any, **params: Any) -> list[dict]:
             return mock_exec_(self.mock_exec_calls, cmd, *options, **params)
 
         self.bot.exec_ = mocker  # type: ignore

@@ -17,7 +17,9 @@ if __name__ == "__main__":
     )
     sub_cycle.add_argument(
         "--relink",
-        help="Only verifies everyone on a world marked as is_linked, ignores cycle_hours",
+        help=(
+            "Only verifies everyone on a world marked as is_linked, ignores cycle_hours"
+        ),
         action="store_true",
     )
     sub_cycle.add_argument(

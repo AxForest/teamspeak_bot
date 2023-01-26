@@ -2,9 +2,7 @@ import logging.handlers
 import os
 import sys
 from pathlib import Path
-from typing import Any, Union
-
-import ts3  # type: ignore
+from typing import Any
 
 from ts3bot.config import env
 
@@ -17,7 +15,7 @@ except pkg_resources.DistributionNotFound:
     VERSION = "unknown"
 
 
-def data_path(path: Union[Path, str], is_folder: bool = False) -> Path:
+def data_path(path: Path | str, is_folder: bool = False) -> Path:
     """Return a valid local data path, docker-aware"""
 
     if os.environ.get("RUNNING_IN_DOCKER", False):
@@ -66,10 +64,10 @@ def init_logger(name: str, is_test: bool = False) -> None:
     logger.addHandler(stream)
 
     if env.sentry_dsn:
-        import sentry_sdk  # type: ignore
+        import sentry_sdk
         from sentry_sdk.integrations.sqlalchemy import (
             SqlalchemyIntegration,
-        )  # type: ignore
+        )
 
         def before_send(event: Any, hint: Any) -> Any:
             if "exc_info" in hint:

@@ -1,15 +1,15 @@
 import datetime
 import logging
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Column, types
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import Session, relationship
 
 import ts3bot
 from ts3bot.database.models.base import Base
 
 if TYPE_CHECKING:
-    from .link_account_guild import LinkAccountGuild
+    from .link_account_guild import LinkAccountGuild  # noqa: F401
 
 
 class Guild(Base):  # type: ignore
@@ -63,8 +63,8 @@ class Guild(Base):  # type: ignore
         Retrieves guild details from the API and returns an instance or
         None if the guild was not found
 
-        :raises NotFoundException:
-        :raises RateLimitException:
+        :raises NotFoundError:
+        :raises RateLimitError:
         :raises requests.RequestException:
         """
 
@@ -82,7 +82,7 @@ class Guild(Base):  # type: ignore
         Removes all guilds without players
         """
 
-        from .link_account_guild import LinkAccountGuild
+        from .link_account_guild import LinkAccountGuild  # noqa: F811
 
         deleted = (
             session.query(Guild)
@@ -104,8 +104,8 @@ class Guild(Base):  # type: ignore
         """
         Updates and saves the guild's data
 
-        :raises NotFoundException:
-        :raises RateLimitException:
+        :raises NotFoundError:
+        :raises RateLimitError:
         :raises requests.RequestException:
         """
 

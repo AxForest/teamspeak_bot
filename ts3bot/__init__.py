@@ -1,75 +1,82 @@
 import logging.handlers
 import time
 from datetime import timedelta
-from typing import Any, cast, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 import requests
 import ts3  # type: ignore
 from pydantic.main import BaseModel
 from sqlalchemy.orm import load_only
 
-from ts3bot import bot as ts3_bot, events
+from ts3bot import bot as ts3_bot
+from ts3bot import events
 from ts3bot.database import models
-from ts3bot.utils import data_path, VERSION
+from ts3bot.utils import VERSION, data_path
 
 # Global session
 session = requests.Session()
 
 
-class NotFoundException(Exception):
+class NotFoundError(Exception):
     pass
 
 
-class RateLimitException(Exception):
+class RateLimitError(Exception):
     pass
 
 
-class InvalidKeyException(Exception):
+class InvalidKeyError(Exception):
     pass
 
 
-class ApiErrBadData(Exception):
+class ApiErrBadDataError(Exception):
     pass
 
 
-ServerGroup = TypedDict("ServerGroup", {"sgid": int, "name": str})
-SyncGroupChanges = TypedDict(
-    "SyncGroupChanges", {"removed": List[str], "added": List[str]}
-)
+class ServerGroup(TypedDict):
+    sgid: int
+    name: str
+
+
+class SyncGroupChanges(TypedDict):
+    removed: list[str]
+    added: list[str]
 
 
 def limit_fetch_api(
     endpoint: str,
-    api_key: Optional[str] = None,
+    api_key: str | None = None,
     level: int = 0,
     exc: Exception = None,
-) -> Dict:
+) -> dict:
     if level >= 3:
-        if isinstance(exc, RateLimitException):
-            raise RateLimitException("Encountered rate limit after waiting 3 times.")
+        if isinstance(exc, RateLimitError):
+            raise RateLimitError("Encountered rate limit after waiting 3 times.")
         else:
-            raise ApiErrBadData("Encountered ErrBadData even after retrying 3 times.")
+            raise ApiErrBadDataError(
+                "Encountered ErrBadData even after retrying 3 times."
+            )
 
     try:
         return fetch_api(endpoint, api_key)
-    except ApiErrBadData as e:
+    except ApiErrBadDataError as e:
         logging.warning("Got ErrBadData from API, retrying.")
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
-    except RateLimitException as e:
+    except RateLimitError as e:
         logging.warning("Got rate-limited, waiting 1 minute.")
         time.sleep(60)
         return limit_fetch_api(endpoint, api_key, level=level + 1, exc=e)
 
 
-def fetch_api(endpoint: str, api_key: Optional[str] = None) -> Dict[str, Any]:
+def fetch_api(endpoint: str, api_key: str | None = None) -> dict[str, Any]:
     """
 
     :param endpoint: The API (v2) endpoint to request
     :param api_key: Optional api key
     :return: Optional[dict]
-    :raises InvalidKeyException An invalid API key was given
-    :raises NotFoundException The endpoint was not found
-    :raises RateLimitException Rate limit of 600/60s was hit, try again later
+    :raises InvalidKeyError An invalid API key was given
+    :raises NotFoundError The endpoint was not found
+    :raises RateLimitError Rate limit of 600/60s was hit, try again later
     :raises RequestException API on fire
     """
     session.headers.update(
@@ -94,17 +101,17 @@ def fetch_api(endpoint: str, api_key: Optional[str] = None) -> Dict[str, Any]:
         and api_key
         and ("Invalid" in response.text or "invalid" in response.text)
     ):  # Invalid API key
-        raise InvalidKeyException()
+        raise InvalidKeyError()
 
     if response.status_code == 400 and "ErrBadData" in response.text:
-        raise ApiErrBadData()
+        raise ApiErrBadDataError()
 
     if response.status_code == 200:
-        return cast(Dict[str, Any], response.json())
+        return cast(dict[str, Any], response.json())
     elif response.status_code == 404:
-        raise NotFoundException()
+        raise NotFoundError()
     elif response.status_code == 429:  # Rate limit
-        raise RateLimitException()
+        raise RateLimitError()
 
     logging.warning(response.text)
     logging.exception("Failed to fetch API")
@@ -127,11 +134,12 @@ def transfer_registration(
     account: models.Account,
     event: events.TextMessage,
     is_admin: bool = False,
-    target_identity: Optional[models.Identity] = None,
-    target_dbid: Optional[str] = None,
+    target_identity: models.Identity | None = None,
+    target_dbid: str | None = None,
 ) -> None:
     """
-    Transfers a registration and server/guild groups to the sender of the event or the target_guid
+    Transfers a registration and server/guild groups to the sender of the event or
+              the target_guid
     :param bot: The current bot instance
     :param account: The account that should be re-registered for the target user
     :param event: The sender of the text message, usually the one who gets permissions
@@ -143,10 +151,7 @@ def transfer_registration(
 
     # Get identity from event if necessary
     if not target_identity:
-        # TODO: Remove workaround once mypy gets its shit together https://github.com/python/mypy/pull/9956
-        target_identity = cast(
-            models.Identity, models.Identity.get_or_create(bot.session, event.uid)
-        )
+        target_identity = models.Identity.get_or_create(bot.session, event.uid)
 
     # Get database id if necessary
     if not target_dbid:
@@ -164,9 +169,9 @@ def transfer_registration(
     guild_groups = account.guild_groups()
 
     # Get previous identity
-    previous_identity: Optional[
-        models.LinkAccountIdentity
-    ] = account.valid_identities.one_or_none()
+    previous_identity: models.LinkAccountIdentity | None = (
+        account.valid_identities.one_or_none()
+    )
 
     # Remove previous identities, also removes guild groups
     account.invalidate(bot.session)
@@ -245,7 +250,7 @@ def set_client_description(bot: ts3_bot.Bot, clid: str, description: str) -> Non
 def sync_groups(
     bot: ts3_bot.Bot,
     cldbid: str,
-    account: Optional[models.Account],
+    account: models.Account | None,
     remove_all: bool = False,
     skip_whitelisted: bool = False,
 ) -> SyncGroupChanges:
@@ -311,27 +316,25 @@ def sync_groups(
 
     # Get groups the user is allowed to have
     if account and account.is_valid and not remove_all:
-        valid_guild_groups: List[models.LinkAccountGuild] = account.guild_groups()
-        valid_world_group: Optional[models.WorldGroup] = account.world_group(
-            bot.session
-        )
+        valid_guild_groups: list[models.LinkAccountGuild] = account.guild_groups()
+        valid_world_group: models.WorldGroup | None = account.world_group(bot.session)
     else:
         valid_guild_groups = []
         valid_world_group = None
 
     valid_guild_group_ids = cast(
-        List[int], [g.guild.group_id for g in valid_guild_groups]
+        list[int], [g.guild.group_id for g in valid_guild_groups]
     )
     valid_guild_mapper = {g.guild.group_id: g for g in valid_guild_groups}
 
     # Get all valid groups
-    world_groups: List[int] = [
+    world_groups: list[int] = [
         _.group_id
         for _ in bot.session.query(models.WorldGroup).options(
             load_only(models.WorldGroup.group_id)
         )
     ]
-    guild_groups: List[int] = [
+    guild_groups: list[int] = [
         _.group_id
         for _ in bot.session.query(models.Guild)
         .filter(models.Guild.group_id.isnot(None))

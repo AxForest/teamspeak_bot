@@ -1,4 +1,4 @@
-from typing import Any, Type, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 from sqlalchemy.sql.type_api import TypeEngine
 
@@ -14,5 +14,5 @@ if TYPE_CHECKING:
 
     class SqlAlchemyEnum(TypeEngine[T]):
         # https://github.com/dropbox/sqlalchemy-stubs/issues/114
-        def __init__(self, enum: Type[T], **kwargs: Any) -> None:
+        def __init__(self, enum: type[T], **kwargs: Any) -> None:
             ...

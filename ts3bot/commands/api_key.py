@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import cast, Match, Optional
+from typing import Match, cast
 
 import ts3  # type: ignore
 from requests import RequestException
@@ -8,11 +8,11 @@ from sqlalchemy.orm.dynamic import AppenderQuery
 
 import ts3bot
 from ts3bot import (
-    ApiErrBadData,
+    ApiErrBadDataError,
+    InvalidKeyError,
+    RateLimitError,
     events,
     fetch_api,
-    InvalidKeyException,
-    RateLimitException,
     sync_groups,
 )
 from ts3bot.bot import Bot
@@ -31,7 +31,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         account_info = fetch_api("account", api_key=key)
 
         # Grab server info from database
-        server_group: Optional[models.WorldGroup] = (
+        server_group: models.WorldGroup | None = (
             bot.session.query(models.WorldGroup)
             .filter(models.WorldGroup.world == enums.World(account_info.get("world")))
             .one_or_none()
@@ -47,9 +47,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             )
 
             # Check if account is registered to anyone
-            linked_identity: Optional[
-                models.LinkAccountIdentity
-            ] = account.valid_identities.one_or_none()
+            linked_identity: models.LinkAccountIdentity | None = (
+                account.valid_identities.one_or_none()
+            )
 
             # Account is already linked
             if linked_identity:
@@ -83,7 +83,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                         return
 
                     logging.warning(
-                        "%s (%s) tried to use an already registered API key/account. (%s)",
+                        (
+                            "%s (%s) tried to use an already registered "
+                            "API key/account. (%s)"
+                        ),
                         event.name,
                         event.uid,
                         account_info.get("name"),
@@ -91,11 +94,13 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                     bot.send_message(event.id, "token_in_use", api_name=force_key_name)
                 else:  # Account is linked to current guid
                     logging.info(
-                        "User {} ({}) tried to register a second time for whatever reason using {}".format(
-                            event.name,
-                            event.uid,
-                            account_info.get("name", "Unknown account"),
-                        )
+                        (
+                            "User %s (%s) tried to register a second time for "
+                            "whatever reason using %s"
+                        ),
+                        event.name,
+                        event.uid,
+                        account_info.get("name", "Unknown account"),
                     )
 
                     # Save new API key
@@ -111,9 +116,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                         ts3bot.timedelta_hours(
                             datetime.datetime.today() - account.last_check
                         )
-                        >= 0.2
+                        >= 0.2  # noqa: PLR2004
                     ):
-                        # Update saved account info if same API key was posted again with a reasonable time frame
+                        # Update saved account info if same API key was posted again
+                        # within a reasonable time frame
                         account.update(bot.session)
                         try:
                             # Get user's DB id
@@ -207,8 +213,8 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
                 world=enums.World(account_info.get("world")).proper_name,
             )
 
-    except InvalidKeyException:
+    except InvalidKeyError:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token_retry")
-    except (RateLimitException, RequestException, ApiErrBadData):
+    except (RateLimitError, RequestException, ApiErrBadDataError):
         bot.send_message(event.id, "error_api")

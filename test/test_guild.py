@@ -1,15 +1,13 @@
 import datetime
 import re
-from typing import Any, cast, Match
-
-from ._base import BaseTest  # type: ignore
-from ._base import sample_data
-from ts3.response import TS3Event  # type: ignore
+from typing import Any, Match, cast
 
 from ts3bot import events
-from ts3bot.commands.guild import handle, MESSAGE_REGEX
+from ts3bot.commands.guild import MESSAGE_REGEX, handle
 from ts3bot.config import env
 from ts3bot.database import enums, models
+
+from ._base import BaseTest, sample_data
 
 
 class GuildTest(BaseTest):

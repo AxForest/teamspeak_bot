@@ -1,11 +1,11 @@
 import datetime
 import logging
-from typing import Any, cast, Iterable, Optional
+from typing import Any, Iterable, cast
 
 import requests
 import ts3  # type: ignore
 from sqlalchemy import and_, func, or_
-from sqlalchemy.orm import load_only, Session
+from sqlalchemy.orm import Session
 
 import ts3bot
 from ts3bot.bot import Bot
@@ -20,7 +20,7 @@ class Cycle:
         verify_all: bool,
         verify_linked_worlds: bool,
         verify_ts3: bool,
-        verify_world: Optional[int] = None,
+        verify_world: int | None = None,
     ):
         if any(
             x is None
@@ -35,13 +35,13 @@ class Cycle:
         self.verify_ts3 = verify_ts3
 
         if verify_world:
-            self.verify_world: Optional[enums.World] = enums.World(verify_world)
+            self.verify_world: enums.World | None = enums.World(verify_world)
         else:
             self.verify_world = None
 
         self.verify_begin = datetime.datetime.today()
 
-    def revoke(self, account: Optional[models.Account], cldbid: str) -> None:
+    def revoke(self, account: models.Account | None, cldbid: str) -> None:
         if account:
             account.invalidate(self.session)
 
@@ -137,9 +137,9 @@ class Cycle:
                         account.update(self.session)
                         # Sync groups
                         ts3bot.sync_groups(self.bot, cldbid, account)
-                    except ts3bot.InvalidKeyException:
+                    except ts3bot.InvalidKeyError:
                         self.revoke(account, cldbid)
-                    except ts3bot.ApiErrBadData:
+                    except ts3bot.ApiErrBadDataError:
                         logging.warning(
                             "Got ErrBadData for this account after multiple attempts."
                         )
@@ -226,11 +226,12 @@ class Cycle:
 
             try:
                 account.update(self.session)
-            except ts3bot.InvalidKeyException:
+            except ts3bot.InvalidKeyError:
                 pass
-            except ts3bot.ApiErrBadData:
+            except ts3bot.ApiErrBadDataError:
                 logging.warning(
-                    "Got ErrBadData for this account after multiple attempts, ignoring for now."
+                    "Got ErrBadData for this account after "
+                    "multiple attempts, ignoring for now."
                 )
             except requests.RequestException:
                 logging.exception("Error during API call")

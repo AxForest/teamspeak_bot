@@ -7,7 +7,6 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-from . import models
 from .models.base import Base
 
 

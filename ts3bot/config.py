@@ -1,5 +1,5 @@
 import re
-from typing import Any, Literal, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal
 
 import pydantic
 
@@ -56,7 +56,7 @@ class Environment(pydantic.BaseSettings):
 
             return cls.json_loads(raw_val)  # type: ignore
 
-    sentry_dsn: Optional[str] = None
+    sentry_dsn: str | None = None
     database_uri: str
 
     # Teamspeak connection settings
@@ -67,7 +67,7 @@ class Environment(pydantic.BaseSettings):
     protocol: Literal["telnet", "ssh"] = "telnet"
 
     # Channel for the reset sheet
-    sheet_channel_id: Optional[int]
+    sheet_channel_id: int | None
 
     # Generic World/Guild groups
     generic_world_id: int
@@ -85,9 +85,9 @@ class Environment(pydantic.BaseSettings):
     bot_password: str
 
     # Verfication cronjob credentials
-    cycle_nickname: Optional[str]
-    cycle_username: Optional[str]
-    cycle_password: Optional[str]
+    cycle_nickname: str | None
+    cycle_username: str | None
+    cycle_password: str | None
 
     # List of commands that should be loaded
     commands: list[str] = [
@@ -124,7 +124,7 @@ class Environment(pydantic.BaseSettings):
     assign_guild_on_register: bool = False
 
     # Guild group template for !admin guild add
-    guild_group_template: Optional[int]
+    guild_group_template: int | None
 
     # Invalid API retry amount
     retry_invalid_api_key: int = 5

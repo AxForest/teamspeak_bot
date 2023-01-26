@@ -1,8 +1,8 @@
 import datetime
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Column, types
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import Session, relationship
 
 from ts3bot.database.models.base import Base
 

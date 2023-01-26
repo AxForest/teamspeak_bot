@@ -1,7 +1,7 @@
 # teamspeak_bot
 A TeamSpeak bot for assigning server groups based on the user's world in Guild Wars 2.
 
-# Requirements 
+# Requirements
 - Python 3.10+
 - Python libs listed in [pypoetry.toml](pypoetry.toml)
 - [poetry](https://python-poetry.org/) or boredom
@@ -39,13 +39,12 @@ Cycle has additional switches, which allow you to
 - only/also verify users on a certain world (`--world id`**),
 - and also include all users currently known to TS3 (`--ts3`**).  
 
-The last option is part of the default behaviour, where first everyone known to 
-the TS3 server and then 
-all other accounts in the database are checked***.  
+The last option is part of the default behaviour, where first everyone known to
+the TS3 server and then all other accounts in the database are checked***.
 
-These switches allow you to set the linked servers and only verify all related 
+These switches allow you to set the linked servers and only verify all related
 users before the relink hits the live servers for a smoother user experience
-(e.g. `cycle --relink --world 2201` to verify the new link and remove the 
+(e.g. `cycle --relink --world 2201` to verify the new link and remove the
 permissions of the previous link).
 
 *: This will ignore `cycle_hours`  

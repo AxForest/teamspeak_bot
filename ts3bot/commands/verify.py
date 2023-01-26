@@ -3,7 +3,7 @@ from typing import Match
 import requests
 import ts3  # type: ignore
 
-from ts3bot import ApiErrBadData, events, InvalidKeyException, sync_groups
+from ts3bot import ApiErrBadDataError, InvalidKeyError, events, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import env
 from ts3bot.database import enums, models
@@ -69,7 +69,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             user=account.name,
             world=account.world.proper_name,
         )
-    except InvalidKeyException:
+    except InvalidKeyError:
         bot.send_message(event.id, "invalid_token")
 
         # Invalidate link
@@ -77,5 +77,5 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         changes = sync_groups(bot, cldbid, account)
 
         bot.send_message(event.id, "groups_removed", groups=str(changes["removed"]))
-    except (requests.RequestException, ApiErrBadData):
+    except (requests.RequestException, ApiErrBadDataError):
         bot.send_message(event.id, "error_api")

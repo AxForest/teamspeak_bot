@@ -1,7 +1,7 @@
 """Init
 
 Revision ID: 40a5381846f2
-Revises: 
+Revises:
 Create Date: 2020-04-06 13:14:13.560467
 
 """

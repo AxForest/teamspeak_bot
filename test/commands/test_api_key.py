@@ -1,12 +1,11 @@
 import re
 from test._base import BaseTest, sample_data
-from typing import Any, cast, Match
+from typing import Any, Match, cast
 
-import requests_mock  # type: ignore
-from ts3.response import TS3Event  # type: ignore
+import requests_mock
 
 from ts3bot import events
-from ts3bot.commands.api_key import handle, MESSAGE_REGEX
+from ts3bot.commands.api_key import MESSAGE_REGEX, handle
 from ts3bot.config import env
 from ts3bot.database import models
 
@@ -92,7 +91,7 @@ class ApiKeyTest(BaseTest):
             cast(Match[Any], re.match(MESSAGE_REGEX, sample_data.API_KEY_VALID)),
         )
 
-        self.bot.send_message.assert_called_with("1", "welcome_registered_3")  # type: ignore
+        self.bot.send_message.assert_called_with("1", "welcome_registered_3")
 
         # Create valid entry
         handle(
@@ -106,7 +105,7 @@ class ApiKeyTest(BaseTest):
             cast(Match[Any], re.match(MESSAGE_REGEX, sample_data.API_KEY_VALID_OTHER)),
         )
 
-        self.bot.send_message.assert_called_with(  # type: ignore
+        self.bot.send_message.assert_called_with(
             "1", "registration_update", account="User.4321"
         )
 
@@ -178,7 +177,7 @@ class ApiKeyTest(BaseTest):
             cast(Match[Any], re.match(MESSAGE_REGEX, sample_data.API_KEY_DUPLICATE)),
         )
 
-        self.bot.send_message.assert_called_with("2", "registration_exists")  # type: ignore
+        self.bot.send_message.assert_called_with("2", "registration_exists")
 
     def test_invalid_key(self) -> None:
         handle(
@@ -191,7 +190,7 @@ class ApiKeyTest(BaseTest):
             ),
             cast(Match[Any], re.match(MESSAGE_REGEX, sample_data.API_KEY_INVALID)),
         )
-        self.bot.send_message.assert_called_with("2", "invalid_token_retry")  # type: ignore
+        self.bot.send_message.assert_called_with("2", "invalid_token_retry")
 
     def test_invalid_response(self) -> None:
         handle(

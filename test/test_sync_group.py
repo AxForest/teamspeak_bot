@@ -1,11 +1,14 @@
 import datetime
 
-from ._base import BaseTest  # type: ignore
-from ._base import MOCK_RESPONSES, sample_data
-
-from ts3bot import sync_groups, User
+from ts3bot import User, sync_groups
 from ts3bot.config import env
 from ts3bot.database import enums, models
+
+from ._base import (
+    MOCK_RESPONSES,
+    BaseTest,
+    sample_data,
+)
 
 
 class CommonTest(BaseTest):
@@ -50,7 +53,7 @@ class CommonTest(BaseTest):
 
         self.session.commit()
 
-    def test_User(self) -> None:
+    def test_user(self) -> None:
         common_init = {
             "id": 1,
             "db_id": 1,
@@ -63,7 +66,10 @@ class CommonTest(BaseTest):
 
         self.assertEqual(
             repr(user_de),
-            "User(id=1, db_id=1, unique_id='abc', nickname='User', country='DE', total_connections=1)",
+            (
+                "User(id=1, db_id=1, unique_id='abc', "
+                "nickname='User', country='DE', total_connections=1)"
+            ),
         )
 
         user_other = User(country="FR", **common_init)

@@ -1,9 +1,9 @@
 import logging
-from typing import Match, Optional
+from typing import Match
 
 import ts3  # type: ignore
 
-from ts3bot import ApiErrBadData, events, fetch_api, InvalidKeyException, sync_groups
+from ts3bot import ApiErrBadDataError, InvalidKeyError, events, fetch_api, sync_groups
 from ts3bot.bot import Bot
 from ts3bot.config import env
 from ts3bot.database import models
@@ -31,9 +31,9 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
             return
 
         # Get previous identity
-        previous_identity: Optional[
-            models.LinkAccountIdentity
-        ] = account.valid_identities.one_or_none()
+        previous_identity: models.LinkAccountIdentity | None = (
+            account.valid_identities.one_or_none()
+        )
 
         # Remove previous links
         account.invalidate(bot.session)
@@ -66,8 +66,8 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
         else:
             bot.send_message(event.id, "groups_revoked", amount="0", groups=[])
-    except InvalidKeyException:
+    except InvalidKeyError:
         logging.info("This seems to be an invalid API key.")
         bot.send_message(event.id, "invalid_token")
-    except ApiErrBadData:
+    except ApiErrBadDataError:
         bot.send_message(event.id, "error_api")

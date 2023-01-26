@@ -4,13 +4,13 @@ import re
 import types
 from importlib import import_module
 from pathlib import Path
-from typing import Any, AnyStr, cast, Dict, List, Match, Optional, Union
+from typing import Any, AnyStr, Match, Optional, cast
 
 import i18n  # type: ignore
 import requests
 import ts3  # type: ignore
 from sqlalchemy import exc
-from sqlalchemy.orm import load_only, Session
+from sqlalchemy.orm import Session, load_only
 from ts3.response import TS3QueryResponse  # type: ignore
 
 import ts3bot
@@ -33,7 +33,7 @@ class Bot:
     def __init__(
         self, session: Session, connect: bool = True, is_cycle: bool = False
     ) -> None:
-        self.users: Dict[str, ts3bot.User] = {}
+        self.users: dict[str, ts3bot.User] = {}
         self.session = session
         self.is_cycle = is_cycle
 
@@ -41,7 +41,7 @@ class Bot:
             self.client_nick = env.cycle_nickname
         else:
             # Register commands
-            self.commands: List[Command] = []
+            self.commands: list[Command] = []
             for _ in commands.__commands__:
                 # Check if command is *not* in our list
                 if _ not in env.commands:
@@ -62,7 +62,7 @@ class Bot:
 
             self.client_nick = env.bot_nickname
 
-        self.ts3c: Optional[ts3.query.TS3ServerConnection] = None
+        self.ts3c: ts3.query.TS3ServerConnection | None = None
         self.own_id: int = 0
         self.own_uid: str = ""
 
@@ -222,7 +222,8 @@ class Bot:
 
     def create_user(self, client_id: str) -> bool:
         """
-        Caches the user into our local user list, returns False if an error occured or the user left too quickly
+        Caches the user into our local user list, returns False if an error occured or
+        the user left too quickly
         :param client_id:
         :return:
         """
@@ -253,7 +254,7 @@ class Bot:
         recipient: str,
         msg: str,
         is_translation: bool = True,
-        **i18n_kwargs: Union[AnyStr, List, int, float],
+        **i18n_kwargs: AnyStr | list | int | float,
     ) -> None:
         if not recipient:
             logging.error("Got invalid recipient %s", recipient)
@@ -315,7 +316,7 @@ class Bot:
         # Get all current groups
         server_groups = self.exec_("servergroupsbyclientid", cldbid=client_database_id)
 
-        known_groups: List[int] = (
+        known_groups: list[int] = (
             [
                 _.group_id
                 for _ in self.session.query(ts3bot.database.models.WorldGroup).options(
@@ -373,12 +374,12 @@ class Bot:
             account.update(self.session)
             # Sync groups
             ts3bot.sync_groups(self, client_database_id, account)
-        except ts3bot.InvalidKeyException:
+        except ts3bot.InvalidKeyError:
             revoked("groups_revoked_invalid_key")
         except (
             requests.RequestException,
-            ts3bot.RateLimitException,
-            ts3bot.ApiErrBadData,
+            ts3bot.RateLimitError,
+            ts3bot.ApiErrBadDataError,
         ):
             logging.exception("Error during API call")
 

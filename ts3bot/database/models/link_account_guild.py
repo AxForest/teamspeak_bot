@@ -1,8 +1,8 @@
 import logging
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from sqlalchemy import and_, Column, ForeignKey, types
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy import Column, ForeignKey, and_, types
+from sqlalchemy.orm import Session, relationship
 
 from ts3bot.database.models.base import Base
 
@@ -42,7 +42,11 @@ class LinkAccountGuild(Base):  # type: ignore
     guild = relationship("Guild", back_populates="members", cascade="all, delete")
 
     def __str__(self) -> str:
-        return f"<LinkAccountGuild account={self.account.name} guild={self.guild.name} is_leader={self.is_leader}>"
+        return (
+            f"<LinkAccountGuild account={self.account.name} "
+            f"guild={self.guild.name} "
+            f"is_leader={self.is_leader}>"
+        )
 
     def __repr__(self) -> str:
         return str(self)

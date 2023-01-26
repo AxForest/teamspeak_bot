@@ -22,6 +22,19 @@ coverage = "*"
 types-requests = "^2.27.26"
 types-setuptools = "^65.7.0.3"
 
+[tool.black]
+target-version = ['py310']
+
+[tool.ruff]
+fix = true
+select = ["E", "F", "I", "UP", "N", "B", "Q", "PLC", "PLE", "PLR", "PLW"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"ts3bot/database/migrations/env.py" = ["E402"]
+"ts3bot/__init__.py" = ["PLR2004"]
+
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

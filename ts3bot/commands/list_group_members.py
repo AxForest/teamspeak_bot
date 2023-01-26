@@ -1,4 +1,4 @@
-from typing import cast, Match
+from typing import Match, cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
@@ -6,6 +6,9 @@ from ts3bot.config import env
 
 MESSAGE_REGEX = "!list +([\\w\\- ]+)"
 USAGE = "!list <TS Group>"
+
+MAX_MEMBER_AMOUNT = 50
+MAX_MESSAGE_SIZE = 1024
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -45,7 +48,7 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
     members = sorted(members, key=lambda x: cast(str, _.get("client_nickname", "")))
 
-    if len(members) >= 50:
+    if len(members) >= MAX_MEMBER_AMOUNT:
         bot.send_message(event.id, "list_50_users")
         return
 
@@ -55,7 +58,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         member_text = "\n- [URL=client://0/{}]{}[/URL]".format(
             member["client_unique_identifier"], member["client_nickname"]
         )
-        if len(text_groups[index]) + len(bytes(member_text, "utf-8")) >= 1024:
+        if (
+            len(text_groups[index]) + len(bytes(member_text, "utf-8"))
+            >= MAX_MESSAGE_SIZE
+        ):
             index += 1
             text_groups.append("")
 

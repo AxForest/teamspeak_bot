@@ -1,6 +1,6 @@
 import argparse
 import enum
-from typing import Any, NoReturn, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from ts3bot import events
 
@@ -65,7 +65,10 @@ class ArgParse(argparse.ArgumentParser):
 
             raise ArgumentError(
                 action,
-                f"Invalid choice: {value} (valid options: {', '.join(map(repr, action.choices))})",
+                (
+                    f"Invalid choice: {value} "
+                    f"(valid options: {', '.join(map(repr, action.choices))})"
+                ),
             )
 
     def parse_event(self, event: events.TextMessage) -> argparse.Namespace:
@@ -102,7 +105,7 @@ class EnumAction(argparse.Action):
         # Generate choices from the enum
         kwargs.setdefault("choices", tuple(str(e.value) for e in enum_type))
 
-        super(EnumAction, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self._enum = enum_type
 
@@ -111,7 +114,7 @@ class EnumAction(argparse.Action):
         parser: argparse.ArgumentParser,
         namespace: argparse.Namespace,
         values: Any,
-        option_string: Optional[str] = None,
+        option_string: str | None = None,
     ) -> None:
         """Convert value back into an enum"""
 

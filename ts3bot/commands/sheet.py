@@ -1,7 +1,7 @@
 import datetime
 import json
 import re
-from typing import cast, ItemsView, List, Literal, Match, Optional, TypedDict
+from typing import ItemsView, Literal, Match, TypedDict, cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
@@ -11,16 +11,23 @@ from ts3bot.utils import data_path
 MESSAGE_REGEX = "!sheet\\s* (\\w+)(.*)"
 USAGE = "!sheet <ebg,red,green,blue,remove> [note]"
 STATE_FILE = data_path("sheet.json")
+MAX_LEADS_PER_MAP = 2
 
-LeadDict = TypedDict("LeadDict", {"lead": str, "note": str, "date": str})
-IterType = ItemsView[Literal["EBG", "Red", "Green", "Blue"], List[LeadDict]]
+
+class LeadDict(TypedDict):
+    lead: str
+    note: str
+    date: str
+
+
+IterType = ItemsView[Literal["EBG", "Red", "Green", "Blue"], list[LeadDict]]
 
 
 class CommandingDict(TypedDict):
-    EBG: List[LeadDict]
-    Red: List[LeadDict]
-    Green: List[LeadDict]
-    Blue: List[LeadDict]
+    EBG: list[LeadDict]
+    Red: list[LeadDict]
+    Green: list[LeadDict]
+    Blue: list[LeadDict]
 
 
 def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
@@ -32,7 +39,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
     if match.group(1) == "help" and event.uid in env.admin_whitelist:
         bot.send_message(
             event.id,
-            "!sheet <ebg,red,green,blue,remove,reset>\n!sheet set <ebg,red,green,blue,remove> <name>",
+            (
+                "!sheet <ebg,red,green,blue,remove,reset>\n"
+                "!sheet set <ebg,red,green,blue,remove> <name>"
+            ),
             is_translation=False,
         )
         return
@@ -90,7 +100,10 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
         return
 
     # Build new table
-    desc = "[table][tr][td] | Map | [/td][td] | Lead | [/td][td] | Note | [/td][td] | Date | [/td][/tr]"
+    desc = (
+        "[table][tr][td] | Map | [/td][td] | Lead | [/td][td] | Note | "
+        "[/td][td] | Date | [/td][/tr]"
+    )
     for _map, leads in cast(IterType, current_state.items()):
         if len(leads) == 0:
             desc += f"[tr][td]{_map}[/td][td]-[/td][td]-[/td][td]-[/td][/tr]"
@@ -98,15 +111,18 @@ def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
 
         for lead in leads:
             desc += (
-                f"[tr][td]{_map}[/td][td]{lead['lead']}[/td][td]{_encode(lead['note'])}[/td]"
+                f"[tr][td]{_map}[/td][td]{lead['lead']}"
+                f"[/td][td]{_encode(lead['note'])}[/td]"
                 f"[td]{lead['date']}[/td][/tr]"
             )
 
     desc += (
         f"[/table]\n[hr]Last change: {_tidy_date()}\n\n"
-        f"Link to bot: [URL=client://0/{bot.own_uid}]{env.bot_nickname}[/URL]\n"  # Add link to self
+        # Add link to self
+        f"Link to bot: [URL=client://0/{bot.own_uid}]{env.bot_nickname}[/URL]\n"
         "Usage:\n"
-        "- !sheet red/green/blue (note)\t—\tRegister your lead with an optional note (20 characters).\n"
+        "- !sheet red/green/blue (note)\t—\tRegister your lead with an optional "
+        "note (20 characters).\n"
         "- !sheet remove\t—\tRemove the lead"
     )
     bot.exec_("channeledit", cid=env.sheet_channel_id, channel_description=desc)
@@ -126,8 +142,8 @@ def _add_lead(
     wvw_map: str,
     note: str,
     name: str,
-    uid: Optional[str] = None,
-) -> Optional[CommandingDict]:
+    uid: str | None = None,
+) -> CommandingDict | None:
     mapping = _get_key(wvw_map)
 
     lead = f"[URL=client://0/{uid}]{name}[/URL]" if uid else name
@@ -136,7 +152,7 @@ def _add_lead(
     maps = _remove_lead(maps, name_field=lead)
 
     # Only allow two leads per map
-    if len(maps[mapping]) >= 2:
+    if len(maps[mapping]) >= MAX_LEADS_PER_MAP:
         return None
 
     maps[mapping].append(
@@ -147,8 +163,8 @@ def _add_lead(
 
 def _remove_lead(
     maps: CommandingDict,
-    name_field: Optional[str] = None,
-    uid: Optional[str] = None,
+    name_field: str | None = None,
+    uid: str | None = None,
 ) -> CommandingDict:
     def compare(_lead: LeadDict) -> bool:
         if uid:

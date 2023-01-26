@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from ._base import BaseTest  # type: ignore
-from ._base import sample_data
 from sqlalchemy import and_, or_
 
 from ts3bot.database import enums, models
+
+from ._base import BaseTest, sample_data
 
 
 class CycleAffectWorldsTest(BaseTest):
