@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import Match, cast
+from re import Match
+from typing import cast
 
 import requests
 from sqlalchemy.orm.dynamic import AppenderQuery
@@ -21,7 +22,9 @@ MESSAGE_REGEX = "!guild *([\\w ]+)?"
 USAGE = "!guild [Guild Tag]"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
+def handle(  # noqa: PLR0912,PLR0915
+    bot: Bot, event: events.TextMessage, match: Match
+) -> None:
     cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
 
     # Grab user's account

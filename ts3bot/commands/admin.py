@@ -2,7 +2,8 @@ import argparse
 import binascii
 import logging
 from io import BytesIO
-from typing import Match, Optional, cast
+from re import Match
+from typing import cast
 
 import requests
 import ts3  # type: ignore
@@ -106,13 +107,15 @@ def handle(bot: Bot, event: events.TextMessage, _match: Match) -> None:
         _guild(bot, event, args)
 
 
-def _linking(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> None:
+def _linking(  # noqa: PLR0912
+    bot: Bot, event: events.TextMessage, args: argparse.Namespace
+) -> None:
     """Creates a WorldGroup or sets the linking status on said group"""
 
     # Create or update the linking's TS3 group ID
     if args.choice == "create":
         _filter = cast(
-            Optional[models.WorldGroup],
+            models.WorldGroup | None,
             bot.session.query(models.WorldGroup)
             .filter(models.WorldGroup.world == args.world_id)
             .one_or_none(),
@@ -130,7 +133,7 @@ def _linking(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> N
         # Check if world ID is taken already
         if (
             wg_instance := cast(
-                Optional[models.WorldGroup],
+                models.WorldGroup | None,
                 bot.session.query(models.WorldGroup)
                 .filter(models.WorldGroup.group_id == args.group_id)
                 .one_or_none(),
@@ -174,7 +177,7 @@ def _linking(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> N
     # Add/remove a server to/from our linking
     elif args.choice in ["add", "remove", "rm"]:
         _filter = cast(
-            Optional[models.WorldGroup],
+            models.WorldGroup | None,
             bot.session.query(models.WorldGroup)
             .filter(models.WorldGroup.world == args.world_id)
             .one_or_none(),
@@ -272,12 +275,14 @@ def _linking(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> N
             )
 
 
-def _guild(bot: Bot, event: events.TextMessage, args: argparse.Namespace) -> None:
+def _guild(  # noqa: PLR0911,PLR0912,PLR0915
+    bot: Bot, event: events.TextMessage, args: argparse.Namespace
+) -> None:
     guild_name = " ".join(args.name)
 
     try:
         guild = cast(
-            Optional[models.Guild],
+            models.Guild | None,
             bot.session.query(models.Guild)
             .filter(func.lower(models.Guild.name) == guild_name.lower())
             .one_or_none(),

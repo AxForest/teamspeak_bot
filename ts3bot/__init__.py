@@ -47,7 +47,7 @@ def limit_fetch_api(
     endpoint: str,
     api_key: str | None = None,
     level: int = 0,
-    exc: Exception = None,
+    exc: Exception | None = None,
 ) -> dict:
     if level >= 3:
         if isinstance(exc, RateLimitError):
@@ -129,7 +129,7 @@ def timedelta_hours(td: timedelta) -> float:
     return round(td.days * 24 + td.seconds / 3600, 2)
 
 
-def transfer_registration(
+def transfer_registration(  # noqa: PLR0913
     bot: ts3_bot.Bot,
     account: models.Account,
     event: events.TextMessage,
@@ -247,7 +247,7 @@ def set_client_description(bot: ts3_bot.Bot, clid: str, description: str) -> Non
         )
 
 
-def sync_groups(
+def sync_groups(  # noqa: PLR0912, PLR0915
     bot: ts3_bot.Bot,
     cldbid: str,
     account: models.Account | None,

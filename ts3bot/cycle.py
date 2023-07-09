@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import Any, Iterable, cast
+from collections.abc import Iterable
+from typing import Any, cast
 
 import requests
 import ts3  # type: ignore
@@ -14,7 +15,7 @@ from ts3bot.database import enums, models
 
 
 class Cycle:
-    def __init__(
+    def __init__(  # noqa: PLR0912,PLR0913
         self,
         session: Session,
         verify_all: bool,
@@ -95,7 +96,7 @@ class Cycle:
         # Clean up "empty" guilds
         models.Guild.cleanup(self.session)
 
-    def verify_ts3_accounts(self) -> None:
+    def verify_ts3_accounts(self) -> None:  # noqa: PLR0912
         if not self.bot.ts3c:
             raise ConnectionError("Not connected yet.")
 

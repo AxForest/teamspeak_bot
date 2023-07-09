@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import TYPE_CHECKING, Iterable, Optional, TypedDict, cast
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional, TypedDict, cast
 
 import requests
 from sqlalchemy import Column, and_, or_, types
@@ -65,7 +66,7 @@ class Account(Base):  # type: ignore
 
     def world_group(self, session: Session) -> Optional["WorldGroup"]:
         return cast(
-            Optional[WorldGroup],
+            WorldGroup | None,
             session.query(WorldGroup)
             .filter(WorldGroup.world == self.world)
             .one_or_none(),
@@ -98,7 +99,7 @@ class Account(Base):  # type: ignore
     def get_by_api_info(session: Session, guid: str, name: str) -> Optional["Account"]:
         # TODO: Remove name after GUID migration
         return cast(
-            Optional[Account],
+            Account | None,
             session.query(Account)
             .filter(or_(Account.guid == guid, Account.name == name))
             .one_or_none(),
@@ -159,7 +160,7 @@ class Account(Base):  # type: ignore
 
         session.commit()
 
-    def update(self, session: Session) -> AccountUpdateDict:
+    def update(self, session: Session) -> AccountUpdateDict:  # noqa: PLR0912,PLR0915
         """
         Updates and saves an accounts's detail
 

@@ -1,7 +1,9 @@
 import datetime
 import json
 import re
-from typing import ItemsView, Literal, Match, TypedDict, cast
+from collections.abc import ItemsView
+from re import Match
+from typing import Literal, TypedDict, cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
@@ -30,7 +32,7 @@ class CommandingDict(TypedDict):
     Blue: list[LeadDict]
 
 
-def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:  # noqa: PLR0912
     if not env.sheet_channel_id:
         return
 

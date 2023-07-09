@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import Match, cast
+from re import Match
+from typing import cast
 
 import ts3  # type: ignore
 from requests import RequestException
@@ -23,7 +24,9 @@ MESSAGE_REGEX = "\\s*(\\w{8}(-\\w{4}){3}-\\w{20}(-\\w{4}){3}-\\w{12})\\s*"
 USAGE = "<API KEY>"
 
 
-def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
+def handle(  # noqa: PLR0912,PLR0915
+    bot: Bot, event: events.TextMessage, match: Match
+) -> None:
     key = match.group(1)
 
     # Check with ArenaNet's API

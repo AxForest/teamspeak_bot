@@ -4,7 +4,8 @@ import re
 import types
 from importlib import import_module
 from pathlib import Path
-from typing import Any, AnyStr, Match, Optional, cast
+from re import Match
+from typing import Any, AnyStr, cast
 
 import i18n  # type: ignore
 import requests
@@ -138,7 +139,7 @@ class Bot:
 
                 self.handle_event(event)
 
-    def handle_event(self, event: ts3.response.TS3Event) -> None:
+    def handle_event(self, event: ts3.response.TS3Event) -> None:  # noqa: PLR0912
         evt = events.Event.from_event(event)
 
         # Drop event silently if invalid
@@ -291,7 +292,7 @@ class Bot:
         """
 
         def revoked(response: str) -> None:
-            l_account = cast(Optional[models.Account], account)
+            l_account = cast(models.Account | None, account)
             if l_account:
                 l_account.invalidate(self.session)
 

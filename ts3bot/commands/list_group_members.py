@@ -1,4 +1,5 @@
-from typing import Match, cast
+from re import Match
+from typing import cast
 
 from ts3bot import events
 from ts3bot.bot import Bot
@@ -11,7 +12,7 @@ MAX_MEMBER_AMOUNT = 50
 MAX_MESSAGE_SIZE = 1024
 
 
-def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:
+def handle(bot: Bot, event: events.TextMessage, match: Match) -> None:  # noqa: PLR0912
     cldbid = bot.exec_("clientgetdbidfromuid", cluid=event.uid)[0]["cldbid"]
     user_groups = bot.exec_("servergroupsbyclientid", cldbid=cldbid)
     allowed = False

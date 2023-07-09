@@ -1,5 +1,5 @@
 import logging
-from typing import Match
+from re import Match
 
 import ts3  # type: ignore
 from requests import RequestException

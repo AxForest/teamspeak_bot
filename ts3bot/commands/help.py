@@ -1,4 +1,4 @@
-from typing import Match
+from re import Match
 
 import i18n  # type: ignore
 

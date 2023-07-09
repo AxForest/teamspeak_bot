@@ -1,6 +1,7 @@
 import re
+from re import Match
 from test._base import BaseTest, sample_data
-from typing import Any, Match, cast
+from typing import Any, cast
 
 import requests_mock
 

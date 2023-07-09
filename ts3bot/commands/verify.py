@@ -1,4 +1,4 @@
-from typing import Match
+from re import Match
 
 import requests
 import ts3  # type: ignore
