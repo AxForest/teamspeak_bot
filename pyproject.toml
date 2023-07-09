@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ts3bot"
-version = "0.1.1"
+version = "0.2.0"
 description = "A TeamSpeak bot for assigning server groups based on the user's world in Guild Wars 2."
 authors = ["Yannick Linke <invisi@0x0f.net>"]
 license = "GPL-3.0"
