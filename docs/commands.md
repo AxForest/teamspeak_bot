@@ -37,7 +37,7 @@ Note that everyone in a whitelisted group will be able to list any group.
 
 ## !register database-id api-key (¬)
 If the GW2 account is already registered, (generic) world and guild groups are transferred to the new user.
-Otherwise the new user is simply registered as always. The new user's registration is overwritten, in case it exists.
+Otherwise, the new user is simply registered as always. The new user's registration is overwritten, in case it exists.
 
 ## !sheet <ebg, red, green, blue, remove> [note]
 Renders a little table in the channel description defined by `sheet_channel_id`.
@@ -46,12 +46,12 @@ Removing a lead or setting a note is currently not yet supported for admins.
 
 Admin syntax: `!sheet set <ebg, red, green, blue> [lead name]`
 
-Map | Lead | Note | Date
---- | --- | --- | ---
-EBG | User | - | 05.07. 20:47
-Red | Red Guard | Bring mesmers | 05.07. 20:47
-Green | - | - | -
-Blue | - | - | -
+| Map   | Lead      | Note          | Date         |
+|-------|-----------|---------------|--------------|
+| EBG   | User      | -             | 05.07. 20:47 |
+| Red   | Red Guard | Bring mesmers | 05.07. 20:47 |
+| Green | -         | -             | -            |
+| Blue  | -         | -             | -            |
 
 ## !verify database-id|unique-id (¬)
 Forces verification/group synchronisation immediately for specified user.  

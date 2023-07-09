@@ -2,7 +2,7 @@
 A TeamSpeak bot for assigning server groups based on the user's world in Guild Wars 2.
 
 # Requirements
-- Python 3.10+
+- Python 3.11+
 - Python libs listed in [pypoetry.toml](pypoetry.toml)
 - [poetry](https://python-poetry.org/) or boredom
 
@@ -26,8 +26,7 @@ A TeamSpeak bot for assigning server groups based on the user's world in Guild W
 - Run the bot once via `poetry run python -m ts3bot` to create an example config
 - Set the required info in `config.ini`
 - Run the bot inside tmux, screen, or as a service via `poetry run python -m ts3bot bot`
-- Run `poetry run python -m ts3bot cycle` in regul
-- ar intervals
+- Run `poetry run python -m ts3bot cycle` in regular intervals
   - Note: optional if accounts are checked on join
 
 ---
@@ -64,5 +63,5 @@ permissions of the previous link).
 # Notes
 - The bot assumes that the guest group is still called `Guest`.
 - The world group will always remain, even if a guild is selected.
-- The database **HAS TO BE*- utf8mb4/utf8mb4_bin or you will encounter strange issues.
+- The database **HAS TO BE*- utf8mb4/utf8mb4_bin, or you will encounter strange issues.
 - A guild tag must be unique, meaning there cannot be two guilds with the same tag mapped to a server group.

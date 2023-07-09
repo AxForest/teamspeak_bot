@@ -1,4 +1,4 @@
-FROM docker.io/python:3.10-slim as python-base
+FROM docker.io/python:3.11-slim as python-base
 
 LABEL maintainer="Yannick Linke <invisi@0x0f.net>"
 
@@ -11,7 +11,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     # poetry
     # https://python-poetry.org/docs/configuration/#using-environment-variables
-    POETRY_VERSION=1.3.2 \
+    POETRY_VERSION=1.5.1 \
     # make poetry install to this location
     POETRY_HOME="/opt/poetry" \
     # make poetry create the virtual environment in the project's root
