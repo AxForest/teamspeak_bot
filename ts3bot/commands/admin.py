@@ -504,7 +504,10 @@ def _download_emblem(guild_id: str) -> BytesIO | None:
     logging.debug("Fetching guild emblem of %s", guild_id)
 
     with requests.Session() as sess:
-        response = sess.get(f"https://emblem.werdes.net/emblem/{guild_id}/64")
+        response = sess.get(
+            f"https://emblem.werdes.net/emblem/{guild_id}/64",
+            params={"options": "BackgroundMaximizeAlpha,ForegroundMaximizeAlpha"},
+        )
 
         # Request was unsuccessful
         if response.status_code != 200:  # noqa: PLR2004
