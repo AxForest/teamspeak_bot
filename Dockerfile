@@ -36,7 +36,8 @@ RUN apt-get update \
         # deps for building python deps
         build-essential \
         git \
-        # Required for mysqlclient
+        # Required for mysqlclient \
+        pkg-config \
         libmariadb-dev
 
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
